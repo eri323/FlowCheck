@@ -6,12 +6,20 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "worker": "npx ts-node worker/index.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.2",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.105.4",
+    "bullmq": "^5.76.8",
+    "ioredis": "^5.10.1",
     "next": "16.2.6",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -20,6 +28,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "playwright": "^1.60.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
