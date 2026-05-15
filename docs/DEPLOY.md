@@ -95,6 +95,10 @@ Checklist post-deploy:
       (mirar logs de Railway).
 - [ ] Los screenshots aparecen en el bucket `screenshots` y se renderizan
       en `/dashboard/runs/[id]`.
+- [ ] Abrir `/dashboard/runs/[id]` mientras un run está corriendo: los pasos
+      aparecen y avanzan **sin recargar** la página. Requiere que las tablas
+      estén en la publication `supabase_realtime` (migración `0004`); el
+      `refetch()` periódico del cliente cubre cualquier evento perdido.
 - [ ] Crear un segundo usuario y confirmar que **no** ve los test_runs del
       primero (RLS).
 - [ ] Encolar 6 runs en menos de 60s → el sexto debe responder `429`.

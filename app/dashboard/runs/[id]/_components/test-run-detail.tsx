@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type TestRun = {
@@ -118,6 +118,75 @@ export function TestRunDetail({
       void supabase.removeChannel(channel);
     };
   }, [runId]);
+
+  // Reconciliación: Realtime (postgres_changes) solo entrega eventos a partir
+  // del momento en que el canal queda SUBSCRIBED. Todo INSERT/UPDATE ocurrido
+  // entre el render del servidor y esa suscripción se pierde para siempre.
+  // refetch() relee el estado autoritativo desde la DB y repuebla caseIdsRef,
+  // que es el filtro del que dependen los eventos de test_steps.
+  const refetch = useCallback(async () => {
+    const supabase = createSupabaseBrowserClient();
+
+    const [{ data: freshRun }, { data: freshCases }] = await Promise.all([
+      supabase
+        .from("test_runs")
+        .select("id, status, error_message, started_at, finished_at, created_at")
+        .eq("id", runId)
+        .maybeSingle<TestRun>(),
+      supabase
+        .from("test_cases")
+        .select("id, name, description, position, status")
+        .eq("test_run_id", runId)
+        .order("position", { ascending: true })
+        .returns<TestCase[]>(),
+    ]);
+
+    if (freshRun) setRun(freshRun);
+
+    if (freshCases) {
+      caseIdsRef.current = new Set(freshCases.map((c) => c.id));
+      setCases(freshCases);
+
+      if (freshCases.length > 0) {
+        const { data: freshSteps } = await supabase
+          .from("test_steps")
+          .select(
+            "id, test_case_id, position, action, selector, value, status, error_message, screenshot_url, duration_ms",
+          )
+          .in(
+            "test_case_id",
+            freshCases.map((c) => c.id),
+          )
+          .order("position", { ascending: true })
+          .returns<TestStep[]>();
+        if (freshSteps) setSteps(freshSteps);
+      }
+    }
+  }, [runId]);
+
+  // Cierra el hueco de la suscripción y sirve de respaldo si el WebSocket se
+  // cae a mitad del run: refetch al montar, en cada cambio de estado (incluida
+  // la transición a un estado final) y cada 3s mientras el run sigue activo.
+  useEffect(() => {
+    const isActive = run.status === "pendiente" || run.status === "corriendo";
+
+    // Diferido un tick para no encadenar renders dentro del efecto.
+    const initial = setTimeout(() => {
+      void refetch();
+    }, 0);
+
+    if (!isActive) {
+      return () => clearTimeout(initial);
+    }
+
+    const interval = setInterval(() => {
+      void refetch();
+    }, 3000);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
+  }, [run.status, refetch]);
 
   const stepsByCase = useMemo(() => {
     const map = new Map<string, TestStep[]>();

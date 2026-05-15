@@ -163,6 +163,49 @@ cuándo se activó la heurística y a dónde redirigió de verdad la app.
 
 ---
 
+## Reporte en tiempo real — reconciliación
+
+`/dashboard/runs/[id]` muestra el avance en vivo combinando dos mecanismos.
+El componente cliente `app/dashboard/runs/[id]/_components/test-run-detail.tsx`
+es el único responsable de mantener el estado sincronizado.
+
+### El problema que resuelve
+
+Supabase Realtime (`postgres_changes`) **solo entrega eventos a partir del
+momento en que el canal llega a estado `SUBSCRIBED`** — no reproduce historial.
+Los datos iniciales se leen en el servidor (`page.tsx`), pero la suscripción se
+establece después, en el cliente, dentro de un `useEffect`. Todo `INSERT`/
+`UPDATE` ocurrido en ese hueco (típicamente 1–3 s: hidratación + handshake del
+WebSocket) se pierde de forma permanente. Como el worker inserta los
+`test_cases` y `test_steps` en una ráfaga apenas responde Gemini, esa ráfaga
+suele caer dentro del hueco.
+
+Agrava el problema que la suscripción a `test_steps` **no puede filtrarse en el
+servidor** (`test_steps` no tiene columna `test_run_id`): filtra en el cliente
+contra `caseIdsRef`, un `Set` que se llena solo con los `test_cases` iniciales
+y los eventos Realtime de `test_cases`. Si esos eventos se pierden en el hueco,
+`caseIdsRef` queda vacío y **todos** los eventos posteriores de `test_steps` se
+descartan — la lista de pasos nunca se puebla hasta recargar la página.
+
+### Cómo se reconcilia
+
+La función `refetch()` relee el estado autoritativo desde la DB con el cliente
+del navegador (`test_runs` + `test_cases` + `test_steps`), reemplaza el estado
+y **repuebla `caseIdsRef`**. Se dispara:
+
+- Al montar (diferida un tick para no encadenar renders dentro del efecto) —
+  cierra el hueco de la suscripción.
+- En cada cambio de `run.status`, incluida la transición a un estado final —
+  garantiza captar el estado definitivo del run.
+- Cada 3 s mientras el run sigue activo (`pendiente`/`corriendo`) — respaldo
+  ante caídas del WebSocket; el `setInterval` se limpia al terminar el run.
+
+Realtime se mantiene como vía rápida (updates instantáneos paso a paso); el
+`refetch()` es la garantía de correctitud. La migración `0004_realtime.sql`
+debe haber añadido las tres tablas a la publication `supabase_realtime`.
+
+---
+
 ## Roadmap del proyecto
 
 ### Fase 1 — Base del proyecto
