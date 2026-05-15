@@ -9,7 +9,7 @@ ENV NODE_ENV=production
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 COPY package.json package-lock.json ./
-RUN npm ci --include=dev
+RUN npm install --include=dev --no-audit --no-fund
 
 COPY tsconfig.json ./
 COPY lib ./lib
