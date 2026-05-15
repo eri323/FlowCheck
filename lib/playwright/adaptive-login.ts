@@ -1,0 +1,276 @@
+import type { Locator, Page } from "playwright";
+
+const SUBMIT_KEYWORDS = [
+  "ingresar",
+  "entrar",
+  "acceder",
+  "iniciar sesión",
+  "iniciar sesion",
+  "iniciar",
+  "login",
+  "log in",
+  "sign in",
+  "signin",
+  "enviar",
+  "continuar",
+  "submit",
+];
+
+const SUBMIT_NAME_REGEX = new RegExp(
+  `^\\s*(?:${SUBMIT_KEYWORDS.map((kw) => kw.replace(/\s+/g, "\\s+")).join("|")})\\s*$`,
+  "i",
+);
+
+const ERROR_SELECTORS = [
+  '[role="alert"]',
+  '[role="status"]',
+  '[aria-live="assertive"]',
+  '[aria-live="polite"]',
+  ".error",
+  ".alert-danger",
+  ".alert-error",
+  ".form-error",
+  ".field-error",
+  ".invalid-feedback",
+  '[class*="toast" i]',
+  '[class*="snackbar" i]',
+  '[class*="notification" i]',
+  '[class*="error" i]',
+  '[class*="alert" i]',
+  '[data-testid*="error" i]',
+  '[data-testid*="toast" i]',
+];
+
+const OUTCOME_TIMEOUT_MS = 30_000;
+const OUTCOME_POLL_INTERVAL_MS = 400;
+const OUTCOME_GRACE_MS = 500;
+const SETTLE_TIMEOUT_MS = 2_000;
+const VISIBILITY_PROBE_TIMEOUT_MS = 1_000;
+
+const EMAIL_KEYWORDS = [
+  "email",
+  "correo",
+  "usuario",
+  "username",
+  "user",
+  "mail",
+  "login",
+];
+
+const PASSWORD_KEYWORDS = [
+  "password",
+  "contraseña",
+  "contrasena",
+  "clave",
+  "pwd",
+  "pass",
+];
+
+const EMAIL_LABEL_REGEX = /(email|correo|usuario|user(name)?|mail|login)/i;
+const PASSWORD_LABEL_REGEX = /(password|contrase(ñ|n)a|clave|pwd|pass)/i;
+
+export type LoginOutcome = {
+  success: boolean;
+  finalUrl: string;
+  initialUrl: string;
+  reason: string;
+  errorText?: string;
+};
+
+export function isLoginSubmitSelector(selector: string | null | undefined): boolean {
+  if (!selector) return false;
+  const lower = selector.toLowerCase();
+  if (lower.includes("type=submit") || lower.includes('type="submit"')) return true;
+  return SUBMIT_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
+export function isPasswordFillSelector(selector: string | null | undefined): boolean {
+  if (!selector) return false;
+  const lower = selector.toLowerCase();
+  if (lower.includes("type=password") || lower.includes('type="password"')) {
+    return true;
+  }
+  return PASSWORD_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
+export function isEmailFillSelector(selector: string | null | undefined): boolean {
+  if (!selector) return false;
+  if (isPasswordFillSelector(selector)) return false;
+  const lower = selector.toLowerCase();
+  if (lower.includes("type=email") || lower.includes('type="email"')) return true;
+  return EMAIL_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
+async function pickFirstVisible(
+  candidates: Locator[],
+  label: string,
+): Promise<Locator> {
+  for (const candidate of candidates) {
+    try {
+      const count = await candidate.count();
+      if (count === 0) continue;
+      const first = candidate.first();
+      if (await first.isVisible({ timeout: VISIBILITY_PROBE_TIMEOUT_MS })) {
+        return first;
+      }
+    } catch {
+      // siguiente candidato
+    }
+  }
+  throw new Error(
+    `No se encontró un ${label} visible mediante detección adaptativa.`,
+  );
+}
+
+export async function findEmailField(page: Page): Promise<Locator> {
+  return pickFirstVisible(
+    [
+      page.locator('input[type="email"]'),
+      page.locator('input[autocomplete="email"]'),
+      page.locator('input[autocomplete="username"]'),
+      page.locator('input[name*="email" i]'),
+      page.locator('input[name*="usuario" i]'),
+      page.locator('input[name*="user" i]'),
+      page.locator('input[name*="correo" i]'),
+      page.locator('input[name*="login" i]'),
+      page.locator('input[id*="email" i]'),
+      page.locator('input[id*="user" i]'),
+      page.getByLabel(EMAIL_LABEL_REGEX),
+      page.getByPlaceholder(EMAIL_LABEL_REGEX),
+      page.locator(
+        'input:not([type="password"]):not([type="hidden"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"])',
+      ),
+    ],
+    "campo de email/usuario",
+  );
+}
+
+export async function findPasswordField(page: Page): Promise<Locator> {
+  return pickFirstVisible(
+    [
+      page.locator('input[type="password"]'),
+      page.locator('input[autocomplete="current-password"]'),
+      page.locator('input[autocomplete="new-password"]'),
+      page.locator('input[name*="password" i]'),
+      page.locator('input[name*="contrase" i]'),
+      page.locator('input[name*="clave" i]'),
+      page.locator('input[id*="password" i]'),
+      page.locator('input[id*="contrase" i]'),
+      page.getByLabel(PASSWORD_LABEL_REGEX),
+      page.getByPlaceholder(PASSWORD_LABEL_REGEX),
+    ],
+    "campo de contraseña",
+  );
+}
+
+export async function findSubmitButton(page: Page): Promise<Locator> {
+  return pickFirstVisible(
+    [
+      page.locator('button[type="submit"]'),
+      page.locator('input[type="submit"]'),
+      page.getByRole("button", { name: SUBMIT_NAME_REGEX }),
+      page
+        .locator(':is(button, a, [role="button"])')
+        .filter({ hasText: SUBMIT_NAME_REGEX }),
+    ],
+    `botón de submit (probé type=submit y textos: ${SUBMIT_KEYWORDS.join(", ")})`,
+  );
+}
+
+async function readVisibleErrorText(page: Page): Promise<string | undefined> {
+  for (const selector of ERROR_SELECTORS) {
+    const locator = page.locator(selector);
+    const count = await locator.count().catch(() => 0);
+    const probeLimit = Math.min(count, 5);
+    for (let i = 0; i < probeLimit; i++) {
+      const node = locator.nth(i);
+      const visible = await node.isVisible().catch(() => false);
+      if (!visible) continue;
+      const text = (await node.textContent().catch(() => "")) ?? "";
+      const trimmed = text.trim();
+      if (trimmed.length > 0) {
+        return trimmed.slice(0, 200);
+      }
+    }
+  }
+
+  const invalid = page.locator('input[aria-invalid="true"]').first();
+  const invalidCount = await invalid.count().catch(() => 0);
+  if (invalidCount > 0 && (await invalid.isVisible().catch(() => false))) {
+    return "Un campo del formulario quedó marcado como aria-invalid='true'";
+  }
+
+  return undefined;
+}
+
+async function isPasswordVisible(page: Page): Promise<boolean> {
+  return page
+    .locator('input[type="password"]')
+    .first()
+    .isVisible()
+    .catch(() => false);
+}
+
+export async function verifyLoginOutcome(
+  page: Page,
+  initialUrl: string,
+): Promise<LoginOutcome> {
+  await page
+    .waitForLoadState("domcontentloaded", { timeout: SETTLE_TIMEOUT_MS })
+    .catch(() => {
+      // si la página ya está estable o tarda más, seguimos con el polling
+    });
+
+  const deadline = Date.now() + OUTCOME_TIMEOUT_MS;
+
+  while (Date.now() < deadline) {
+    const currentUrl = page.url();
+    if (currentUrl !== initialUrl) {
+      await page.waitForTimeout(OUTCOME_GRACE_MS);
+      const finalUrl = page.url();
+      return {
+        success: true,
+        finalUrl,
+        initialUrl,
+        reason: `La URL cambió de ${initialUrl} a ${finalUrl}`,
+      };
+    }
+
+    const errorText = await readVisibleErrorText(page);
+    if (errorText) {
+      return {
+        success: false,
+        finalUrl: currentUrl,
+        initialUrl,
+        reason: `Mensaje de error visible tras el submit: "${errorText}"`,
+        errorText,
+      };
+    }
+
+    if (!(await isPasswordVisible(page))) {
+      await page.waitForTimeout(OUTCOME_GRACE_MS);
+      return {
+        success: true,
+        finalUrl: page.url(),
+        initialUrl,
+        reason: "El campo de contraseña desapareció — el formulario fue aceptado",
+      };
+    }
+
+    await page.waitForTimeout(OUTCOME_POLL_INTERVAL_MS);
+  }
+
+  const finalUrl = page.url();
+  const seconds = Math.round(OUTCOME_TIMEOUT_MS / 1000);
+  return {
+    success: false,
+    finalUrl,
+    initialUrl,
+    reason:
+      `Tras esperar ${seconds}s no hubo cambio de URL (sigue en ${finalUrl}), ` +
+      `el campo de contraseña sigue visible y no se detectó ningún mensaje de error. ` +
+      "Causas probables: (1) credenciales inválidas y la app no muestra error visible, " +
+      "(2) el error se renderiza en un selector poco común no cubierto por la heurística, " +
+      "o (3) el redirect del SPA es más lento que el timeout. Revisa el screenshot del paso.",
+  };
+}

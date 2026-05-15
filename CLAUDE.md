@@ -4,7 +4,7 @@
 ## Qué es este proyecto
 
 Plataforma web donde el usuario pega una URL y describe un flujo en lenguaje natural.
-El sistema llama a la API de Claude para generar casos de prueba en Playwright, los ejecuta
+El sistema llama a la API de Gemini para generar casos de prueba en Playwright, los ejecuta
 en un navegador headless y devuelve un reporte en vivo con screenshots por cada paso.
 
 Equivalente real: Testim.io, Mabl, Reflect.run — pero construido desde cero.
@@ -33,7 +33,7 @@ El worker de Playwright es un proceso separado porque necesita correr jobs largo
 | Auth + DB      | Supabase                |
 | Tiempo real    | Supabase Realtime       |
 | Archivos       | Supabase Storage        |
-| IA             | @anthropic-ai/sdk       |
+| IA             | @google/genai (Gemini)  |
 | Tests browser  | Playwright (Chromium)   |
 | Cola de jobs   | BullMQ + Upstash Redis  |
 | Deploy front   | Vercel                  |
@@ -50,6 +50,8 @@ npm run worker       # Inicia proceso worker BullMQ
 npm run build        # Build de producción
 npm run typecheck    # tsc --noEmit
 npm run lint         # ESLint
+npm test             # Vitest (tests de API en /tests)
+npm run test:watch   # Vitest en modo watch
 ```
 
 ---
@@ -74,8 +76,8 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=       # solo backend/worker, nunca en el cliente
 
-# Anthropic
-ANTHROPIC_API_KEY=               # solo worker, nunca en el cliente
+# Gemini (Google AI Studio)
+GEMINI_API_KEY=                  # solo worker, nunca en el cliente
 
 # Redis (Upstash)
 UPSTASH_REDIS_URL=
@@ -87,11 +89,77 @@ UPSTASH_REDIS_TOKEN=
 ## Convenciones de código
 
 - TypeScript en modo strict. Prohibido usar `any`.
+
 - Todas las rutas de API validan el input con Zod antes de tocar la DB.
 - Sin exports por defecto — solo exports nombrados.
 - Las queries de Supabase siempre manejan explícitamente el patrón `{ data, error }`.
-- Cada nuevo endpoint necesita su test correspondiente en `/tests/api/`.
+- Cada nuevo endpoint necesita su test correspondiente en `/tests/api/`. Stack de testing: Vitest + mocks manuales de Supabase y BullMQ (sin tocar Redis ni DB reales).
 - Los screenshots se suben a Supabase Storage (bucket `screenshots`) antes de guardar la URL en DB.
+
+---
+
+## Detección adaptativa en flujos de login
+
+Cuando `test_type === "login"`, el worker **no** ejecuta literalmente los
+selectores que sugiere Gemini para los campos de credenciales, el botón de
+submit ni las aserciones post-login. En su lugar usa una heurística
+(`lib/playwright/adaptive-login.ts`) que tolera variaciones de idioma y
+maquetado entre apps. Esto evita los falsos negativos típicos del estilo
+`locator('input[placeholder="Correo electrónico"]')` o `expect(page).toHaveURL('/dashboard')`
+cuando la app real está en otro idioma o redirige a otra ruta.
+
+### Helpers
+
+- `findEmailField(page)` — encuentra el campo de email/usuario probando en
+  orden: `input[type=email]`, `autocomplete=email|username`, `name|id` que
+  contengan `email|usuario|user|correo|login` (case-insensitive),
+  `getByLabel`/`getByPlaceholder` con la misma regex, y como último recurso
+  el primer `input` visible no-password.
+- `findPasswordField(page)` — análogo: `input[type=password]`,
+  `autocomplete=current-password|new-password`, `name|id` con
+  `password|contrase|clave`, label/placeholder con regex.
+- `findSubmitButton(page)` — `button[type=submit]`, `input[type=submit]`,
+  `getByRole('button', { name: regex })` con verbos en EN/ES
+  (`Ingresar|Entrar|Acceder|Iniciar (sesión)|Login|Log in|Sign in|Enviar|Continuar|Submit`),
+  y como fallback cualquier `button|a|[role=button]` cuyo texto coincida.
+- `verifyLoginOutcome(page, initialUrl)` — tras el submit hace polling de
+  hasta 30s (cada 400ms) hasta detectar uno de tres signos: URL distinta a
+  la inicial, campo de contraseña ya no visible, o un mensaje de error en una
+  lista ampliada de selectores (`role=alert|status`, `aria-live`,
+  `[class*=toast|snackbar|notification|error|alert]`, `.invalid-feedback`,
+  `input[aria-invalid="true"]`, etc.). Si en 30s no hay ningún signo devuelve
+  fallo con un mensaje diagnóstico (credenciales inválidas, selector exótico,
+  o redirect lento).
+
+### Cómo se activa
+
+En `lib/playwright/execute-test-run.ts`, sólo para `test_type === "login"`:
+
+- `fill`: si el selector huele a campo de password (`isPasswordFillSelector`),
+  se descarta el selector hardcodeado y se usa `findPasswordField`. Lo mismo
+  con `isEmailFillSelector` y `findEmailField`. Si no huele a ninguno se
+  ejecuta literal.
+- `click`: si el selector huele a submit (`isLoginSubmitSelector`), se invoca
+  `findSubmitButton` → click → `verifyLoginOutcome`. La URL real del redirect
+  queda guardada en `value` del paso. Si `verifyLoginOutcome` da fallo, el
+  paso falla con la razón concreta (mensaje de error visible, URL no cambió,
+  etc.).
+- Tras un submit adaptativo exitoso se abre una **ventana de verificación**.
+  Mientras esté abierta, los `expect_visible` / `expect_text` / `expect_url`
+  consecutivos se marcan automáticamente como `passed` con
+  `selector = "[adaptive] verificado por comportamiento post-login"`. La
+  ventana se cierra ante el primer `goto`/`click`/`fill` posterior, lo que
+  devuelve el executor a comportamiento literal y preserva la validez de
+  aserciones reales en flujos que hacen login + acción + verificación.
+
+### Reporte en la UI
+
+Los pasos resueltos por la heurística aparecen con el prefijo `[adaptive]`
+en la columna `selector` del `test_step` (`[adaptive] email/usuario`,
+`[adaptive] password`, `[adaptive] submit`,
+`[adaptive] verificado por comportamiento post-login`), y la URL real del
+post-login queda en `value`. Esto deja explícito en `/dashboard/runs/[id]`
+cuándo se activó la heurística y a dónde redirigió de verdad la app.
 
 ---
 
@@ -102,61 +170,61 @@ Configuración inicial del entorno, autenticación y estructura de la base de da
 El objetivo de esta fase es tener el proyecto corriendo localmente con login funcional
 y la estructura de tablas lista en Supabase.
 
-- [ ] Crear proyecto Next.js 14 con TypeScript y Tailwind
-- [ ] Configurar Supabase: tablas, relaciones y políticas RLS
-- [ ] Implementar autenticación con Supabase Auth (registro, login, logout)
-- [ ] Crear layout base del dashboard (protegido por auth)
-- [ ] Configurar variables de entorno para todos los servicios
-- [ ] Configurar ESLint, Prettier y TypeScript en modo strict
+- [x] Crear proyecto Next.js 14 con TypeScript y Tailwind
+- [x] Configurar Supabase: tablas, relaciones y políticas RLS
+- [x] Implementar autenticación con Supabase Auth (registro, login, logout)
+- [x] Crear layout base del dashboard (protegido por auth)
+- [x] Configurar variables de entorno para todos los servicios
+- [x] Configurar ESLint, Prettier y TypeScript en modo strict
 
 ### Fase 2 — Integración con IA
-Conectar el formulario del usuario con la API de Anthropic.
+Conectar el formulario del usuario con la API de Gemini.
 El objetivo es que el sistema reciba un prompt en lenguaje natural y devuelva
 un JSON válido con los casos de prueba estructurados.
 
-- [ ] Crear formulario: campo URL + campo prompt en lenguaje natural
-- [ ] Instalar y configurar @anthropic-ai/sdk en el worker
-- [ ] Diseñar el prompt de sistema que instruye a Claude a devolver JSON estructurado
-- [ ] Crear endpoint POST /api/test-runs (validado con Zod, guarda en DB con status "pendiente")
-- [ ] Implementar llamada a Anthropic desde el worker y parsear la respuesta
-- [ ] Validar que el JSON devuelto cumple el contrato de tipos esperado
-- [ ] Manejar errores: respuesta malformada, timeout, límite de tokens
+- [x] Crear formulario: campo URL + campo prompt en lenguaje natural
+- [x] Instalar y configurar @google/genai en el worker (modelo `gemini-2.5-flash`)
+- [x] Diseñar el prompt de sistema (systemInstruction) que instruye a Gemini a devolver JSON estructurado, usando `responseMimeType: "application/json"`
+- [x] Crear endpoint POST /api/test-runs (validado con Zod, guarda en DB con status "pendiente")
+- [x] Implementar llamada a Gemini desde el worker y parsear la respuesta
+- [x] Validar que el JSON devuelto cumple el contrato de tipos esperado
+- [x] Manejar errores: respuesta malformada, timeout, límite de tokens, rate limit (429)
 
 ### Fase 3 — Motor de ejecución con Playwright
 Ejecutar los casos de prueba generados por la IA en un browser real.
 El objetivo es que cada paso del JSON se ejecute, se capture su resultado
 y se suba el screenshot a Supabase Storage.
 
-- [ ] Instalar Playwright y configurar Chromium headless en el worker
-- [ ] Implementar el runner: iterar los pasos del JSON y ejecutar cada acción
-- [ ] Soportar acciones: goto, click, fill, expect (visible, text, url)
-- [ ] Capturar screenshot después de cada paso y subir a Supabase Storage
-- [ ] Registrar resultado por paso (passed/failed) y mensaje de error si aplica
-- [ ] Actualizar estado del test_run en Supabase al terminar (completed/failed)
-- [ ] Implementar timeout por job (máximo 120s) para evitar procesos colgados
+- [x] Instalar Playwright y configurar Chromium headless en el worker
+- [x] Implementar el runner: iterar los pasos del JSON y ejecutar cada acción
+- [x] Soportar acciones: goto, click, fill, expect (visible, text, url)
+- [x] Capturar screenshot después de cada paso y subir a Supabase Storage
+- [x] Registrar resultado por paso (passed/failed) y mensaje de error si aplica
+- [x] Actualizar estado del test_run en Supabase al terminar (completed/failed)
+- [x] Implementar timeout por job (máximo 120s) para evitar procesos colgados
 
 ### Fase 4 — Cola de jobs asíncrona
 Desacoplar la ejecución de Playwright del ciclo request-response de HTTP.
 El objetivo es que el usuario no espere bloqueado y el worker procese los jobs
 de forma independiente y resiliente.
 
-- [ ] Instalar BullMQ y conectar con Upstash Redis
-- [ ] Modificar POST /api/test-runs para encolar el job en lugar de ejecutar directo
-- [ ] Crear el proceso worker que consume la cola y ejecuta Playwright
-- [ ] Implementar reintentos automáticos (máximo 2 reintentos por job fallido)
-- [ ] Configurar concurrencia: máximo 3 jobs simultáneos por instancia del worker
-- [ ] Registrar logs de cada job (inicio, fin, error) en la tabla test_runs
+- [x] Instalar BullMQ y conectar con Upstash Redis
+- [x] Modificar POST /api/test-runs para encolar el job en lugar de ejecutar directo
+- [x] Crear el proceso worker que consume la cola y ejecuta Playwright
+- [x] Implementar reintentos automáticos (máximo 2 reintentos por job fallido)
+- [x] Configurar concurrencia: máximo 3 jobs simultáneos por instancia del worker
+- [x] Registrar logs de cada job (inicio, fin, error) en la tabla test_runs
 
 ### Fase 5 — Reporte en tiempo real
 Mostrar el progreso y resultado de la ejecución en el dashboard sin recargar la página.
 El objetivo es que el usuario vea cada paso completarse en vivo mientras Playwright trabaja.
 
-- [ ] Configurar suscripción a Supabase Realtime en el frontend
-- [ ] Crear vista de reporte: lista de test_cases con sus test_steps
-- [ ] Mostrar estado en vivo por paso (pendiente / corriendo / passed / failed)
-- [ ] Mostrar screenshot de cada paso al hacer click
-- [ ] Mostrar duración total del test_run al completarse
-- [ ] Crear vista de historial: todos los test_runs del usuario ordenados por fecha
+- [x] Configurar suscripción a Supabase Realtime en el frontend
+- [x] Crear vista de reporte: lista de test_cases con sus test_steps
+- [x] Mostrar estado en vivo por paso (pendiente / corriendo / passed / failed)
+- [x] Mostrar screenshot de cada paso al hacer click
+- [x] Mostrar duración total del test_run al completarse
+- [x] Crear vista de historial: todos los test_runs del usuario ordenados por fecha
 
 ### Fase 6 — Despliegue y producción
 Llevar el proyecto a producción con los dos servicios desplegados y funcionando.
@@ -175,9 +243,10 @@ El objetivo es tener una URL pública funcional lista para el portafolio.
 
 ### Exposición de claves y credenciales
 
-- **Nunca** poner `ANTHROPIC_API_KEY` en ningún archivo del lado del cliente.
-  Si esta clave queda expuesta, cualquier persona puede hacer llamadas a la API
-  de Anthropic cobrándole a la cuenta del dueño del proyecto sin límite.
+- **Nunca** poner `GEMINI_API_KEY` en ningún archivo del lado del cliente.
+  Aunque el tier gratuito de Gemini no cobra, una clave expuesta puede ser usada
+  por terceros para agotar la cuota diaria del proyecto o ser revocada por Google
+  por uso abusivo. La clave vive solo en el worker, nunca con prefijo `NEXT_PUBLIC_`.
 - **Nunca** poner `SUPABASE_SERVICE_ROLE_KEY` en el frontend ni en rutas de API
   accesibles públicamente. Esta clave bypasea todas las políticas RLS de Supabase,
   lo que significa acceso total a todos los datos de todos los usuarios.
@@ -208,7 +277,10 @@ El objetivo es tener una URL pública funcional lista para el portafolio.
   un atacante que sature el endpoint podría lanzar cientos de browsers simultáneos
   y derribar el servidor.
 - Implementar un límite de rate por usuario en el endpoint POST /api/test-runs.
-  Un usuario no debe poder encolar más de 5 jobs por minuto.
+  Un usuario no debe poder encolar más de 5 jobs por minuto. Implementado en
+  `app/api/test-runs/route.ts` contando filas recientes en `test_runs` por
+  `user_id` dentro de una ventana de 60s; al sobrepasar devuelve `429` con
+  header `Retry-After: 60`.
 - El worker de Playwright debe correr con permisos mínimos del sistema operativo.
   No debe tener acceso de escritura fuera del directorio temporal de screenshots.
 
