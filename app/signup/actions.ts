@@ -35,5 +35,10 @@ export async function signupAction(
     return { ok: false, message: error.message };
   }
 
+  // Con la confirmación de email desactivada, signUp deja una sesión activa.
+  // La cerramos para que el usuario inicie sesión manualmente desde /login
+  // (si no, el middleware lo rebotaría directo a /dashboard).
+  await supabase.auth.signOut({ scope: "local" });
+
   redirect("/login?registered=1");
 }
