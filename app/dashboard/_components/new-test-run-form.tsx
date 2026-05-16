@@ -174,14 +174,18 @@ export function NewTestRunForm(): React.JSX.Element {
 
       {testType === "login" ? (
         <DynamicSection title="Credenciales" secure>
-          <Field label="Email" htmlFor="login-email" error={fieldError("test_data")}>
+          <Field
+            label="Email o usuario"
+            htmlFor="login-email"
+            error={fieldError("test_data")}
+          >
             <input
               id="login-email"
-              type="email"
+              type="text"
               required
               value={login.email}
               onChange={(e) => setLogin({ ...login, email: e.target.value })}
-              placeholder="admin@test.com"
+              placeholder="admin@test.com, usuario o CC"
               className={inputClass}
             />
           </Field>
