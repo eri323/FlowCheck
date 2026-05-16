@@ -29,8 +29,15 @@ const passwordSchema = z
   .min(1, "La contraseña es obligatoria")
   .max(200, "La contraseña es demasiado larga");
 
+const loginIdentifierSchema = z
+  .string()
+  .trim()
+  .min(1, "La credencial es obligatoria")
+  .max(320, "La credencial es demasiado larga")
+  .refine((v) => !/[\r\n\t]/.test(v), "La credencial no puede tener saltos de línea");
+
 const loginDataSchema = z.object({
-  email: z.email("Email inválido").max(320),
+  email: loginIdentifierSchema,
   password: passwordSchema,
 });
 export type LoginData = z.infer<typeof loginDataSchema>;
