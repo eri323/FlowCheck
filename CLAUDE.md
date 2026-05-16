@@ -136,8 +136,9 @@ cuando la app real está en otro idioma o redirige a otra ruta.
   lista ampliada de selectores (`role=alert|status`, `aria-live`,
   `[class*=toast|snackbar|notification|error|alert]`, `.invalid-feedback`,
   `input[aria-invalid="true"]`, etc.), o un bloqueo de validación HTML5
-  nativa. Para este último recorre los `<form>` con `noValidate=false` y
-  `checkValidity()=false` y reporta el `validationMessage` del navegador
+  nativa. Para este último revisa el `<form>` del campo de contraseña (con
+  fallback a todos los `<form>`) cuando tiene `noValidate=false` y
+  `checkValidity()=false`, y reporta el `validationMessage` del navegador
   (queda mudo en la vía adaptativa, donde ya se puso `noValidate=true`). Si
   en 30s no hay ningún signo devuelve fallo con un mensaje diagnóstico
   (credenciales inválidas, selector exótico, o redirect lento).
