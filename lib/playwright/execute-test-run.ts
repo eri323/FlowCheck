@@ -4,7 +4,7 @@ import { uploadScreenshot } from "../storage/upload-screenshot";
 import { assertSafeNavigationUrl } from "./safe-url";
 import type { TestType } from "../validation/test-run";
 import {
-  findEmailField,
+  fillIdentifierField,
   findPasswordField,
   findSubmitButton,
   isEmailFillSelector,
@@ -177,9 +177,16 @@ async function executeStep(
           return { selectorOverride: "[adaptive] password" };
         }
         if (isEmailFillSelector(step.selector)) {
-          const field = await findEmailField(page);
-          await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
-          return { selectorOverride: "[adaptive] email/usuario" };
+          const { relaxed } = await fillIdentifierField(
+            page,
+            step.value,
+            STEP_TIMEOUT_MS,
+          );
+          return {
+            selectorOverride: relaxed
+              ? "[adaptive] identificador (validación nativa relajada)"
+              : "[adaptive] email/usuario",
+          };
         }
       }
       await page.locator(step.selector).fill(step.value, { timeout: STEP_TIMEOUT_MS });
