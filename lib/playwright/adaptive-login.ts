@@ -47,7 +47,8 @@ const OUTCOME_GRACE_MS = 500;
 const SETTLE_TIMEOUT_MS = 2_000;
 const VISIBILITY_PROBE_TIMEOUT_MS = 1_000;
 
-const EMAIL_KEYWORDS = [
+// Términos largos: seguros como substring en name/id/placeholder.
+const IDENTIFIER_LONG_TOKENS = [
   "email",
   "correo",
   "usuario",
@@ -55,7 +56,18 @@ const EMAIL_KEYWORDS = [
   "user",
   "mail",
   "login",
+  "cedula",
+  "documento",
+  "identificacion",
 ];
+
+// Términos cortos y ambiguos: solo con límite de palabra o atributo exacto.
+const IDENTIFIER_SHORT_TOKENS = ["cc", "dni", "nit", "rut"];
+
+const IDENTIFIER_SELECTOR_REGEX = new RegExp(
+  `(${IDENTIFIER_LONG_TOKENS.join("|")}|\\b(?:${IDENTIFIER_SHORT_TOKENS.join("|")})\\b)`,
+  "i",
+);
 
 const PASSWORD_KEYWORDS = [
   "password",
@@ -66,7 +78,8 @@ const PASSWORD_KEYWORDS = [
   "pass",
 ];
 
-const EMAIL_LABEL_REGEX = /(email|correo|usuario|user(name)?|mail|login)/i;
+const EMAIL_LABEL_REGEX =
+  /(email|correo|usuario|user(name)?|mail|login|c[eé]dula|documento|identificaci[oó]n|n[uú]mero de documento|\bcc\b|\bdni\b|\bnit\b|\brut\b)/i;
 const PASSWORD_LABEL_REGEX = /(password|contrase(ñ|n)a|clave|pwd|pass)/i;
 
 export type LoginOutcome = {
@@ -98,7 +111,11 @@ export function isEmailFillSelector(selector: string | null | undefined): boolea
   if (isPasswordFillSelector(selector)) return false;
   const lower = selector.toLowerCase();
   if (lower.includes("type=email") || lower.includes('type="email"')) return true;
-  return EMAIL_KEYWORDS.some((kw) => lower.includes(kw));
+  return IDENTIFIER_SELECTOR_REGEX.test(lower);
+}
+
+export function looksLikeEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
 async function pickFirstVisible(
@@ -135,6 +152,20 @@ export async function findEmailField(page: Page): Promise<Locator> {
       page.locator('input[name*="login" i]'),
       page.locator('input[id*="email" i]'),
       page.locator('input[id*="user" i]'),
+      page.locator('input[name*="cedula" i]'),
+      page.locator('input[name*="documento" i]'),
+      page.locator('input[name*="identificacion" i]'),
+      page.locator('input[id*="cedula" i]'),
+      page.locator('input[id*="documento" i]'),
+      page.locator('input[id*="identificacion" i]'),
+      page.locator('input[name="cc" i]'),
+      page.locator('input[name="dni" i]'),
+      page.locator('input[name="nit" i]'),
+      page.locator('input[name="rut" i]'),
+      page.locator('input[id="cc" i]'),
+      page.locator('input[id="dni" i]'),
+      page.locator('input[id="nit" i]'),
+      page.locator('input[id="rut" i]'),
       page.getByLabel(EMAIL_LABEL_REGEX),
       page.getByPlaceholder(EMAIL_LABEL_REGEX),
       page.locator(
