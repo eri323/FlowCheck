@@ -110,11 +110,19 @@ cuando la app real está en otro idioma o redirige a otra ruta.
 
 ### Helpers
 
-- `findEmailField(page)` — encuentra el campo de email/usuario probando en
-  orden: `input[type=email]`, `autocomplete=email|username`, `name|id` que
-  contengan `email|usuario|user|correo|login` (case-insensitive),
-  `getByLabel`/`getByPlaceholder` con la misma regex, y como último recurso
-  el primer `input` visible no-password.
+- `findEmailField(page)` — encuentra el campo de identificador (email,
+  usuario o número de documento) probando en orden: `input[type=email]`,
+  `autocomplete=email|username`, `name|id` con términos largos
+  (`email|usuario|user|correo|login|cedula|documento|identificacion`,
+  substring case-insensitive) o cortos (`cc|dni|nit|rut`, atributo exacto),
+  `getByLabel`/`getByPlaceholder` con la regex de identificador (los tokens
+  cortos solo con límite de palabra), y como último recurso el primer `input`
+  visible no-password.
+- `fillIdentifierField(page, value, timeout)` — localiza el campo con
+  `findEmailField` y lo llena. Si el valor no parece email (`looksLikeEmail`
+  es `false`) relaja antes la validación HTML5 del cliente: `type=text` y
+  `removeAttribute("pattern")` en el input, `noValidate=true` en su `<form>`.
+  Devuelve `{ relaxed }`.
 - `findPasswordField(page)` — análogo: `input[type=password]`,
   `autocomplete=current-password|new-password`, `name|id` con
   `password|contrase|clave`, label/placeholder con regex.
@@ -123,22 +131,27 @@ cuando la app real está en otro idioma o redirige a otra ruta.
   (`Ingresar|Entrar|Acceder|Iniciar (sesión)|Login|Log in|Sign in|Enviar|Continuar|Submit`),
   y como fallback cualquier `button|a|[role=button]` cuyo texto coincida.
 - `verifyLoginOutcome(page, initialUrl)` — tras el submit hace polling de
-  hasta 30s (cada 400ms) hasta detectar uno de tres signos: URL distinta a
-  la inicial, campo de contraseña ya no visible, o un mensaje de error en una
+  hasta 30s (cada 400ms) hasta detectar uno de estos signos: URL distinta a
+  la inicial, campo de contraseña ya no visible, un mensaje de error en una
   lista ampliada de selectores (`role=alert|status`, `aria-live`,
   `[class*=toast|snackbar|notification|error|alert]`, `.invalid-feedback`,
-  `input[aria-invalid="true"]`, etc.). Si en 30s no hay ningún signo devuelve
-  fallo con un mensaje diagnóstico (credenciales inválidas, selector exótico,
-  o redirect lento).
+  `input[aria-invalid="true"]`, etc.), o un bloqueo de validación HTML5
+  nativa. Para este último recorre los `<form>` con `noValidate=false` y
+  `checkValidity()=false` y reporta el `validationMessage` del navegador
+  (queda mudo en la vía adaptativa, donde ya se puso `noValidate=true`). Si
+  en 30s no hay ningún signo devuelve fallo con un mensaje diagnóstico
+  (credenciales inválidas, selector exótico, o redirect lento).
 
 ### Cómo se activa
 
 En `lib/playwright/execute-test-run.ts`, sólo para `test_type === "login"`:
 
 - `fill`: si el selector huele a campo de password (`isPasswordFillSelector`),
-  se descarta el selector hardcodeado y se usa `findPasswordField`. Lo mismo
-  con `isEmailFillSelector` y `findEmailField`. Si no huele a ninguno se
-  ejecuta literal.
+  se descarta el selector hardcodeado y se usa `findPasswordField`. Si huele a
+  identificador (`isEmailFillSelector`, ahora una regex que cubre términos de
+  documento como `cc`/`dni`/`cédula`) se usa `fillIdentifierField`, que además
+  relaja la validación HTML5 nativa cuando el valor no parece un email. Si no
+  huele a ninguno se ejecuta literal.
 - `click`: si el selector huele a submit (`isLoginSubmitSelector`), se invoca
   `findSubmitButton` → click → `verifyLoginOutcome`. La URL real del redirect
   queda guardada en `value` del paso. Si `verifyLoginOutcome` da fallo, el
@@ -156,8 +169,9 @@ En `lib/playwright/execute-test-run.ts`, sólo para `test_type === "login"`:
 
 Los pasos resueltos por la heurística aparecen con el prefijo `[adaptive]`
 en la columna `selector` del `test_step` (`[adaptive] email/usuario`,
-`[adaptive] password`, `[adaptive] submit`,
-`[adaptive] verificado por comportamiento post-login`), y la URL real del
+`[adaptive] identificador (validación nativa relajada)`, `[adaptive] password`,
+`[adaptive] submit`, `[adaptive] verificado por comportamiento post-login`), y
+la URL real del
 post-login queda en `value`. Esto deja explícito en `/dashboard/runs/[id]`
 cuándo se activó la heurística y a dónde redirigió de verdad la app.
 
