@@ -118,6 +118,31 @@ export function looksLikeEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
+export async function fillIdentifierField(
+  page: Page,
+  value: string,
+  timeoutMs: number,
+): Promise<{ relaxed: boolean }> {
+  const field = await findEmailField(page);
+  const relaxed = !looksLikeEmail(value);
+
+  if (relaxed) {
+    // El valor no parece email: si el campo es <input type="email">, el
+    // navegador bloquearía el submit por validación de restricciones HTML5.
+    // Desactivamos esa validación SOLO del lado del cliente.
+    await field.evaluate((el) => {
+      const input = el as HTMLInputElement;
+      input.type = "text";
+      input.removeAttribute("pattern");
+      const form = input.form;
+      if (form) form.noValidate = true;
+    });
+  }
+
+  await field.fill(value, { timeout: timeoutMs });
+  return { relaxed };
+}
+
 async function pickFirstVisible(
   candidates: Locator[],
   label: string,
@@ -242,6 +267,29 @@ async function isPasswordVisible(page: Page): Promise<boolean> {
     .catch(() => false);
 }
 
+async function detectNativeValidationBlock(page: Page): Promise<string | undefined> {
+  return page.evaluate(() => {
+    const forms = Array.from(document.querySelectorAll("form"));
+    for (const form of forms) {
+      if (form.noValidate) continue;
+      if (form.checkValidity()) continue;
+      for (const control of Array.from(form.elements)) {
+        const candidate = control as HTMLInputElement;
+        if (
+          typeof candidate.checkValidity === "function" &&
+          !candidate.checkValidity()
+        ) {
+          return (
+            candidate.validationMessage ||
+            "Validación nativa del navegador bloqueó el envío"
+          );
+        }
+      }
+    }
+    return undefined;
+  });
+}
+
 export async function verifyLoginOutcome(
   page: Page,
   initialUrl: string,
@@ -264,6 +312,20 @@ export async function verifyLoginOutcome(
         finalUrl,
         initialUrl,
         reason: `La URL cambió de ${initialUrl} a ${finalUrl}`,
+      };
+    }
+
+    const nativeBlock = await detectNativeValidationBlock(page);
+    if (nativeBlock) {
+      return {
+        success: false,
+        finalUrl: page.url(),
+        initialUrl,
+        reason:
+          `El navegador bloqueó el envío del formulario por validación nativa: ` +
+          `"${nativeBlock}". Si esta app loguea por documento o usuario, ese ` +
+          `campo está marcado como type=email por error.`,
+        errorText: nativeBlock,
       };
     }
 
