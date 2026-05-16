@@ -269,7 +269,15 @@ async function isPasswordVisible(page: Page): Promise<boolean> {
 
 async function detectNativeValidationBlock(page: Page): Promise<string | undefined> {
   return page.evaluate(() => {
-    const forms = Array.from(document.querySelectorAll("form"));
+    // Preferimos el <form> que contiene el campo de contraseña (el form de
+    // login); si no se identifica, caemos a revisar todos los forms. Así un
+    // form ajeno inválido (buscador, newsletter) no genera un diagnóstico falso.
+    const passwordInput = document.querySelector('input[type="password"]');
+    const loginForm =
+      passwordInput instanceof HTMLInputElement ? passwordInput.form : null;
+    const forms = loginForm
+      ? [loginForm]
+      : Array.from(document.querySelectorAll("form"));
     for (const form of forms) {
       if (form.noValidate) continue;
       if (form.checkValidity()) continue;
@@ -315,6 +323,17 @@ export async function verifyLoginOutcome(
       };
     }
 
+    const errorText = await readVisibleErrorText(page);
+    if (errorText) {
+      return {
+        success: false,
+        finalUrl: currentUrl,
+        initialUrl,
+        reason: `Mensaje de error visible tras el submit: "${errorText}"`,
+        errorText,
+      };
+    }
+
     const nativeBlock = await detectNativeValidationBlock(page);
     if (nativeBlock) {
       return {
@@ -326,17 +345,6 @@ export async function verifyLoginOutcome(
           `"${nativeBlock}". Si esta app loguea por documento o usuario, ese ` +
           `campo está marcado como type=email por error.`,
         errorText: nativeBlock,
-      };
-    }
-
-    const errorText = await readVisibleErrorText(page);
-    if (errorText) {
-      return {
-        success: false,
-        finalUrl: currentUrl,
-        initialUrl,
-        reason: `Mensaje de error visible tras el submit: "${errorText}"`,
-        errorText,
       };
     }
 
