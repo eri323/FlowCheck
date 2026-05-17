@@ -1,104 +1,146 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { TEST_TYPE_LABELS, type TestType } from "@/lib/validation/test-run";
-import { NewTestRunForm } from "./_components/new-test-run-form";
+import { cn } from "@/lib/cn";
+import { buttonVariants } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ArrowRight, Plus, Sparkles } from "@/components/ui/icons";
+import { PageHeader } from "./_components/page-header";
+import {
+  RunListHeader,
+  RunRow,
+  toRunListItem,
+  type TestRunRow,
+} from "./runs/_components/run-list";
 
-type TestRunSummary = {
-  id: string;
-  target_url: string;
-  prompt: string | null;
-  status: string;
-  created_at: string;
-  test_type: TestType;
+export const metadata = { title: "Resumen" };
+
+type StatTone = "accent" | "success" | "danger" | "running";
+
+const DOT: Record<StatTone, string> = {
+  accent: "bg-accent",
+  success: "bg-success",
+  danger: "bg-danger",
+  running: "bg-running",
 };
 
-export default async function DashboardPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: testRuns } = await supabase
-    .from("test_runs")
-    .select("id, target_url, prompt, status, created_at, test_type")
-    .order("created_at", { ascending: false })
-    .limit(10)
-    .returns<TestRunSummary[]>();
-
+function StatCell({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: StatTone;
+}): React.JSX.Element {
   return (
-    <section className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="mt-2 text-zinc-500">
-          Bienvenido{user?.email ? `, ${user.email}` : ""}. Elige el tipo de prueba y
-          completa los campos. La IA generará el plan y el worker lo ejecutará.
-        </p>
-      </header>
-
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="text-lg font-semibold tracking-tight">Nuevo test run</h2>
-        <p className="mt-1 text-sm text-zinc-500">
-          Los campos sensibles se almacenan estructurados y separados de tu
-          instrucción libre.
-        </p>
-        <div className="mt-4">
-          <NewTestRunForm />
-        </div>
+    <div className="bg-surface px-4 py-3.5">
+      <div className="flex items-center gap-1.5">
+        <span className={cn("size-1.5 rounded-full", DOT[tone])} />
+        <p className="text-xs text-muted">{label}</p>
       </div>
-
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="text-lg font-semibold tracking-tight">Historial reciente</h2>
-        {testRuns && testRuns.length > 0 ? (
-          <ul className="mt-4 divide-y divide-zinc-200 dark:divide-zinc-800">
-            {testRuns.map((run) => (
-              <li key={run.id}>
-                <Link
-                  href={`/dashboard/runs/${run.id}`}
-                  className="flex items-center justify-between gap-3 py-3 transition hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-                        {TEST_TYPE_LABELS[run.test_type]}
-                      </span>
-                      <p className="truncate text-sm font-medium">{run.target_url}</p>
-                    </div>
-                    {run.prompt ? (
-                      <p className="mt-0.5 truncate text-xs text-zinc-500">
-                        {run.prompt}
-                      </p>
-                    ) : null}
-                  </div>
-                  <span
-                    className={`ml-4 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusClass(run.status)}`}
-                  >
-                    {run.status}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-4 text-sm text-zinc-500">
-            Aún no hay test runs. Crea el primero arriba.
-          </p>
-        )}
-      </div>
-    </section>
+      <p className="tabular mt-1.5 text-[1.75rem] font-semibold leading-none tracking-tight text-text">
+        {value}
+      </p>
+    </div>
   );
 }
 
-function statusClass(status: string): string {
-  switch (status) {
-    case "completado":
-      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
-    case "fallido":
-      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
-    case "corriendo":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
-    case "cancelado":
-      return "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300";
-    default:
-      return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
-  }
+export default async function DashboardPage(): Promise<React.JSX.Element> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("test_runs")
+    .select(
+      "id, target_url, prompt, status, test_type, created_at, started_at, finished_at",
+    )
+    .order("created_at", { ascending: false })
+    .limit(100)
+    .returns<TestRunRow[]>();
+
+  const rows = data ?? [];
+  const stats = {
+    total: rows.length,
+    completados: rows.filter((r) => r.status === "completado").length,
+    fallidos: rows.filter((r) => r.status === "fallido").length,
+    activos: rows.filter(
+      (r) => r.status === "pendiente" || r.status === "corriendo",
+    ).length,
+  };
+  const recent = rows.slice(0, 6).map(toRunListItem);
+
+  return (
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        title="Resumen"
+        description="El estado de tus pruebas automatizadas de un vistazo."
+      >
+        <Link
+          href="/dashboard/runs/new"
+          className={buttonVariants({ size: "sm" })}
+        >
+          <Plus size={15} />
+          Nuevo test run
+        </Link>
+      </PageHeader>
+
+      {rows.length === 0 ? (
+        <div className="rounded-lg border border-border bg-surface">
+          <EmptyState
+            icon={Sparkles}
+            title="Aún no hay test runs"
+            description="Describe un flujo en lenguaje natural y deja que la IA genere y ejecute la primera prueba."
+            action={
+              <Link
+                href="/dashboard/runs/new"
+                className={buttonVariants({ size: "sm" })}
+              >
+                <Plus size={15} />
+                Crear el primero
+              </Link>
+            }
+          />
+        </div>
+      ) : (
+        <>
+          <div className="overflow-hidden rounded-lg border border-border">
+            <div className="grid grid-cols-2 gap-px bg-border lg:grid-cols-4">
+              <StatCell label="Total de runs" value={stats.total} tone="accent" />
+              <StatCell
+                label="Completados"
+                value={stats.completados}
+                tone="success"
+              />
+              <StatCell label="Fallidos" value={stats.fallidos} tone="danger" />
+              <StatCell label="En curso" value={stats.activos} tone="running" />
+            </div>
+          </div>
+
+          <section>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold text-text">
+                Actividad reciente
+              </h2>
+              <Link
+                href="/dashboard/runs"
+                className="group inline-flex items-center gap-1 text-xs font-medium text-accent-text"
+              >
+                Ver todos
+                <ArrowRight
+                  size={13}
+                  className="transition-transform duration-150 group-hover:translate-x-0.5"
+                />
+              </Link>
+            </div>
+            <div className="mt-3 overflow-hidden rounded-lg border border-border bg-surface">
+              <RunListHeader />
+              <div className="divide-y divide-border">
+                {recent.map((run) => (
+                  <RunRow key={run.id} run={run} />
+                ))}
+              </div>
+            </div>
+          </section>
+        </>
+      )}
+    </div>
+  );
 }

@@ -5,18 +5,27 @@ import "./globals.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "AI Testing Platform",
+  title: {
+    default: "Probe — Testing automatizado con IA",
+    template: "%s · Probe",
+  },
   description:
-    "Genera y ejecuta tests automatizados con IA: describe un flujo en lenguaje natural y deja que Claude + Playwright hagan el trabajo.",
+    "Pega una URL, describe el flujo en lenguaje natural y deja que la IA genere y ejecute las pruebas en un navegador real. Reporte en vivo con screenshots por paso.",
 };
+
+// Set the theme class before paint so there is no flash of the wrong theme.
+// The app is dark-first: anything other than an explicit "light" choice is dark.
+const themeScript = `(function(){try{var t=localStorage.getItem("theme");document.documentElement.classList.toggle("dark",t!=="light")}catch(e){document.documentElement.classList.add("dark")}})();`;
 
 export default function RootLayout({
   children,
@@ -25,10 +34,14 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang="es"
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="flex min-h-full flex-col antialiased">{children}</body>
     </html>
   );
 }

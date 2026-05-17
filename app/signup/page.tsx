@@ -4,80 +4,87 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { signupAction } from "./actions";
 import type { AuthFormState } from "@/lib/validation/auth";
+import { AuthLayout } from "@/app/_components/auth/auth-layout";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { AlertCircle } from "@/components/ui/icons";
 
 const initialState: AuthFormState = { ok: false };
 
-export default function SignupPage() {
+export default function SignupPage(): React.JSX.Element {
   const [state, formAction, pending] = useActionState(
     signupAction,
     initialState,
   );
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-zinc-50 p-6 dark:bg-zinc-950">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <h1 className="text-2xl font-semibold tracking-tight">Crear cuenta</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Empieza a generar tests con IA.
+    <AuthLayout
+      footer={
+        <>
+          ¿Ya tienes cuenta?{" "}
+          <Link
+            href="/login"
+            className="font-medium text-accent-text hover:underline"
+          >
+            Iniciar sesión
+          </Link>
+        </>
+      }
+    >
+      <div className="rounded-xl border border-border bg-surface p-6 shadow-e2 sm:p-7">
+        <h1 className="text-xl font-semibold tracking-[-0.01em] text-text">
+          Crear cuenta
+        </h1>
+        <p className="mt-1 text-sm text-muted">
+          Empieza a generar pruebas con IA en minutos.
         </p>
 
         <form action={formAction} className="mt-6 flex flex-col gap-4">
-          <div>
-            <label htmlFor="email" className="text-sm font-medium">
-              Email
-            </label>
-            <input
+          <Field
+            label="Email"
+            htmlFor="email"
+            error={state?.errors?.email?.[0]}
+          >
+            <Input
               id="email"
               name="email"
               type="email"
+              autoComplete="email"
               required
-              className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-zinc-100"
+              invalid={Boolean(state?.errors?.email)}
             />
-            {state?.errors?.email?.[0] && (
-              <p className="mt-1 text-xs text-red-600">{state.errors.email[0]}</p>
-            )}
-          </div>
+          </Field>
 
-          <div>
-            <label htmlFor="password" className="text-sm font-medium">
-              Contraseña
-            </label>
-            <input
+          <Field
+            label="Contraseña"
+            htmlFor="password"
+            hint="Mínimo 8 caracteres."
+            error={state?.errors?.password?.[0]}
+          >
+            <Input
               id="password"
               name="password"
               type="password"
+              autoComplete="new-password"
               required
               minLength={8}
-              className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:border-zinc-100"
+              invalid={Boolean(state?.errors?.password)}
             />
-            {state?.errors?.password?.[0] && (
-              <p className="mt-1 text-xs text-red-600">
-                {state.errors.password[0]}
-              </p>
-            )}
-            <p className="mt-1 text-xs text-zinc-500">Mínimo 8 caracteres.</p>
-          </div>
+          </Field>
 
-          {state?.message && (
-            <p className="text-sm text-red-600">{state.message}</p>
-          )}
+          {state?.message ? (
+            <p className="flex items-start gap-2 rounded-md bg-danger-bg px-3 py-2 text-sm text-danger-text">
+              <AlertCircle size={15} className="mt-px shrink-0" />
+              <span>{state.message}</span>
+            </p>
+          ) : null}
 
-          <button
-            type="submit"
-            disabled={pending}
-            className="mt-2 w-full rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
-          >
-            {pending ? "Creando…" : "Crear cuenta"}
-          </button>
+          <Button type="submit" loading={pending} className="mt-1 w-full">
+            {pending ? "Creando cuenta" : "Crear cuenta"}
+          </Button>
         </form>
-
-        <p className="mt-6 text-center text-sm text-zinc-500">
-          ¿Ya tienes cuenta?{" "}
-          <Link href="/login" className="font-medium underline">
-            Iniciar sesión
-          </Link>
-        </p>
       </div>
-    </main>
+    </AuthLayout>
   );
 }

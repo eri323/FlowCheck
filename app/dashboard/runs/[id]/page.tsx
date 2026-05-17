@@ -2,6 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { TEST_TYPE_LABELS, type TestType } from "@/lib/validation/test-run";
+import { formatDateTime } from "@/lib/format";
+import { cn } from "@/lib/cn";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { ArrowLeft, ExternalLink } from "@/components/ui/icons";
 import { TestRunDetail } from "./_components/test-run-detail";
 
 type TestRunRow = {
@@ -37,11 +43,13 @@ type TestStepRow = {
   duration_ms: number | null;
 };
 
+export const metadata = { title: "Detalle del run" };
+
 export default async function TestRunPage({
   params,
 }: {
   params: Promise<{ id: string }>;
-}) {
+}): Promise<React.JSX.Element> {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
 
@@ -77,30 +85,46 @@ export default async function TestRunPage({
     : { data: [] as TestStepRow[] };
 
   return (
-    <section className="space-y-6">
-      <nav className="text-sm">
-        <Link href="/dashboard" className="text-zinc-500 hover:text-zinc-700">
-          ← Volver al dashboard
-        </Link>
-      </nav>
+    <div className="flex flex-col gap-5">
+      <Link
+        href="/dashboard/runs"
+        className="inline-flex w-fit items-center gap-1.5 text-sm text-muted transition-colors duration-150 hover:text-text"
+      >
+        <ArrowLeft size={15} />
+        Test runs
+      </Link>
 
-      <header className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <Card className="p-4 sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+              <Badge tone="accent">
                 {TEST_TYPE_LABELS[testRun.test_type]}
+              </Badge>
+              <span className="font-mono text-xs text-faint">
+                {formatDateTime(testRun.created_at)}
               </span>
-              <h1 className="truncate text-xl font-semibold tracking-tight">
-                {testRun.target_url}
-              </h1>
             </div>
+            <h1 className="mt-2 truncate font-mono text-lg font-semibold tracking-tight text-text">
+              {testRun.target_url}
+            </h1>
             {testRun.prompt ? (
-              <p className="mt-2 text-sm text-zinc-500">{testRun.prompt}</p>
+              <p className="mt-1.5 max-w-2xl text-pretty text-sm text-muted">
+                {testRun.prompt}
+              </p>
             ) : null}
           </div>
+          <a
+            href={testRun.target_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(buttonVariants({ variant: "secondary", size: "sm" }))}
+          >
+            Abrir URL
+            <ExternalLink size={14} />
+          </a>
         </div>
-      </header>
+      </Card>
 
       <TestRunDetail
         runId={testRun.id}
@@ -108,6 +132,6 @@ export default async function TestRunPage({
         initialCases={cases ?? []}
         initialSteps={steps ?? []}
       />
-    </section>
+    </div>
   );
 }

@@ -2,6 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/cn";
+import { formatDuration } from "@/lib/format";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  AlertCircle,
+  Close,
+  ImageIcon,
+  Sparkles,
+} from "@/components/ui/icons";
+import { RunStatusBadge, StepStatusBadge } from "@/components/runs/run-status";
 
 type TestRun = {
   id: string;
@@ -170,7 +183,6 @@ export function TestRunDetail({
   useEffect(() => {
     const isActive = run.status === "pendiente" || run.status === "corriendo";
 
-    // Diferido un tick para no encadenar renders dentro del efecto.
     const initial = setTimeout(() => {
       void refetch();
     }, 0);
@@ -187,6 +199,21 @@ export function TestRunDetail({
       clearInterval(interval);
     };
   }, [run.status, refetch]);
+
+  // Cierra el visor de captura con Escape y bloquea el scroll del fondo.
+  useEffect(() => {
+    if (!openScreenshot) return;
+    function onKey(event: KeyboardEvent): void {
+      if (event.key === "Escape") setOpenScreenshot(null);
+    }
+    document.addEventListener("keydown", onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [openScreenshot]);
 
   const stepsByCase = useMemo(() => {
     const map = new Map<string, TestStep[]>();
@@ -215,177 +242,142 @@ export function TestRunDetail({
 
   const totalDurationMs = useMemo(() => {
     if (!run.started_at || !run.finished_at) return null;
-    return new Date(run.finished_at).getTime() - new Date(run.started_at).getTime();
+    return (
+      new Date(run.finished_at).getTime() -
+      new Date(run.started_at).getTime()
+    );
   }, [run.started_at, run.finished_at]);
 
+  const isActive = run.status === "pendiente" || run.status === "corriendo";
+  const pending = counts.pendiente + counts.corriendo;
+
   return (
-    <>
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex flex-wrap items-center gap-3">
-          <span
-            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium ${runStatusClass(run.status)}`}
-          >
-            {run.status === "corriendo" ? <Spinner /> : null}
-            {run.status}
-          </span>
-          <Stat label="passed" value={counts.passed} tone="emerald" />
-          <Stat label="failed" value={counts.failed} tone="red" />
-          {counts.skipped > 0 ? (
-            <Stat label="skipped" value={counts.skipped} tone="zinc" />
-          ) : null}
-          {counts.corriendo + counts.pendiente > 0 ? (
-            <Stat
-              label="pendientes"
-              value={counts.pendiente + counts.corriendo}
-              tone="amber"
-            />
-          ) : null}
+    <div className="flex flex-col gap-5">
+      <Card className="p-4 sm:p-5">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <RunStatusBadge status={run.status} />
+          <div className="flex items-center gap-4">
+            <Stat label="passed" value={counts.passed} tone="success" />
+            <Stat label="failed" value={counts.failed} tone="danger" />
+            {counts.skipped > 0 ? (
+              <Stat label="skipped" value={counts.skipped} tone="neutral" />
+            ) : null}
+            {pending > 0 ? (
+              <Stat label="pendientes" value={pending} tone="running" />
+            ) : null}
+          </div>
           {totalDurationMs !== null ? (
-            <span className="ml-auto text-sm text-zinc-500">
-              Duración: {formatDuration(totalDurationMs)}
+            <span className="tabular ml-auto font-mono text-xs text-faint">
+              {formatDuration(totalDurationMs)}
             </span>
           ) : null}
         </div>
         {run.error_message ? (
-          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">
-            {run.error_message}
+          <p className="mt-3 flex items-start gap-2 rounded-md bg-danger-bg px-3 py-2 text-sm text-danger-text">
+            <AlertCircle size={15} className="mt-px shrink-0" />
+            <span>{run.error_message}</span>
           </p>
         ) : null}
-      </div>
+      </Card>
 
-      <div className="space-y-4">
-        {cases.length === 0 ? (
-          <p className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
-            La IA todavía no generó casos de prueba para este run.
-          </p>
-        ) : null}
-        {cases.map((tc) => {
-          const list = stepsByCase.get(tc.id) ?? [];
-          return (
-            <div
-              key={tc.id}
-              className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-            >
-              <header className="flex items-start justify-between gap-3 border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
-                <div className="min-w-0">
-                  <h3 className="truncate text-base font-semibold">{tc.name}</h3>
-                  {tc.description ? (
-                    <p className="mt-0.5 text-sm text-zinc-500">{tc.description}</p>
-                  ) : null}
-                </div>
-                <span
-                  className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${runStatusClass(tc.status)}`}
-                >
-                  {tc.status}
-                </span>
-              </header>
-              <ol className="divide-y divide-zinc-200 dark:divide-zinc-800">
+      {cases.length === 0 ? (
+        isActive ? (
+          <Card className="flex items-center justify-center gap-2.5 px-6 py-12 text-sm text-muted">
+            <Spinner size={15} />
+            La IA está generando los casos de prueba.
+          </Card>
+        ) : (
+          <Card>
+            <EmptyState
+              icon={Sparkles}
+              title="Sin casos de prueba"
+              description="Este run terminó sin que la IA generara casos. Revisa el mensaje de error o vuelve a intentarlo."
+            />
+          </Card>
+        )
+      ) : null}
+
+      {cases.map((tc) => {
+        const list = stepsByCase.get(tc.id) ?? [];
+        return (
+          <Card key={tc.id} className="overflow-hidden">
+            <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-3.5 sm:px-5">
+              <div className="min-w-0">
+                <h3 className="truncate text-sm font-semibold text-text">
+                  {tc.name}
+                </h3>
+                {tc.description ? (
+                  <p className="mt-0.5 text-xs text-muted">{tc.description}</p>
+                ) : null}
+              </div>
+              <StepStatusBadge status={tc.status} />
+            </header>
+            {list.length === 0 ? (
+              <p className="px-4 py-4 text-xs text-faint sm:px-5">
+                Sin pasos registrados todavía.
+              </p>
+            ) : (
+              <ol className="divide-y divide-border">
                 {list.map((step) => (
-                  <li key={step.id} className="px-6 py-3">
-                    <div className="flex items-start gap-3">
-                      <StatusDot status={step.status} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-                            {step.action}
-                          </code>
-                          {step.selector ? (
-                            <span className="truncate text-xs text-zinc-500">
-                              {step.selector}
-                            </span>
-                          ) : null}
-                          {step.value ? (
-                            <span className="truncate text-xs text-zinc-500">
-                              → {step.value}
-                            </span>
-                          ) : null}
-                          {step.duration_ms !== null ? (
-                            <span className="ml-auto whitespace-nowrap text-xs text-zinc-400">
-                              {step.duration_ms} ms
-                            </span>
-                          ) : null}
-                        </div>
-                        {step.error_message ? (
-                          <p className="mt-1 rounded-md bg-red-50 px-2 py-1 text-xs text-red-700 dark:bg-red-900/20 dark:text-red-300">
-                            {step.error_message}
-                          </p>
-                        ) : null}
-                        {step.screenshot_url ? (
-                          <button
-                            type="button"
-                            onClick={() => setOpenScreenshot(step.screenshot_url)}
-                            className="mt-1 text-xs text-emerald-700 hover:underline dark:text-emerald-400"
-                          >
-                            ver screenshot
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
-                  </li>
+                  <StepRow
+                    key={step.id}
+                    step={step}
+                    onOpenScreenshot={setOpenScreenshot}
+                  />
                 ))}
               </ol>
-            </div>
-          );
-        })}
-      </div>
+            )}
+          </Card>
+        );
+      })}
 
       {openScreenshot ? (
-        <button
-          type="button"
-          onClick={() => setOpenScreenshot(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6"
-          aria-label="Cerrar screenshot"
+        <div
+          className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center p-4 sm:p-8"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Captura del paso"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={openScreenshot}
-            alt="Screenshot del paso"
-            className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl"
+          <button
+            type="button"
+            aria-label="Cerrar captura"
+            onClick={() => setOpenScreenshot(null)}
+            className="absolute inset-0 bg-bg/85 backdrop-blur-sm"
           />
-        </button>
+          <figure className="relative flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-e3">
+            <figcaption className="flex items-center justify-between gap-3 border-b border-border bg-surface-2 px-4 py-2.5">
+              <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted">
+                <ImageIcon size={13} />
+                captura del paso
+              </span>
+              <button
+                type="button"
+                onClick={() => setOpenScreenshot(null)}
+                aria-label="Cerrar"
+                className="inline-flex size-7 items-center justify-center rounded-md text-muted transition-colors hover:bg-elevated hover:text-text"
+              >
+                <Close size={15} />
+              </button>
+            </figcaption>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={openScreenshot}
+              alt="Captura de pantalla del paso de la prueba"
+              className="max-h-[76vh] w-full bg-surface-2 object-contain"
+            />
+          </figure>
+        </div>
       ) : null}
-    </>
+    </div>
   );
 }
 
-function runStatusClass(status: string): string {
-  switch (status) {
-    case "completado":
-    case "passed":
-      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
-    case "fallido":
-    case "failed":
-      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
-    case "corriendo":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
-    case "skipped":
-    case "cancelado":
-      return "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300";
-    default:
-      return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
-  }
-}
-
-function StatusDot({ status }: { status: string }): React.JSX.Element {
-  const map: Record<string, string> = {
-    passed: "bg-emerald-500",
-    failed: "bg-red-500",
-    corriendo: "bg-blue-500 animate-pulse",
-    skipped: "bg-zinc-400",
-    pendiente: "bg-amber-400",
-  };
-  const cls = map[status] ?? "bg-zinc-300";
-  return <span className={`mt-1.5 size-2 shrink-0 rounded-full ${cls}`} />;
-}
-
-function Spinner(): React.JSX.Element {
-  return (
-    <span
-      className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent"
-      aria-hidden="true"
-    />
-  );
-}
+const STAT_TONE: Record<string, string> = {
+  success: "text-success-text",
+  danger: "text-danger-text",
+  running: "text-running-text",
+  neutral: "text-faint",
+};
 
 function Stat({
   label,
@@ -394,27 +386,89 @@ function Stat({
 }: {
   label: string;
   value: number;
-  tone: "emerald" | "red" | "zinc" | "amber";
+  tone: "success" | "danger" | "running" | "neutral";
 }): React.JSX.Element {
-  const toneClass = {
-    emerald: "text-emerald-700 dark:text-emerald-300",
-    red: "text-red-700 dark:text-red-300",
-    zinc: "text-zinc-600 dark:text-zinc-400",
-    amber: "text-amber-700 dark:text-amber-300",
-  }[tone];
   return (
-    <span className={`text-sm ${toneClass}`}>
-      <span className="font-semibold">{value}</span>{" "}
-      <span className="text-xs uppercase tracking-wide">{label}</span>
+    <span className="inline-flex items-baseline gap-1.5">
+      <span className={cn("tabular text-sm font-semibold", STAT_TONE[tone])}>
+        {value}
+      </span>
+      <span className="text-[0.6875rem] uppercase tracking-[0.05em] text-faint">
+        {label}
+      </span>
     </span>
   );
 }
 
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms} ms`;
-  const seconds = ms / 1000;
-  if (seconds < 60) return `${seconds.toFixed(1)} s`;
-  const minutes = Math.floor(seconds / 60);
-  const rest = Math.round(seconds % 60);
-  return `${minutes}m ${rest}s`;
+const DOT_TONE: Record<string, string> = {
+  passed: "bg-success",
+  failed: "bg-danger",
+  corriendo: "bg-running",
+  skipped: "bg-faint",
+  pendiente: "bg-warning",
+};
+
+function StepRow({
+  step,
+  onOpenScreenshot,
+}: {
+  step: TestStep;
+  onOpenScreenshot: (url: string) => void;
+}): React.JSX.Element {
+  const adaptive = step.selector?.startsWith("[adaptive]") ?? false;
+  const selectorText = adaptive
+    ? step.selector?.replace(/^\[adaptive\]\s*/, "")
+    : step.selector;
+
+  return (
+    <li className="flex items-start gap-3 px-4 py-3 sm:px-5">
+      <span
+        className={cn(
+          "mt-[5px] size-2 shrink-0 rounded-full",
+          DOT_TONE[step.status] ?? "bg-border-strong",
+          step.status === "corriendo" && "animate-pulse-dot",
+        )}
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[0.6875rem] font-medium text-accent-text">
+            {step.action}
+          </code>
+          {adaptive ? (
+            <Badge tone="accent">adaptativo</Badge>
+          ) : null}
+          {selectorText ? (
+            <span className="min-w-0 truncate font-mono text-xs text-muted">
+              {selectorText}
+            </span>
+          ) : null}
+          {step.value ? (
+            <span className="min-w-0 truncate font-mono text-xs text-faint">
+              → {step.value}
+            </span>
+          ) : null}
+          {step.duration_ms !== null ? (
+            <span className="tabular ml-auto shrink-0 font-mono text-[0.6875rem] text-faint">
+              {step.duration_ms} ms
+            </span>
+          ) : null}
+        </div>
+        {step.error_message ? (
+          <p className="mt-1.5 rounded-md bg-danger-bg px-2.5 py-1.5 text-xs text-danger-text">
+            {step.error_message}
+          </p>
+        ) : null}
+        {step.screenshot_url ? (
+          <button
+            type="button"
+            onClick={() => onOpenScreenshot(step.screenshot_url as string)}
+            className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-accent-text transition-opacity hover:opacity-80"
+          >
+            <ImageIcon size={12} />
+            Ver captura
+          </button>
+        ) : null}
+      </div>
+    </li>
+  );
 }

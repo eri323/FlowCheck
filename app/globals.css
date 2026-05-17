@@ -1,26 +1,245 @@
 @import "tailwindcss";
 
+/* Dark mode driven by a `.dark` class on <html>, set by the no-flash script. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ----------------------------------------------------------------------------
+   Design tokens — light (default). Neutrals are tinted toward the clay accent
+   hue (~67) at very low chroma for subconscious cohesion. No pure #000/#fff.
+---------------------------------------------------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: oklch(0.969 0.004 67);
+  --surface: oklch(0.993 0.0025 67);
+  --surface-2: oklch(0.949 0.005 67);
+  --elevated: oklch(1 0 0);
+  --border: oklch(0.903 0.005 67);
+  --border-strong: oklch(0.842 0.008 67);
+  --text: oklch(0.262 0.012 67);
+  --text-muted: oklch(0.505 0.009 67);
+  --text-faint: oklch(0.63 0.008 67);
+
+  --accent: oklch(0.585 0.158 52);
+  --accent-hover: oklch(0.532 0.16 50);
+  --accent-fg: oklch(0.99 0.012 85);
+  --accent-subtle: oklch(0.947 0.032 62);
+  --accent-text: oklch(0.535 0.15 50);
+
+  --success: oklch(0.57 0.14 158);
+  --success-bg: oklch(0.945 0.038 158);
+  --success-text: oklch(0.455 0.12 158);
+  --danger: oklch(0.56 0.2 25);
+  --danger-bg: oklch(0.953 0.03 25);
+  --danger-text: oklch(0.505 0.19 25);
+  --running: oklch(0.55 0.15 248);
+  --running-bg: oklch(0.945 0.032 248);
+  --running-text: oklch(0.475 0.14 248);
+  --warning: oklch(0.66 0.13 70);
+  --warning-bg: oklch(0.95 0.05 78);
+  --warning-text: oklch(0.47 0.09 65);
+  --neutral-bg: oklch(0.928 0.005 67);
+  --neutral-text: oklch(0.45 0.008 67);
+
+  --e1: 0 1px 2px oklch(0.2 0.02 67 / 0.07), 0 1px 1px oklch(0.2 0.02 67 / 0.04);
+  --e2: 0 4px 14px oklch(0.2 0.02 67 / 0.09), 0 2px 4px oklch(0.2 0.02 67 / 0.05);
+  --e3: 0 16px 40px oklch(0.2 0.02 67 / 0.14), 0 4px 10px oklch(0.2 0.02 67 / 0.07);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  color-scheme: light;
 }
 
+/* ---- Design tokens — dark (default theme of the app). ---- */
+.dark {
+  --bg: oklch(0.166 0.006 67);
+  --surface: oklch(0.206 0.0065 67);
+  --surface-2: oklch(0.187 0.006 67);
+  --elevated: oklch(0.247 0.008 67);
+  --border: oklch(0.292 0.008 67);
+  --border-strong: oklch(0.378 0.011 67);
+  --text: oklch(0.955 0.004 85);
+  --text-muted: oklch(0.715 0.008 75);
+  --text-faint: oklch(0.558 0.008 70);
+
+  --accent: oklch(0.722 0.132 56);
+  --accent-hover: oklch(0.778 0.138 58);
+  --accent-fg: oklch(0.202 0.03 55);
+  --accent-subtle: oklch(0.287 0.046 52);
+  --accent-text: oklch(0.79 0.12 60);
+
+  --success: oklch(0.742 0.15 158);
+  --success-bg: oklch(0.3 0.055 158);
+  --success-text: oklch(0.84 0.13 162);
+  --danger: oklch(0.668 0.176 25);
+  --danger-bg: oklch(0.315 0.078 25);
+  --danger-text: oklch(0.8 0.12 28);
+  --running: oklch(0.702 0.126 248);
+  --running-bg: oklch(0.312 0.06 248);
+  --running-text: oklch(0.825 0.095 248);
+  --warning: oklch(0.802 0.12 75);
+  --warning-bg: oklch(0.322 0.05 72);
+  --warning-text: oklch(0.862 0.1 80);
+  --neutral-bg: oklch(0.272 0.007 67);
+  --neutral-text: oklch(0.72 0.008 67);
+
+  --e1: 0 1px 2px oklch(0 0 0 / 0.4);
+  --e2: 0 6px 22px oklch(0 0 0 / 0.42);
+  --e3: 0 18px 44px oklch(0 0 0 / 0.58);
+
+  color-scheme: dark;
+}
+
+/* ---- Map tokens to Tailwind utilities (inline = re-resolves per theme). ---- */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-elevated: var(--elevated);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-text: var(--accent-text);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-success-text: var(--success-text);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-text: var(--danger-text);
+  --color-running: var(--running);
+  --color-running-bg: var(--running-bg);
+  --color-running-text: var(--running-text);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-text: var(--warning-text);
+  --color-neutral-bg: var(--neutral-bg);
+  --color-neutral-text: var(--neutral-text);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+    sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.75rem;
+
+  --shadow-e1: var(--e1);
+  --shadow-e2: var(--e2);
+  --shadow-e3: var(--e3);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: -150% 0;
+  }
+  to {
+    background-position: 250% 0;
+  }
+}
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.82);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
+      sans-serif;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--accent-subtle);
+    color: var(--text);
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+}
+
+/* Tabular numerals for data-aligned figures. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Animation utilities (unlayered, so they win over Tailwind layers cleanly). */
+.animate-fade-in {
+  animation: fade-in 0.4s var(--ease-out) both;
+}
+.animate-rise {
+  animation: rise 0.5s var(--ease-out) both;
+}
+.animate-pulse-dot {
+  animation: pulse-dot 1.6s var(--ease-out) infinite;
+}
+
+/* Subtle skeleton shimmer surface. */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--neutral-bg) 0%,
+    color-mix(in oklch, var(--neutral-bg), var(--text-faint) 18%) 50%,
+    var(--neutral-bg) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
