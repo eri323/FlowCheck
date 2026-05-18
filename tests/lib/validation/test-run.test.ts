@@ -63,3 +63,51 @@ describe("createTestRunSchema — credencial de login", () => {
     expect(result.success).toBe(false);
   });
 });
+
+describe("createTestRunSchema — configuración de runner", () => {
+  it("aplica los defaults de runner cuando no se envían", () => {
+    const result = createTestRunSchema.safeParse({
+      ...base,
+      test_type: "navegacion",
+      test_data: {},
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.browser).toBe("chromium");
+      expect(result.data.device).toBe("desktop");
+      expect(result.data.retries).toBe(1);
+    }
+  });
+
+  it("acepta device 'mobile' y un número de reintentos válido", () => {
+    const result = createTestRunSchema.safeParse({
+      ...base,
+      test_type: "navegacion",
+      test_data: {},
+      browser: "chromium",
+      device: "mobile",
+      retries: 3,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rechaza un navegador distinto de chromium en este ciclo", () => {
+    const result = createTestRunSchema.safeParse({
+      ...base,
+      test_type: "navegacion",
+      test_data: {},
+      browser: "firefox",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rechaza un número de reintentos fuera de rango", () => {
+    const result = createTestRunSchema.safeParse({
+      ...base,
+      test_type: "navegacion",
+      test_data: {},
+      retries: 9,
+    });
+    expect(result.success).toBe(false);
+  });
+});
