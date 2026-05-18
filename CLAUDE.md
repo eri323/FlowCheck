@@ -14,7 +14,7 @@ Equivalente real: Testim.io, Mabl, Reflect.run — pero construido desde cero.
 ## Arquitectura
 
 ```
-frontend/          → Next.js 14 App Router + Tailwind CSS + TypeScript
+frontend/          → Next.js 16 App Router + Tailwind CSS v4 + TypeScript
 backend/           → API Routes de Next.js (mismo repo, /app/api/)
 worker/            → Proceso Node.js independiente — consumidor de BullMQ
 ```
@@ -29,7 +29,7 @@ El worker de Playwright es un proceso separado porque necesita correr jobs largo
 
 | Capa           | Tecnología              |
 |----------------|-------------------------|
-| Frontend       | Next.js 14, Tailwind    |
+| Frontend       | Next.js 16, Tailwind v4 |
 | Auth + DB      | Supabase                |
 | Tiempo real    | Supabase Realtime       |
 | Archivos       | Supabase Storage        |
@@ -95,6 +95,33 @@ UPSTASH_REDIS_TOKEN=
 - Las queries de Supabase siempre manejan explícitamente el patrón `{ data, error }`.
 - Cada nuevo endpoint necesita su test correspondiente en `/tests/api/`. Stack de testing: Vitest + mocks manuales de Supabase y BullMQ (sin tocar Redis ni DB reales).
 - Los screenshots se suben a Supabase Storage (bucket `screenshots`) antes de guardar la URL en DB.
+
+---
+
+## Sistema de diseño y UI
+
+- Tokens de color en `app/globals.css`: OKLCH, capa semántica (`bg`, `surface`,
+  `border`, `text`, `accent`, estados). Dark/light por clase `.dark` en `<html>`
+  (script anti-flash en `app/layout.tsx`). Tema por defecto: oscuro.
+- Tailwind v4 sin `tailwind.config`: el tema se define con `@theme` en `globals.css`.
+- Componentes reutilizables en `components/ui/` (Button, Input, Field, Badge,
+  Card, Skeleton, EmptyState, Select, ThemeToggle, iconos SVG). Úsalos; no
+  hardcodees colores ni escalas `zinc-*`.
+- El accent (naranja arcilla) está separado de los colores de estado: nunca
+  uses el accent para "passed"/éxito; eso es el color semántico `success`.
+
+---
+
+## Mapa de rutas
+
+- `/` — landing pública. Debe figurar en `PUBLIC_PATHS` de
+  `lib/supabase/middleware.ts`; toda ruta accesible sin login va ahí o el
+  middleware la redirige a `/login`.
+- `/login`, `/signup` — autenticación.
+- `/dashboard` — resumen (métricas + runs recientes).
+- `/dashboard/runs` — tabla de runs con filtros.
+- `/dashboard/runs/new` — formulario de nuevo test run.
+- `/dashboard/runs/[id]` — detalle del run en vivo.
 
 ---
 
