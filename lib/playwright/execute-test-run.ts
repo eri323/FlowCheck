@@ -53,6 +53,32 @@ type CaseRow = {
 
 const STEP_TIMEOUT_MS = 30_000;
 
+type LogLevel = "info" | "ok" | "warn" | "err";
+type LogEntry = { ts: string; level: LogLevel; msg: string };
+
+/** Acumula el stream de logs de un run y lo vuelca a test_runs.logs. */
+class RunLog {
+  private readonly entries: LogEntry[] = [];
+
+  add(level: LogLevel, msg: string): void {
+    this.entries.push({ ts: new Date().toISOString(), level, msg });
+  }
+
+  get all(): LogEntry[] {
+    return this.entries;
+  }
+
+  async flush(supabase: SupabaseClient, testRunId: string): Promise<void> {
+    const { error } = await supabase
+      .from("test_runs")
+      .update({ logs: this.entries })
+      .eq("id", testRunId);
+    if (error) {
+      console.warn(`No se pudo volcar logs del run ${testRunId}: ${error.message}`);
+    }
+  }
+}
+
 export class TestExecutionError extends Error {
   public readonly originalError?: unknown;
 
@@ -256,6 +282,8 @@ async function runCase(
   browser: Browser,
   testType: TestType | undefined,
   contextOptions: BrowserContextOptions,
+  log: RunLog,
+  jsErrors: { count: number },
 ): Promise<"completado" | "fallido"> {
   await supabase
     .from("test_cases")
@@ -264,6 +292,20 @@ async function runCase(
 
   const context = await browser.newContext(contextOptions);
   const page = await context.newPage();
+
+  // Errores JS de la página: excepciones no capturadas y console.error.
+  page.on("pageerror", (error) => {
+    jsErrors.count += 1;
+    log.add("err", `js error: ${error.message}`);
+  });
+  page.on("console", (msg) => {
+    if (msg.type() === "error") {
+      jsErrors.count += 1;
+      log.add("err", `console.error: ${msg.text().slice(0, 200)}`);
+    }
+  });
+
+  log.add("info", `caso "${testCase.name}" — ${testCase.steps.length} pasos`);
   const loginCtx: LoginRunContext = { testType, inVerificationWindow: false };
   let caseFailed = false;
 
@@ -331,6 +373,12 @@ async function runCase(
       }
 
       await supabase.from("test_steps").update(update).eq("id", step.id);
+      log.add(
+        errorMessage ? "err" : "ok",
+        `paso ${step.position + 1} · ${step.action} · ${stepStatus}` +
+          (errorMessage ? ` — ${errorMessage}` : ` · ${durationMs}ms`),
+      );
+      await log.flush(supabase, testRunId);
 
       if (errorMessage) {
         caseFailed = true;
@@ -353,11 +401,16 @@ export async function executeTestRun(
 ): Promise<"completado" | "fallido"> {
   const cases = await loadCasesForRun(supabase, testRunId);
 
-  // 'Pixel 5' aporta viewport, userAgent y isMobile; desktop usa el default.
   const contextOptions: BrowserContextOptions =
     device === "mobile" ? devices["Pixel 5"] : {};
 
+  const log = new RunLog();
+  const jsErrors = { count: 0 };
+  log.add("info", `ejecución iniciada · device=${device} · ${cases.length} casos`);
+  await log.flush(supabase, testRunId);
+
   const browser = await chromium.launch({ headless: true });
+  log.add("ok", "navegador lanzado · chromium · headless");
   let anyFailed = false;
 
   try {
@@ -369,6 +422,8 @@ export async function executeTestRun(
         browser,
         testType,
         contextOptions,
+        log,
+        jsErrors,
       );
       if (result === "fallido") anyFailed = true;
     }
@@ -376,5 +431,15 @@ export async function executeTestRun(
     await browser.close();
   }
 
-  return anyFailed ? "fallido" : "completado";
+  const finalStatus = anyFailed ? "fallido" : "completado";
+  log.add(
+    anyFailed ? "err" : "ok",
+    `ejecución finalizada · estado=${finalStatus} · errores JS=${jsErrors.count}`,
+  );
+  await supabase
+    .from("test_runs")
+    .update({ logs: log.all, js_error_count: jsErrors.count })
+    .eq("id", testRunId);
+
+  return finalStatus;
 }
