@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { cn } from "@/lib/cn";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ArrowRight, Plus, Sparkles } from "@/components/ui/icons";
+import { ArrowRight, Plus, Sparkles, Shield, Bolt } from "@/components/ui/icons";
+import { StatTile } from "@/components/ui/stat-tile";
+import { BreakdownBar } from "@/components/ui/breakdown-bar";
+import { TEST_TYPES, TEST_TYPE_LABELS } from "@/lib/validation/test-run";
 import { PageHeader } from "./_components/page-header";
 import {
   RunListHeader,
@@ -13,37 +15,6 @@ import {
 } from "./runs/_components/run-list";
 
 export const metadata = { title: "Resumen" };
-
-type StatTone = "accent" | "success" | "danger" | "running";
-
-const DOT: Record<StatTone, string> = {
-  accent: "bg-accent",
-  success: "bg-success",
-  danger: "bg-danger",
-  running: "bg-running",
-};
-
-function StatCell({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: StatTone;
-}): React.JSX.Element {
-  return (
-    <div className="bg-surface px-4 py-3.5">
-      <div className="flex items-center gap-1.5">
-        <span className={cn("size-1.5 rounded-full", DOT[tone])} />
-        <p className="text-xs text-muted">{label}</p>
-      </div>
-      <p className="tabular mt-1.5 text-[1.75rem] font-semibold leading-none tracking-tight text-text">
-        {value}
-      </p>
-    </div>
-  );
-}
 
 export default async function DashboardPage(): Promise<React.JSX.Element> {
   const supabase = await createSupabaseServerClient();
@@ -66,6 +37,19 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
     ).length,
   };
   const recent = rows.slice(0, 6).map(toRunListItem);
+
+  const breakdown = TEST_TYPES.map((t) => {
+    const ofType = rows.filter((r) => r.test_type === t);
+    const passed = ofType.filter((r) => r.status === "completado").length;
+    return {
+      type: t,
+      label: TEST_TYPE_LABELS[t],
+      count: ofType.length,
+      passRate:
+        ofType.length > 0 ? Math.round((passed / ofType.length) * 100) : 0,
+    };
+  }).filter((b) => b.count > 0);
+  const breakdownMax = Math.max(1, ...breakdown.map((b) => b.count));
 
   return (
     <div className="flex flex-col gap-8">
@@ -101,42 +85,152 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
         </div>
       ) : (
         <>
+          {/* Stat tiles */}
           <div className="overflow-hidden rounded-lg border border-border">
             <div className="grid grid-cols-2 gap-px bg-border lg:grid-cols-4">
-              <StatCell label="Total de runs" value={stats.total} tone="accent" />
-              <StatCell
+              <StatTile label="Total de runs" value={stats.total} tone="accent" />
+              <StatTile
                 label="Completados"
                 value={stats.completados}
                 tone="success"
               />
-              <StatCell label="Fallidos" value={stats.fallidos} tone="danger" />
-              <StatCell label="En curso" value={stats.activos} tone="running" />
+              <StatTile label="Fallidos" value={stats.fallidos} tone="danger" />
+              <StatTile label="En curso" value={stats.activos} tone="running" />
             </div>
           </div>
 
-          <section>
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-text">
-                Actividad reciente
-              </h2>
-              <Link
-                href="/dashboard/runs"
-                className="group inline-flex items-center gap-1 text-xs font-medium text-accent-text"
-              >
-                Ver todos
-                <ArrowRight
-                  size={13}
-                  className="transition-transform duration-150 group-hover:translate-x-0.5"
-                />
-              </Link>
-            </div>
-            <div className="mt-3 overflow-hidden rounded-lg border border-border bg-surface">
-              <RunListHeader />
-              <div className="divide-y divide-border">
-                {recent.map((run) => (
-                  <RunRow key={run.id} run={run} />
-                ))}
+          {/* Two-column: recent runs + breakdown */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_1fr]">
+            {/* Left: recent runs */}
+            <section>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold text-text">
+                  Actividad reciente
+                </h2>
+                <Link
+                  href="/dashboard/runs"
+                  className="group inline-flex items-center gap-1 text-xs font-medium text-accent-text"
+                >
+                  Ver todos
+                  <ArrowRight
+                    size={13}
+                    className="transition-transform duration-150 group-hover:translate-x-0.5"
+                  />
+                </Link>
               </div>
+              <div className="mt-3 overflow-hidden rounded-lg border border-border bg-surface">
+                <RunListHeader />
+                <div className="divide-y divide-border">
+                  {recent.map((run) => (
+                    <RunRow key={run.id} run={run} />
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Right: breakdown by test type */}
+            <section>
+              <h2 className="text-sm font-semibold text-text">
+                Por tipo de prueba
+              </h2>
+              <div className="mt-3 rounded-lg border border-border bg-surface px-5 py-4">
+                {breakdown.length === 0 ? (
+                  <p className="text-xs text-faint">Sin datos todavía.</p>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {breakdown.map((b) => (
+                      <BreakdownBar
+                        key={b.type}
+                        label={b.label}
+                        value={b.count}
+                        max={breakdownMax}
+                        caption={`${b.passRate}%`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+
+          {/* Shortcuts */}
+          <section>
+            <div className="mb-3 flex items-center gap-3">
+              <h2 className="text-sm font-semibold text-text">Atajos</h2>
+              <span className="h-px flex-1 bg-border" />
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {/* Shortcut: login */}
+              <Link
+                href="/dashboard/runs/new"
+                className="group flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 transition-colors duration-150 hover:bg-surface-2"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="flex size-8 items-center justify-center rounded-lg border border-border bg-accent-subtle text-accent-text">
+                    <Shield size={15} />
+                  </span>
+                  <ArrowRight
+                    size={14}
+                    className="text-faint transition-transform duration-150 group-hover:translate-x-0.5"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-text">
+                    Probar un login
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted">
+                    Verifica credenciales y flujo de acceso en menos de un minuto.
+                  </p>
+                </div>
+              </Link>
+
+              {/* Shortcut: checkout */}
+              <Link
+                href="/dashboard/runs/new"
+                className="group flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 transition-colors duration-150 hover:bg-surface-2"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="flex size-8 items-center justify-center rounded-lg border border-border bg-accent-subtle text-accent-text">
+                    <Bolt size={15} />
+                  </span>
+                  <ArrowRight
+                    size={14}
+                    className="text-faint transition-transform duration-150 group-hover:translate-x-0.5"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-text">
+                    Validar checkout
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted">
+                    Carrito, pago de prueba y confirmación de orden end-to-end.
+                  </p>
+                </div>
+              </Link>
+
+              {/* Shortcut: suite from URL */}
+              <Link
+                href="/dashboard/runs/new"
+                className="group flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 transition-colors duration-150 hover:bg-surface-2"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="flex size-8 items-center justify-center rounded-lg border border-border bg-accent-subtle text-accent-text">
+                    <Sparkles size={15} />
+                  </span>
+                  <ArrowRight
+                    size={14}
+                    className="text-faint transition-transform duration-150 group-hover:translate-x-0.5"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-text">
+                    Generar suite desde URL
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted">
+                    Pega una URL y la IA propone y ejecuta pruebas automáticamente.
+                  </p>
+                </div>
+              </Link>
             </div>
           </section>
         </>
