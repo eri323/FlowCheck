@@ -293,7 +293,14 @@ export function TestRunDetail({
                 {counts.passed + counts.failed}/{steps.length} pasos
               </span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-neutral-bg">
+            <div
+              role="progressbar"
+              aria-valuenow={progressPct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Progreso del run"
+              className="h-1.5 overflow-hidden rounded-full bg-neutral-bg"
+            >
               <div
                 className="h-full rounded-full bg-accent transition-[width] duration-700 ease-out"
                 style={{ width: `${progressPct}%` }}
