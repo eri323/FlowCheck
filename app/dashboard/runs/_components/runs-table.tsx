@@ -6,7 +6,7 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, type TabItem } from "@/components/ui/tabs";
-import { Filter, Search } from "@/components/ui/icons";
+import { Filter, Search, Download } from "@/components/ui/icons";
 import { TEST_TYPES, TEST_TYPE_LABELS } from "@/lib/validation/test-run";
 import { RunListHeader, RunRow, type RunListItem } from "./run-list";
 
@@ -94,6 +94,26 @@ export function RunsTable({
                 </option>
               ))}
             </Select>
+            <button
+              type="button"
+              aria-disabled="true"
+              tabIndex={-1}
+              title="Próximamente"
+              className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs text-faint opacity-60"
+            >
+              <Filter size={13} />
+              Más filtros
+            </button>
+            <button
+              type="button"
+              aria-disabled="true"
+              tabIndex={-1}
+              title="Próximamente"
+              className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs text-faint opacity-60"
+            >
+              <Download size={13} />
+              Export
+            </button>
           </div>
         </div>
         <div className="relative sm:max-w-xs">

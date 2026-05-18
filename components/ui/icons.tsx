@@ -261,3 +261,11 @@ export const Api = (p: IconProps) => (
     <circle cx="17.5" cy="17" r="2" />
   </Icon>
 );
+
+export const Download = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 3.5v11" />
+    <path d="M7.5 10.5L12 15l4.5-4.5" />
+    <path d="M4.5 20h15" />
+  </Icon>
+);
