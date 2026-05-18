@@ -5,7 +5,6 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/cn";
 import { formatDuration } from "@/lib/format";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -15,6 +14,7 @@ import {
   Sparkles,
 } from "@/components/ui/icons";
 import { RunStatusBadge, StepStatusBadge } from "@/components/runs/run-status";
+import { StepTimeline } from "@/components/runs/step-timeline";
 
 type TestRun = {
   id: string;
@@ -251,12 +251,20 @@ export function TestRunDetail({
   const isActive = run.status === "pendiente" || run.status === "corriendo";
   const pending = counts.pendiente + counts.corriendo;
 
+  // Progress bar: fraction of completed steps (passed + failed) out of total.
+  const progressPct =
+    steps.length > 0
+      ? Math.round(((counts.passed + counts.failed) / steps.length) * 100)
+      : 0;
+
   return (
     <div className="flex flex-col gap-5">
-      <Card className="p-4 sm:p-5">
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+      {/* ── Run header ─────────────────────────────────────────────────── */}
+      <Card className="overflow-hidden">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3 px-4 py-4 sm:px-5">
           <RunStatusBadge status={run.status} />
-          <div className="flex items-center gap-4">
+
+          <div className="flex items-center gap-5">
             <Stat label="passed" value={counts.passed} tone="success" />
             <Stat label="failed" value={counts.failed} tone="danger" />
             {counts.skipped > 0 ? (
@@ -266,20 +274,45 @@ export function TestRunDetail({
               <Stat label="pendientes" value={pending} tone="running" />
             ) : null}
           </div>
+
           {totalDurationMs !== null ? (
             <span className="tabular ml-auto font-mono text-xs text-faint">
               {formatDuration(totalDurationMs)}
             </span>
           ) : null}
         </div>
+
+        {/* Live progress bar — only while the run is active and has steps */}
+        {isActive && steps.length > 0 ? (
+          <div className="px-4 pb-4 sm:px-5">
+            <div className="flex items-center justify-between gap-3 pb-1.5">
+              <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
+                progreso
+              </span>
+              <span className="tabular font-mono text-[0.625rem] text-faint">
+                {counts.passed + counts.failed}/{steps.length} pasos
+              </span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-neutral-bg">
+              <div
+                className="h-full rounded-full bg-accent transition-[width] duration-700 ease-out"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+          </div>
+        ) : null}
+
         {run.error_message ? (
-          <p className="mt-3 flex items-start gap-2 rounded-md bg-danger-bg px-3 py-2 text-sm text-danger-text">
-            <AlertCircle size={15} className="mt-px shrink-0" />
-            <span>{run.error_message}</span>
-          </p>
+          <div className="border-t border-border px-4 py-3 sm:px-5">
+            <p className="flex items-start gap-2 rounded-md bg-danger-bg px-3 py-2 text-sm text-danger-text">
+              <AlertCircle size={15} className="mt-px shrink-0" />
+              <span>{run.error_message}</span>
+            </p>
+          </div>
         ) : null}
       </Card>
 
+      {/* ── Empty state while run is starting ─────────────────────────── */}
       {cases.length === 0 ? (
         isActive ? (
           <Card className="flex items-center justify-center gap-2.5 px-6 py-12 text-sm text-muted">
@@ -297,6 +330,7 @@ export function TestRunDetail({
         )
       ) : null}
 
+      {/* ── Per-case cards ─────────────────────────────────────────────── */}
       {cases.map((tc) => {
         const list = stepsByCase.get(tc.id) ?? [];
         return (
@@ -317,20 +351,13 @@ export function TestRunDetail({
                 Sin pasos registrados todavía.
               </p>
             ) : (
-              <ol className="divide-y divide-border">
-                {list.map((step) => (
-                  <StepRow
-                    key={step.id}
-                    step={step}
-                    onOpenScreenshot={setOpenScreenshot}
-                  />
-                ))}
-              </ol>
+              <StepTimeline steps={list} onOpenScreenshot={setOpenScreenshot} />
             )}
           </Card>
         );
       })}
 
+      {/* ── Screenshot lightbox ────────────────────────────────────────── */}
       {openScreenshot ? (
         <div
           className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center p-4 sm:p-8"
@@ -338,13 +365,17 @@ export function TestRunDetail({
           aria-modal="true"
           aria-label="Captura del paso"
         >
+          {/* Backdrop */}
           <button
             type="button"
             aria-label="Cerrar captura"
             onClick={() => setOpenScreenshot(null)}
-            className="absolute inset-0 bg-bg/85 backdrop-blur-sm"
+            className="absolute inset-0 bg-bg/90 backdrop-blur-md"
           />
-          <figure className="relative flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-e3">
+
+          {/* Viewer panel */}
+          <figure className="relative flex max-h-full w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-e3">
+            {/* Toolbar */}
             <figcaption className="flex items-center justify-between gap-3 border-b border-border bg-surface-2 px-4 py-2.5">
               <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted">
                 <ImageIcon size={13} />
@@ -354,16 +385,21 @@ export function TestRunDetail({
                 type="button"
                 onClick={() => setOpenScreenshot(null)}
                 aria-label="Cerrar"
-                className="inline-flex size-7 items-center justify-center rounded-md text-muted transition-colors hover:bg-elevated hover:text-text"
+                className={cn(
+                  "inline-flex size-7 items-center justify-center rounded-md",
+                  "text-muted transition-colors hover:bg-elevated hover:text-text",
+                )}
               >
                 <Close size={15} />
               </button>
             </figcaption>
+
+            {/* Image */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={openScreenshot}
               alt="Captura de pantalla del paso de la prueba"
-              className="max-h-[76vh] w-full bg-surface-2 object-contain"
+              className="max-h-[80vh] w-full bg-surface-2 object-contain"
             />
           </figure>
         </div>
@@ -397,78 +433,5 @@ function Stat({
         {label}
       </span>
     </span>
-  );
-}
-
-const DOT_TONE: Record<string, string> = {
-  passed: "bg-success",
-  failed: "bg-danger",
-  corriendo: "bg-running",
-  skipped: "bg-faint",
-  pendiente: "bg-warning",
-};
-
-function StepRow({
-  step,
-  onOpenScreenshot,
-}: {
-  step: TestStep;
-  onOpenScreenshot: (url: string) => void;
-}): React.JSX.Element {
-  const adaptive = step.selector?.startsWith("[adaptive]") ?? false;
-  const selectorText = adaptive
-    ? step.selector?.replace(/^\[adaptive\]\s*/, "")
-    : step.selector;
-
-  return (
-    <li className="flex items-start gap-3 px-4 py-3 sm:px-5">
-      <span
-        className={cn(
-          "mt-[5px] size-2 shrink-0 rounded-full",
-          DOT_TONE[step.status] ?? "bg-border-strong",
-          step.status === "corriendo" && "animate-pulse-dot",
-        )}
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[0.6875rem] font-medium text-accent-text">
-            {step.action}
-          </code>
-          {adaptive ? (
-            <Badge tone="accent">adaptativo</Badge>
-          ) : null}
-          {selectorText ? (
-            <span className="min-w-0 truncate font-mono text-xs text-muted">
-              {selectorText}
-            </span>
-          ) : null}
-          {step.value ? (
-            <span className="min-w-0 truncate font-mono text-xs text-faint">
-              → {step.value}
-            </span>
-          ) : null}
-          {step.duration_ms !== null ? (
-            <span className="tabular ml-auto shrink-0 font-mono text-[0.6875rem] text-faint">
-              {step.duration_ms} ms
-            </span>
-          ) : null}
-        </div>
-        {step.error_message ? (
-          <p className="mt-1.5 rounded-md bg-danger-bg px-2.5 py-1.5 text-xs text-danger-text">
-            {step.error_message}
-          </p>
-        ) : null}
-        {step.screenshot_url ? (
-          <button
-            type="button"
-            onClick={() => onOpenScreenshot(step.screenshot_url as string)}
-            className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-accent-text transition-opacity hover:opacity-80"
-          >
-            <ImageIcon size={12} />
-            Ver captura
-          </button>
-        ) : null}
-      </div>
-    </li>
   );
 }
