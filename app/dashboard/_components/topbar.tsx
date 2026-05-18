@@ -64,6 +64,8 @@ export function Topbar({
         <button
           type="button"
           aria-disabled="true"
+          aria-label="Notificaciones (próximamente)"
+          tabIndex={-1}
           title="Próximamente"
           className="inline-flex size-9 cursor-not-allowed items-center justify-center rounded-md text-faint opacity-60"
         >
