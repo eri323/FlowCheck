@@ -245,3 +245,19 @@ export const Refresh = (p: IconProps) => (
     <path d="M3 20v-4.5h4.5" />
   </Icon>
 );
+
+export const Settings = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1M18.4 18.4l-2.1-2.1M7.7 7.7L5.6 5.6" />
+  </Icon>
+);
+
+export const Api = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 7h7M4 12h10M4 17h7" />
+    <circle cx="17.5" cy="7" r="2" />
+    <circle cx="19.5" cy="12" r="2" />
+    <circle cx="17.5" cy="17" r="2" />
+  </Icon>
+);
