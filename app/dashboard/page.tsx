@@ -134,21 +134,17 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
                 Por tipo de prueba
               </h2>
               <div className="mt-3 rounded-lg border border-border bg-surface px-5 py-4">
-                {breakdown.length === 0 ? (
-                  <p className="text-xs text-faint">Sin datos todavía.</p>
-                ) : (
-                  <div className="flex flex-col gap-4">
-                    {breakdown.map((b) => (
-                      <BreakdownBar
-                        key={b.type}
-                        label={b.label}
-                        value={b.count}
-                        max={breakdownMax}
-                        caption={`${b.passRate}%`}
-                      />
-                    ))}
-                  </div>
-                )}
+                <div className="flex flex-col gap-4">
+                  {breakdown.map((b) => (
+                    <BreakdownBar
+                      key={b.type}
+                      label={b.label}
+                      value={b.count}
+                      max={breakdownMax}
+                      caption={`${b.passRate}%`}
+                    />
+                  ))}
+                </div>
               </div>
             </section>
           </div>
@@ -160,81 +156,61 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
               <span className="h-px flex-1 bg-border" />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {/* Shortcut: login */}
-              <Link
-                href="/dashboard/runs/new"
-                className="group flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 transition-colors duration-150 hover:bg-surface-2"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="flex size-8 items-center justify-center rounded-lg border border-border bg-accent-subtle text-accent-text">
-                    <Shield size={15} />
-                  </span>
-                  <ArrowRight
-                    size={14}
-                    className="text-faint transition-transform duration-150 group-hover:translate-x-0.5"
-                  />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-text">
-                    Probar un login
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted">
-                    Verifica credenciales y flujo de acceso en menos de un minuto.
-                  </p>
-                </div>
-              </Link>
-
-              {/* Shortcut: checkout */}
-              <Link
-                href="/dashboard/runs/new"
-                className="group flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 transition-colors duration-150 hover:bg-surface-2"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="flex size-8 items-center justify-center rounded-lg border border-border bg-accent-subtle text-accent-text">
-                    <Bolt size={15} />
-                  </span>
-                  <ArrowRight
-                    size={14}
-                    className="text-faint transition-transform duration-150 group-hover:translate-x-0.5"
-                  />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-text">
-                    Validar checkout
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted">
-                    Carrito, pago de prueba y confirmación de orden end-to-end.
-                  </p>
-                </div>
-              </Link>
-
-              {/* Shortcut: suite from URL */}
-              <Link
-                href="/dashboard/runs/new"
-                className="group flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 transition-colors duration-150 hover:bg-surface-2"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="flex size-8 items-center justify-center rounded-lg border border-border bg-accent-subtle text-accent-text">
-                    <Sparkles size={15} />
-                  </span>
-                  <ArrowRight
-                    size={14}
-                    className="text-faint transition-transform duration-150 group-hover:translate-x-0.5"
-                  />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-text">
-                    Generar suite desde URL
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted">
-                    Pega una URL y la IA propone y ejecuta pruebas automáticamente.
-                  </p>
-                </div>
-              </Link>
+              <ShortcutCard
+                icon={Shield}
+                title="Probar un login"
+                description="Verifica credenciales y flujo de acceso en menos de un minuto."
+              />
+              <ShortcutCard
+                icon={Bolt}
+                title="Validar checkout"
+                description="Carrito, pago de prueba y confirmación de orden end-to-end."
+              />
+              <ShortcutCard
+                icon={Sparkles}
+                title="Generar suite desde URL"
+                description="Pega una URL y la IA propone y ejecuta pruebas automáticamente."
+              />
             </div>
           </section>
         </>
       )}
     </div>
+  );
+}
+
+type IconComponent = (props: {
+  size?: number;
+  className?: string;
+}) => React.JSX.Element;
+
+function ShortcutCard({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: IconComponent;
+  title: string;
+  description: string;
+}): React.JSX.Element {
+  return (
+    <Link
+      href="/dashboard/runs/new"
+      className="group flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 transition-colors duration-150 hover:bg-surface-2"
+    >
+      <div className="flex items-center justify-between">
+        <span className="flex size-8 items-center justify-center rounded-lg border border-border bg-accent-subtle text-accent-text">
+          <Icon size={15} />
+        </span>
+        <ArrowRight
+          size={14}
+          className="text-faint transition-transform duration-150 group-hover:translate-x-0.5"
+        />
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-text">{title}</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted">{description}</p>
+      </div>
+    </Link>
   );
 }
