@@ -1,4 +1,10 @@
-import { chromium, type Browser, type Page } from "playwright";
+import {
+  chromium,
+  devices,
+  type Browser,
+  type BrowserContextOptions,
+  type Page,
+} from "playwright";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { uploadScreenshot } from "../storage/upload-screenshot";
 import { assertSafeNavigationUrl } from "./safe-url";
@@ -249,13 +255,14 @@ async function runCase(
   testCase: CaseRow,
   browser: Browser,
   testType: TestType | undefined,
+  contextOptions: BrowserContextOptions,
 ): Promise<"completado" | "fallido"> {
   await supabase
     .from("test_cases")
     .update({ status: "corriendo" })
     .eq("id", testCase.id);
 
-  const context = await browser.newContext();
+  const context = await browser.newContext(contextOptions);
   const page = await context.newPage();
   const loginCtx: LoginRunContext = { testType, inVerificationWindow: false };
   let caseFailed = false;
@@ -342,15 +349,27 @@ export async function executeTestRun(
   supabase: SupabaseClient,
   testRunId: string,
   testType?: TestType,
+  device: "desktop" | "mobile" = "desktop",
 ): Promise<"completado" | "fallido"> {
   const cases = await loadCasesForRun(supabase, testRunId);
+
+  // 'Pixel 5' aporta viewport, userAgent y isMobile; desktop usa el default.
+  const contextOptions: BrowserContextOptions =
+    device === "mobile" ? devices["Pixel 5"] : {};
 
   const browser = await chromium.launch({ headless: true });
   let anyFailed = false;
 
   try {
     for (const testCase of cases) {
-      const result = await runCase(supabase, testRunId, testCase, browser, testType);
+      const result = await runCase(
+        supabase,
+        testRunId,
+        testCase,
+        browser,
+        testType,
+        contextOptions,
+      );
       if (result === "fallido") anyFailed = true;
     }
   } finally {
