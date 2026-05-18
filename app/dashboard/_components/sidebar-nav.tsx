@@ -51,7 +51,7 @@ export function SidebarNav({
       </Link>
 
       <nav className="mt-5 flex flex-col gap-0.5">
-        <p className="px-2.5 pb-1.5 text-[0.6875rem] font-medium uppercase tracking-[0.07em] text-faint">
+        <p className="px-2 pb-1.5 pt-3.5 font-mono text-[0.625rem] uppercase tracking-[0.14em] text-muted">
           Panel
         </p>
         {NAV.map((item) => {
@@ -66,13 +66,13 @@ export function SidebarNav({
               className={cn(
                 "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors duration-150",
                 active
-                  ? "bg-surface font-medium text-text shadow-e1"
-                  : "text-muted hover:bg-surface hover:text-text",
+                  ? "border border-border bg-surface-2 font-medium text-text"
+                  : "border border-transparent text-muted hover:bg-surface hover:text-text",
               )}
             >
               <Icon
                 size={16}
-                className={active ? "text-accent-text" : "text-faint"}
+                className={active ? "text-accent" : "text-faint"}
               />
               {item.label}
             </Link>

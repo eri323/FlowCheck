@@ -1,9 +1,28 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Menu } from "@/components/ui/icons";
 import { UserMenu } from "./user-menu";
+
+const CRUMBS: { match: (p: string) => boolean; trail: string[] }[] = [
+  { match: (p) => p === "/dashboard", trail: ["Panel", "Resumen"] },
+  {
+    match: (p) => p === "/dashboard/runs/new",
+    trail: ["Panel", "Test runs", "Nuevo"],
+  },
+  {
+    match: (p) =>
+      /^\/dashboard\/runs\/[^/]+$/.test(p) && p !== "/dashboard/runs/new",
+    trail: ["Panel", "Test runs", "Detalle"],
+  },
+  { match: (p) => p === "/dashboard/runs", trail: ["Panel", "Test runs"] },
+];
+
+function crumbsFor(pathname: string): string[] {
+  return CRUMBS.find((c) => c.match(pathname))?.trail ?? ["Panel"];
+}
 
 export function Topbar({
   userEmail,
@@ -12,6 +31,8 @@ export function Topbar({
   userEmail: string;
   onMenuClick: () => void;
 }): React.JSX.Element {
+  const crumbs = crumbsFor(usePathname());
+
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-bg/85 px-4 backdrop-blur-md sm:px-6">
       <div className="flex items-center gap-2 lg:hidden">
@@ -26,7 +47,16 @@ export function Topbar({
         <Logo />
       </div>
 
-      <div aria-hidden="true" className="hidden lg:block" />
+      <nav aria-label="Ruta" className="hidden items-center gap-2 text-sm lg:flex">
+        {crumbs.map((c, i) => (
+          <span key={i} className="flex items-center gap-2">
+            {i > 0 ? <span className="text-faint">/</span> : null}
+            <span className={i === crumbs.length - 1 ? "text-text" : "text-muted"}>
+              {c}
+            </span>
+          </span>
+        ))}
+      </nav>
 
       <div className="flex items-center gap-1">
         <ThemeToggle />
