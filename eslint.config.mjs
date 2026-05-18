@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "app.jsx",
+    "components.jsx",
+    "screens.jsx",
+    "tweaks-panel.jsx",
   ]),
 ]);
 
