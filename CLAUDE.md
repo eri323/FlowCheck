@@ -105,10 +105,15 @@ UPSTASH_REDIS_TOKEN=
   (script anti-flash en `app/layout.tsx`). Tema por defecto: oscuro.
 - Tailwind v4 sin `tailwind.config`: el tema se define con `@theme` en `globals.css`.
 - Componentes reutilizables en `components/ui/` (Button, Input, Field, Badge,
-  Card, Skeleton, EmptyState, Select, ThemeToggle, iconos SVG). Úsalos; no
-  hardcodees colores ni escalas `zinc-*`.
-- El accent (naranja arcilla) está separado de los colores de estado: nunca
-  uses el accent para "passed"/éxito; eso es el color semántico `success`.
+  Card, Skeleton, EmptyState, Select, Tabs, StatTile, BreakdownBar,
+  ThemeToggle, iconos SVG). Úsalos; no hardcodees colores ni escalas `zinc-*`.
+  Los componentes específicos de runs viven en `components/runs/`
+  (`StepTimeline`, `TypeChip`, `run-status`).
+- El accent es verde esmeralda. `accent` y `success` comparten la familia
+  verde y se distinguen por componente: los estados de prueba viven en badges
+  (píldora con punto + etiqueta), el accent vive en botones llenos y enlaces.
+  No uses `accent` para el texto de un estado ni `success` para acciones
+  primarias.
 
 ---
 
