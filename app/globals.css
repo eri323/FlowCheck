@@ -4,7 +4,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ----------------------------------------------------------------------------
-   Design tokens — light (default). Neutrals are tinted toward the clay accent
+   Design tokens — light (default). Neutrals are tinted toward the accent neutral
    hue (~67) at very low chroma for subconscious cohesion. No pure #000/#fff.
 ---------------------------------------------------------------------------- */
 :root {
@@ -18,11 +18,11 @@
   --text-muted: oklch(0.505 0.009 67);
   --text-faint: oklch(0.63 0.008 67);
 
-  --accent: oklch(0.585 0.158 52);
-  --accent-hover: oklch(0.532 0.16 50);
-  --accent-fg: oklch(0.99 0.012 85);
-  --accent-subtle: oklch(0.947 0.032 62);
-  --accent-text: oklch(0.535 0.15 50);
+  --accent: oklch(0.6 0.142 163);
+  --accent-hover: oklch(0.545 0.145 162);
+  --accent-fg: oklch(0.99 0.012 165);
+  --accent-subtle: oklch(0.945 0.04 165);
+  --accent-text: oklch(0.52 0.13 162);
 
   --success: oklch(0.57 0.14 158);
   --success-bg: oklch(0.945 0.038 158);
@@ -60,11 +60,11 @@
   --text-muted: oklch(0.715 0.008 75);
   --text-faint: oklch(0.558 0.008 70);
 
-  --accent: oklch(0.722 0.132 56);
-  --accent-hover: oklch(0.778 0.138 58);
-  --accent-fg: oklch(0.202 0.03 55);
-  --accent-subtle: oklch(0.287 0.046 52);
-  --accent-text: oklch(0.79 0.12 60);
+  --accent: oklch(0.74 0.145 164);
+  --accent-hover: oklch(0.8 0.14 166);
+  --accent-fg: oklch(0.24 0.05 165);
+  --accent-subtle: oklch(0.3 0.05 163);
+  --accent-text: oklch(0.82 0.13 165);
 
   --success: oklch(0.742 0.15 158);
   --success-bg: oklch(0.3 0.055 158);
