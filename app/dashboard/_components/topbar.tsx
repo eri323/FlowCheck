@@ -3,7 +3,8 @@
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Menu } from "@/components/ui/icons";
+import { Menu, Bell } from "@/components/ui/icons";
+import { Kbd } from "@/components/ui/kbd";
 import { UserMenu } from "./user-menu";
 
 const CRUMBS: { match: (p: string) => boolean; trail: string[] }[] = [
@@ -58,7 +59,16 @@ export function Topbar({
         ))}
       </nav>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
+        <Kbd className="hidden sm:inline-flex">⌘ K</Kbd>
+        <button
+          type="button"
+          aria-disabled="true"
+          title="Próximamente"
+          className="inline-flex size-9 cursor-not-allowed items-center justify-center rounded-md text-faint opacity-60"
+        >
+          <Bell size={16} />
+        </button>
         <ThemeToggle />
         <UserMenu email={userEmail} />
       </div>
