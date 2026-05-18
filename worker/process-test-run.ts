@@ -16,6 +16,7 @@ type TestRunRow = {
   status: string;
   test_type: TestType;
   test_data: Record<string, unknown>;
+  device: "desktop" | "mobile";
 };
 
 const GENERATION_TIMEOUT_MS = 90_000;
@@ -167,7 +168,9 @@ export async function processTestRun(testRunId: string): Promise<ProcessTestRunR
 
   const { data: rawTestRun, error: fetchError } = await supabase
     .from("test_runs")
-    .select("id, user_id, target_url, prompt, status, test_type, test_data")
+    .select(
+      "id, user_id, target_url, prompt, status, test_type, test_data, device",
+    )
     .eq("id", testRunId)
     .single();
 
@@ -205,7 +208,7 @@ export async function processTestRun(testRunId: string): Promise<ProcessTestRunR
     await persistTestPlan(supabase, testRunId, plan.test_cases);
 
     const finalStatus = await withTimeout(
-      executeTestRun(supabase, testRunId, testRun.test_type),
+      executeTestRun(supabase, testRunId, testRun.test_type, testRun.device),
       EXECUTION_TIMEOUT_MS,
       "Ejecución del plan con Playwright",
     );
