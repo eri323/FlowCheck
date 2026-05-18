@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/cn";
 import {
   TEST_TYPES,
   TEST_TYPE_LABELS,
@@ -22,6 +21,7 @@ import {
   Shield,
   Terminal,
 } from "@/components/ui/icons";
+import { TypeChip } from "@/components/runs/type-chip";
 
 type IconComponent = (props: {
   size?: number;
@@ -174,6 +174,7 @@ export function NewTestRunForm(): React.JSX.Element {
         <FormSection
           title="URL objetivo"
           description="La página donde empezará la prueba."
+          step="01"
         >
           <Field
             label="URL a probar"
@@ -203,32 +204,18 @@ export function NewTestRunForm(): React.JSX.Element {
         <FormSection
           title="Tipo de prueba"
           description="Cada tipo guía a la IA con la estructura correcta."
+          step="02"
         >
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {TEST_TYPES.map((type) => {
-              const Icon = TYPE_META[type].icon;
-              const active = type === testType;
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setTestType(type)}
-                  aria-pressed={active}
-                  className={cn(
-                    "flex items-center gap-2.5 rounded-md border px-3 py-2.5 text-left text-sm transition-colors duration-150",
-                    active
-                      ? "border-accent bg-accent-subtle text-text"
-                      : "border-border bg-surface text-muted hover:border-border-strong hover:text-text",
-                  )}
-                >
-                  <Icon
-                    size={16}
-                    className={active ? "text-accent-text" : "text-faint"}
-                  />
-                  <span className="font-medium">{TEST_TYPE_LABELS[type]}</span>
-                </button>
-              );
-            })}
+            {TEST_TYPES.map((type) => (
+              <TypeChip
+                key={type}
+                label={TEST_TYPE_LABELS[type]}
+                icon={TYPE_META[type].icon}
+                active={type === testType}
+                onSelect={() => setTestType(type)}
+              />
+            ))}
           </div>
           <p className="mt-2.5 text-xs text-muted">{TYPE_META[testType].hint}</p>
         </FormSection>
@@ -237,6 +224,7 @@ export function NewTestRunForm(): React.JSX.Element {
           title={DYNAMIC_TITLE[testType]}
           description={DYNAMIC_DESCRIPTION[testType]}
           secure={SECURE_TYPES.has(testType)}
+          step="03"
         >
           {testType === "login" ? (
             <div className="flex flex-col gap-4">
@@ -454,6 +442,7 @@ export function NewTestRunForm(): React.JSX.Element {
         <FormSection
           title="Instrucción adicional"
           description="Contexto libre para afinar lo que genera la IA."
+          step="04"
         >
           <Field
             label="Instrucción"
@@ -471,6 +460,23 @@ export function NewTestRunForm(): React.JSX.Element {
               invalid={Boolean(fieldErrors.prompt)}
             />
           </Field>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[0.6875rem] uppercase tracking-widest text-faint">
+              sugerencias:
+            </span>
+            {PROMPT_SUGGESTIONS.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() =>
+                  setExtraPrompt((p) => (p ? p + " " : "") + suggestion)
+                }
+                className="inline-flex items-center rounded-full border border-border bg-surface-2 px-2.5 py-0.5 text-xs text-muted transition-colors duration-150 hover:border-border-strong hover:text-text"
+              >
+                + {suggestion}
+              </button>
+            ))}
+          </div>
         </FormSection>
 
         <div className="bg-surface-2 px-5 py-4 sm:px-6">
@@ -520,30 +526,47 @@ const DYNAMIC_DESCRIPTION: Record<TestType, string> = {
   ecommerce: "Datos de pago de prueba para simular la compra.",
 };
 
+const PROMPT_SUGGESTIONS = [
+  "Verificar que el dashboard carga",
+  "Reintentar al fallar",
+  "Capturar errores de consola",
+];
+
 function FormSection({
   title,
   description,
   secure,
+  step,
   children,
 }: {
   title: string;
   description: string;
   secure?: boolean;
+  step?: string;
   children: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <div className="p-5 sm:p-6">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-text">{title}</h2>
+    <div>
+      <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-2">
+            {step ? (
+              <span className="font-mono text-[0.6875rem] tabular-nums tracking-wider text-faint">
+                {step}
+              </span>
+            ) : null}
+            <h2 className="text-sm font-semibold text-text">{title}</h2>
+          </div>
+          <p className="mt-0.5 text-xs text-muted">{description}</p>
+        </div>
         {secure ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-success-bg px-2 py-0.5 text-[0.6875rem] font-medium text-success-text">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success-bg px-2 py-0.5 text-[0.6875rem] font-medium text-success-text">
             <Shield size={11} />
             campos cifrados
           </span>
         ) : null}
       </div>
-      <p className="mt-0.5 text-xs text-muted">{description}</p>
-      <div className="mt-4">{children}</div>
+      <div className="p-5 sm:p-6">{children}</div>
     </div>
   );
 }
