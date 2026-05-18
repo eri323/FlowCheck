@@ -38,6 +38,25 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
   };
   const recent = rows.slice(0, 6).map(toRunListItem);
 
+  // Tendencia real: runs por día de los últimos 7 días naturales.
+  const dayKey = (iso: string): string => iso.slice(0, 10);
+  const today = new Date();
+  const last7: string[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    last7.push(d.toISOString().slice(0, 10));
+  }
+  const runsByDay = last7.map(
+    (day) => rows.filter((r) => dayKey(r.created_at) === day).length,
+  );
+
+  const { data: userData } = await supabase.auth.getUser();
+  const emailLocal = userData.user?.email?.split("@")[0] ?? "";
+  const hour = today.getHours();
+  const saludo =
+    hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
+
   const breakdown = TEST_TYPES.map((t) => {
     const ofType = rows.filter((r) => r.test_type === t);
     const passed = ofType.filter((r) => r.status === "completado").length;
@@ -53,18 +72,23 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        title="Resumen"
-        description="El estado de tus pruebas automatizadas de un vistazo."
-      >
-        <Link
-          href="/dashboard/runs/new"
-          className={buttonVariants({ size: "sm" })}
+      <div>
+        <p className="font-mono text-[0.6875rem] uppercase tracking-[0.16em] text-accent-text">
+          Resumen · hoy
+        </p>
+        <PageHeader
+          title={emailLocal ? `${saludo}, ${emailLocal}.` : `${saludo}.`}
+          description="El estado de tus pruebas automatizadas de un vistazo."
         >
-          <Plus size={15} />
-          Nuevo test run
-        </Link>
-      </PageHeader>
+          <Link
+            href="/dashboard/runs/new"
+            className={buttonVariants({ size: "sm" })}
+          >
+            <Plus size={15} />
+            Nuevo test run
+          </Link>
+        </PageHeader>
+      </div>
 
       {rows.length === 0 ? (
         <div className="rounded-lg border border-border bg-surface">
@@ -88,7 +112,12 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
           {/* Stat tiles */}
           <div className="overflow-hidden rounded-lg border border-border">
             <div className="grid grid-cols-2 gap-px bg-border lg:grid-cols-4">
-              <StatTile label="Total de runs" value={stats.total} tone="accent" />
+              <StatTile
+                label="Total de runs"
+                value={stats.total}
+                tone="accent"
+                trend={runsByDay}
+              />
               <StatTile
                 label="Completados"
                 value={stats.completados}
@@ -145,6 +174,14 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
                     />
                   ))}
                 </div>
+              </div>
+              <div className="mt-4 rounded-lg border border-dashed border-border bg-surface px-5 py-6 text-center opacity-70">
+                <p className="text-sm font-medium text-muted">
+                  Próximas tareas
+                </p>
+                <p className="mt-1 text-xs text-faint">
+                  La cola de ejecuciones programadas estará disponible pronto.
+                </p>
               </div>
             </section>
           </div>
