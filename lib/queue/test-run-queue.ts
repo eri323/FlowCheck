@@ -24,7 +24,10 @@ export function getTestRunQueue(): Queue<TestRunJobData> {
   return cachedQueue;
 }
 
-export async function enqueueTestRun(data: TestRunJobData): Promise<void> {
+export async function enqueueTestRun(
+  data: TestRunJobData,
+  attempts = 3,
+): Promise<void> {
   const queue = getTestRunQueue();
-  await queue.add("process", data, { jobId: data.testRunId });
+  await queue.add("process", data, { jobId: data.testRunId, attempts });
 }

@@ -84,6 +84,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       test_type: input.test_type,
       test_data: input.test_data,
       prompt: input.prompt ?? null,
+      browser: input.browser,
+      device: input.device,
+      retries: input.retries,
       status: "pendiente",
     })
     .select("id")
@@ -100,7 +103,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   try {
-    await enqueueTestRun({ testRunId: testRun.id, userId: user.id });
+    await enqueueTestRun(
+      { testRunId: testRun.id, userId: user.id },
+      input.retries + 1,
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error desconocido";
     await supabase

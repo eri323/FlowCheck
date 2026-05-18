@@ -23,10 +23,12 @@ type SupabaseMockOptions = {
 type SupabaseMock = {
   client: unknown;
   updates: Array<Record<string, unknown>>;
+  inserts: Array<Record<string, unknown>>;
 };
 
 function makeSupabaseMock(opts: SupabaseMockOptions): SupabaseMock {
   const updates: Array<Record<string, unknown>> = [];
+  const inserts: Array<Record<string, unknown>> = [];
 
   const client = {
     auth: {
@@ -47,8 +49,9 @@ function makeSupabaseMock(opts: SupabaseMockOptions): SupabaseMock {
         return builder;
       });
 
-      builder.insert = vi.fn(() => {
+      builder.insert = vi.fn((payload: Record<string, unknown>) => {
         mode = "insert";
+        inserts.push(payload);
         return builder;
       });
 
@@ -83,7 +86,7 @@ function makeSupabaseMock(opts: SupabaseMockOptions): SupabaseMock {
     }),
   };
 
-  return { client, updates };
+  return { client, updates, inserts };
 }
 
 function makeRequest(body: unknown, options: { rawBody?: string } = {}): Request {
@@ -186,7 +189,11 @@ describe("POST /api/test-runs", () => {
     expect(response.status).toBe(201);
     const json = await response.json();
     expect(json).toEqual({ ok: true, testRunId: "run-123" });
-    expect(enqueueTestRun).toHaveBeenCalledWith({ testRunId: "run-123", userId: "u1" });
+    // retries usa el default del schema (1) → 2 intentos totales.
+    expect(enqueueTestRun).toHaveBeenCalledWith(
+      { testRunId: "run-123", userId: "u1" },
+      2,
+    );
   });
 
   it("devuelve 500 si falla la inserción en la DB", async () => {
@@ -203,6 +210,35 @@ describe("POST /api/test-runs", () => {
     const response = await POST(makeRequest(validBody));
     expect(response.status).toBe(500);
     expect(enqueueTestRun).not.toHaveBeenCalled();
+  });
+
+  it("persiste los campos de runner y deriva attempts de retries", async () => {
+    const { POST, createSupabaseServerClient, enqueueTestRun } = await loadRoute();
+    const { client, inserts } = makeSupabaseMock({
+      user: { id: "u1" },
+      recentCount: 0,
+      insertData: { id: "run-r" },
+    });
+    createSupabaseServerClient.mockResolvedValue(
+      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+    );
+    enqueueTestRun.mockResolvedValue(undefined);
+
+    const response = await POST(
+      makeRequest({ ...validBody, device: "mobile", retries: 2 }),
+    );
+    expect(response.status).toBe(201);
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0]).toMatchObject({
+      browser: "chromium",
+      device: "mobile",
+      retries: 2,
+    });
+    // retries=2 → 3 intentos totales (el inicial + 2 reintentos).
+    expect(enqueueTestRun).toHaveBeenCalledWith(
+      { testRunId: "run-r", userId: "u1" },
+      3,
+    );
   });
 
   it("marca el test run como fallido si no se puede encolar", async () => {
