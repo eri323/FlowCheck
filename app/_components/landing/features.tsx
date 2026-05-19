@@ -1,4 +1,5 @@
 import { Reveal } from "@/components/ui/reveal";
+import { Callout } from "@/components/ui/callout";
 import { Bolt, ImageIcon, Sparkles } from "@/components/ui/icons";
 
 type IconComponent = (props: { size?: number }) => React.JSX.Element;
@@ -60,6 +61,15 @@ export function Features(): React.JSX.Element {
               </Reveal>
             );
           })}
+
+          <Reveal delay={FEATURES.length * 90}>
+            <Callout className="mt-6">
+              Supabase Realtime solo entrega eventos desde que el canal se
+              suscribe, dejando un hueco de 1–3 s. FlowCheck lo cierra
+              reconciliando contra la base de datos: Realtime es la vía rápida,
+              el refetch es la garantía de correctitud.
+            </Callout>
+          </Reveal>
         </div>
       </div>
     </section>
