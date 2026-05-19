@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Bolt,
   Cursor,
+  Eye,
   Globe,
   Pencil,
   Search,
@@ -86,6 +87,8 @@ export function NewTestRunForm(): React.JSX.Element {
   const [targetUrl, setTargetUrl] = useState("");
   const [extraPrompt, setExtraPrompt] = useState("");
   const [testType, setTestType] = useState<TestType>("login");
+  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const [retries, setRetries] = useState(1);
 
   const [login, setLogin] = useState<LoginState>({ email: "", password: "" });
   const [registro, setRegistro] = useState<RegistroState>({
@@ -107,7 +110,13 @@ export function NewTestRunForm(): React.JSX.Element {
   });
 
   function buildPayload(): Record<string, unknown> {
-    const base = { target_url: targetUrl, prompt: extraPrompt || undefined };
+    const base = {
+      target_url: targetUrl,
+      prompt: extraPrompt || undefined,
+      browser: "chromium" as const,
+      device,
+      retries,
+    };
     switch (testType) {
       case "login":
         return { ...base, test_type: "login", test_data: login };
@@ -199,6 +208,22 @@ export function NewTestRunForm(): React.JSX.Element {
               />
             </div>
           </Field>
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
+              detección:
+            </span>
+            {["https", "200 OK", "react · vite"].map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full border border-border bg-surface-2 px-2 py-0.5 font-mono text-[0.625rem] text-faint opacity-70"
+              >
+                {tag}
+              </span>
+            ))}
+            <span className="font-mono text-[0.5625rem] text-faint opacity-60">
+              (vista previa)
+            </span>
+          </div>
         </FormSection>
 
         <FormSection
@@ -479,6 +504,99 @@ export function NewTestRunForm(): React.JSX.Element {
           </div>
         </FormSection>
 
+        <FormSection
+          title="Configuración del runner"
+          description="Por defecto: Chromium, escritorio, headless, 1 reintento."
+          step="05"
+        >
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+            <div className="flex flex-col gap-1.5">
+              <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
+                Navegador
+              </span>
+              <div className="flex gap-1.5">
+                <span className="inline-flex items-center rounded-md border border-accent-subtle bg-accent-subtle px-2.5 py-1.5 text-xs font-medium text-accent-text">
+                  Chromium
+                </span>
+                {["Firefox", "WebKit"].map((b) => (
+                  <span
+                    key={b}
+                    title="Próximamente"
+                    className="inline-flex cursor-not-allowed items-center rounded-md border border-border bg-surface-2 px-2.5 py-1.5 text-xs text-faint opacity-60"
+                  >
+                    {b}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
+                Dispositivo
+              </span>
+              <div className="flex gap-0.5 rounded-md border border-border bg-surface-2 p-0.5">
+                {(["desktop", "mobile"] as const).map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setDevice(d)}
+                    className={
+                      device === d
+                        ? "flex-1 rounded bg-elevated px-2 py-1 text-xs font-medium text-text shadow-e1"
+                        : "flex-1 rounded px-2 py-1 text-xs text-muted transition-colors hover:text-text"
+                    }
+                  >
+                    {d === "desktop" ? "Desktop" : "Mobile"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
+                Reintentos
+              </span>
+              <div className="flex items-center gap-0.5 rounded-md border border-border bg-surface-2">
+                <button
+                  type="button"
+                  aria-label="Menos reintentos"
+                  onClick={() => setRetries((r) => Math.max(0, r - 1))}
+                  className="px-3 py-1.5 text-muted transition-colors hover:text-text"
+                >
+                  −
+                </button>
+                <span className="tabular flex-1 text-center font-mono text-sm text-text">
+                  {retries}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Más reintentos"
+                  onClick={() => setRetries((r) => Math.min(5, r + 1))}
+                  className="px-3 py-1.5 text-muted transition-colors hover:text-text"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="mt-4 flex items-center justify-between rounded-md border border-border bg-surface-2 px-3 py-2.5"
+            title="El worker corre en un servidor sin pantalla: siempre headless."
+          >
+            <span className="inline-flex items-center gap-2 text-xs text-muted">
+              <Eye size={14} />
+              Modo headless
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-xs text-faint">
+              fijo
+              <span className="relative h-3.5 w-6 rounded-full bg-accent">
+                <span className="absolute right-0.5 top-0.5 size-2.5 rounded-full bg-white" />
+              </span>
+            </span>
+          </div>
+        </FormSection>
+
         <div className="bg-surface-2 px-5 py-4 sm:px-6">
           {serverMessage ? (
             <p className="mb-3 flex items-start gap-2 rounded-md bg-danger-bg px-3 py-2 text-sm text-danger-text">
@@ -491,9 +609,29 @@ export function NewTestRunForm(): React.JSX.Element {
               La IA generará el plan y el worker lo ejecutará en un navegador
               real.
             </p>
-            <Button type="submit" loading={isPending}>
-              {isPending ? "Creando" : "Generar y ejecutar"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-disabled="true"
+                tabIndex={-1}
+                title="Próximamente"
+                className="cursor-not-allowed rounded-md border border-border bg-surface px-3 py-1.5 text-xs text-faint opacity-60"
+              >
+                Guardar como plantilla
+              </button>
+              <button
+                type="button"
+                aria-disabled="true"
+                tabIndex={-1}
+                title="Próximamente"
+                className="cursor-not-allowed rounded-md border border-border bg-surface px-3 py-1.5 text-xs text-faint opacity-60"
+              >
+                Ejecución programada
+              </button>
+              <Button type="submit" loading={isPending}>
+                {isPending ? "Creando" : "Generar y ejecutar"}
+              </Button>
+            </div>
           </div>
         </div>
       </form>
