@@ -1,4 +1,5 @@
 import { Reveal } from "@/components/ui/reveal";
+import { Callout } from "@/components/ui/callout";
 import {
   Bolt,
   Cursor,
@@ -82,6 +83,17 @@ export function TestTypes(): React.JSX.Element {
               })}
             </div>
           </div>
+        </Reveal>
+
+        <Reveal delay={160}>
+          <Callout className="mt-6">
+            El tipo{" "}
+            <strong className="font-medium text-text">Login</strong> no ejecuta
+            los selectores al pie de la letra: una heurística localiza el campo
+            de identificador, la contraseña y el botón, y verifica el resultado
+            por comportamiento. Tolera cualquier idioma y maquetado — un
+            selector exótico no rompe la prueba.
+          </Callout>
         </Reveal>
       </div>
     </section>
