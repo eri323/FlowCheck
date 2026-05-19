@@ -1,17 +1,34 @@
 import { Reveal } from "@/components/ui/reveal";
+import { Callout } from "@/components/ui/callout";
 
-const STEPS = [
+type Step = { title: string; body: string; callout: React.ReactNode };
+
+const STEPS: Step[] = [
   {
     title: "Describe el flujo",
     body: "Elige el tipo de prueba, pega la URL y escribe en lenguaje natural qué debería pasar. Sin selectores, sin código.",
+    callout:
+      "Cada tipo de prueba mantiene las credenciales separadas de tu instrucción libre; todo el input se valida con Zod antes de tocar nada.",
   },
   {
     title: "La IA genera los casos",
     body: "Gemini convierte tu descripción en casos de prueba estructurados y válidos, listos para ejecutarse en Playwright.",
+    callout: (
+      <>
+        Gemini responde con{" "}
+        <code className="rounded bg-surface-2 px-1 py-0.5 font-mono text-[0.8em] text-accent-text">
+          responseMimeType: application/json
+        </code>
+        ; el JSON se valida contra un contrato de tipos estricto antes de
+        ejecutar un solo paso.
+      </>
+    ),
   },
   {
     title: "Observa la ejecución en vivo",
     body: "Un worker corre la prueba en Chromium headless. Ves cada paso completarse en tiempo real, con su captura.",
+    callout:
+      "Un proceso worker independiente consume una cola BullMQ sobre Redis — los jobs de 30–60 s no bloquean las requests HTTP. 3 jobs concurrentes, 2 reintentos.",
   },
 ];
 
@@ -26,7 +43,8 @@ export function HowItWorks(): React.JSX.Element {
             </h2>
             <p className="mt-3 text-pretty text-muted">
               Sin escribir selectores ni mantener scripts frágiles. Tú
-              describes el comportamiento esperado, Probe se encarga del resto.
+              describes el comportamiento esperado, FlowCheck se encarga del
+              resto.
             </p>
           </div>
         </Reveal>
@@ -44,6 +62,7 @@ export function HowItWorks(): React.JSX.Element {
                 <p className="mt-2 text-pretty text-sm leading-relaxed text-muted">
                   {step.body}
                 </p>
+                <Callout className="mt-4">{step.callout}</Callout>
               </div>
             </Reveal>
           ))}
