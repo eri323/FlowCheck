@@ -36,6 +36,7 @@ yarn-error.log*
 
 # claude code local settings
 .claude/
+.superpowers/
 
 # playwright artifacts
 playwright-report/
