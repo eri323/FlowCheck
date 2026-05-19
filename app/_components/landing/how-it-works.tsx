@@ -1,7 +1,8 @@
+import type { ReactNode } from "react";
 import { Reveal } from "@/components/ui/reveal";
 import { Callout } from "@/components/ui/callout";
 
-type Step = { title: string; body: string; callout: React.ReactNode };
+type Step = { title: string; body: string; callout: ReactNode };
 
 const STEPS: Step[] = [
   {
