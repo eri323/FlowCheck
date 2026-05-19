@@ -60,7 +60,8 @@ npm run test:watch   # Vitest en modo watch
 
 - `profiles` — vinculado a auth.users, guarda plan y rol del usuario
 - `projects` — cada usuario tiene proyectos (nombre, url objetivo)
-- `test_runs` — un registro por ejecución (status, created_at, user_id)
+- `test_runs` — un registro por ejecución (status, created_at, user_id,
+  browser, device, retries, logs, js_error_count)
 - `test_cases` — generados por la IA, pertenecen a un test_run
 - `test_steps` — cada paso de un test_case (acción, selector, status, screenshot_url)
 
@@ -114,6 +115,12 @@ UPSTASH_REDIS_TOKEN=
   (píldora con punto + etiqueta), el accent vive en botones llenos y enlaces.
   No uses `accent` para el texto de un estado ni `success` para acciones
   primarias.
+- La configuración del runner (navegador, dispositivo, reintentos) vive en
+  columnas de `test_runs` (migración `0005`). El worker captura un stream de
+  logs (`test_runs.logs`) y el conteo de errores JS (`test_runs.js_error_count`).
+  El detalle del run muestra logs y métricas; las features de Nivel C (API &
+  webhooks, Configuración, plantillas, ejecución programada, Network) aparecen
+  deshabilitadas en la UI.
 
 ---
 
