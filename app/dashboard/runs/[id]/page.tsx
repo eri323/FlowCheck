@@ -10,6 +10,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { ArrowLeft, ExternalLink } from "@/components/ui/icons";
 import { TestRunDetail } from "./_components/test-run-detail";
 
+type LogEntry = { ts: string; level: string; msg: string };
+
 type TestRunRow = {
   id: string;
   target_url: string;
@@ -20,6 +22,8 @@ type TestRunRow = {
   started_at: string | null;
   finished_at: string | null;
   created_at: string;
+  logs: LogEntry[];
+  js_error_count: number;
 };
 
 type TestCaseRow = {
@@ -56,7 +60,7 @@ export default async function TestRunPage({
   const { data: testRun } = await supabase
     .from("test_runs")
     .select(
-      "id, target_url, prompt, status, test_type, error_message, started_at, finished_at, created_at",
+      "id, target_url, prompt, status, test_type, error_message, started_at, finished_at, created_at, logs, js_error_count",
     )
     .eq("id", id)
     .maybeSingle<TestRunRow>();

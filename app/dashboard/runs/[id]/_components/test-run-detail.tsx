@@ -7,6 +7,7 @@ import { formatDuration } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
+import { Tabs, type TabItem } from "@/components/ui/tabs";
 import {
   AlertCircle,
   Close,
@@ -16,6 +17,8 @@ import {
 import { RunStatusBadge, StepStatusBadge } from "@/components/runs/run-status";
 import { StepTimeline } from "@/components/runs/step-timeline";
 
+type LogEntry = { ts: string; level: string; msg: string };
+
 type TestRun = {
   id: string;
   status: string;
@@ -23,6 +26,8 @@ type TestRun = {
   started_at: string | null;
   finished_at: string | null;
   created_at: string;
+  logs: LogEntry[];
+  js_error_count: number;
 };
 
 type TestCase = {
@@ -53,6 +58,13 @@ type Props = {
   initialSteps: TestStep[];
 };
 
+const LOG_LEVEL_CLASS: Record<string, string> = {
+  ok: "text-success-text",
+  err: "text-danger-text",
+  warn: "text-warning-text",
+  info: "text-muted",
+};
+
 export function TestRunDetail({
   runId,
   initialRun,
@@ -63,6 +75,7 @@ export function TestRunDetail({
   const [cases, setCases] = useState<TestCase[]>(initialCases);
   const [steps, setSteps] = useState<TestStep[]>(initialSteps);
   const [openScreenshot, setOpenScreenshot] = useState<string | null>(null);
+  const [tab, setTab] = useState("pasos");
 
   const caseIdsRef = useRef<Set<string>>(new Set(initialCases.map((c) => c.id)));
 
@@ -132,18 +145,17 @@ export function TestRunDetail({
     };
   }, [runId]);
 
-  // Reconciliación: Realtime (postgres_changes) solo entrega eventos a partir
-  // del momento en que el canal queda SUBSCRIBED. Todo INSERT/UPDATE ocurrido
-  // entre el render del servidor y esa suscripción se pierde para siempre.
-  // refetch() relee el estado autoritativo desde la DB y repuebla caseIdsRef,
-  // que es el filtro del que dependen los eventos de test_steps.
+  // Reconciliación: Realtime solo entrega eventos a partir de SUBSCRIBED.
+  // refetch() relee el estado autoritativo y repuebla caseIdsRef.
   const refetch = useCallback(async () => {
     const supabase = createSupabaseBrowserClient();
 
     const [{ data: freshRun }, { data: freshCases }] = await Promise.all([
       supabase
         .from("test_runs")
-        .select("id, status, error_message, started_at, finished_at, created_at")
+        .select(
+          "id, status, error_message, started_at, finished_at, created_at, logs, js_error_count",
+        )
         .eq("id", runId)
         .maybeSingle<TestRun>(),
       supabase
@@ -177,9 +189,6 @@ export function TestRunDetail({
     }
   }, [runId]);
 
-  // Cierra el hueco de la suscripción y sirve de respaldo si el WebSocket se
-  // cae a mitad del run: refetch al montar, en cada cambio de estado (incluida
-  // la transición a un estado final) y cada 3s mientras el run sigue activo.
   useEffect(() => {
     const isActive = run.status === "pendiente" || run.status === "corriendo";
 
@@ -200,7 +209,6 @@ export function TestRunDetail({
     };
   }, [run.status, refetch]);
 
-  // Cierra el visor de captura con Escape y bloquea el scroll del fondo.
   useEffect(() => {
     if (!openScreenshot) return;
     function onKey(event: KeyboardEvent): void {
@@ -250,20 +258,34 @@ export function TestRunDetail({
 
   const isActive = run.status === "pendiente" || run.status === "corriendo";
   const pending = counts.pendiente + counts.corriendo;
-
-  // Progress bar: fraction of completed steps (passed + failed) out of total.
   const progressPct =
     steps.length > 0
       ? Math.round(((counts.passed + counts.failed) / steps.length) * 100)
       : 0;
 
+  // Último screenshot disponible — preview del modo en vivo.
+  const latestShot = useMemo(() => {
+    for (let i = steps.length - 1; i >= 0; i--) {
+      if (steps[i]!.screenshot_url) return steps[i]!.screenshot_url;
+    }
+    return null;
+  }, [steps]);
+
+  const allShots = steps.filter((s) => s.screenshot_url);
+
+  const tabItems: TabItem[] = [
+    { id: "pasos", label: "Pasos" },
+    { id: "logs", label: "Logs", count: run.logs.length },
+    { id: "screenshots", label: "Screenshots", count: allShots.length },
+    { id: "network", label: "Network" },
+  ];
+
   return (
     <div className="flex flex-col gap-5">
-      {/* ── Run header ─────────────────────────────────────────────────── */}
+      {/* Run header con métricas */}
       <Card className="overflow-hidden">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3 px-4 py-4 sm:px-5">
           <RunStatusBadge status={run.status} />
-
           <div className="flex items-center gap-5">
             <Stat label="passed" value={counts.passed} tone="success" />
             <Stat label="failed" value={counts.failed} tone="danger" />
@@ -273,8 +295,12 @@ export function TestRunDetail({
             {pending > 0 ? (
               <Stat label="pendientes" value={pending} tone="running" />
             ) : null}
+            <Stat
+              label="errores js"
+              value={run.js_error_count}
+              tone={run.js_error_count > 0 ? "danger" : "neutral"}
+            />
           </div>
-
           {totalDurationMs !== null ? (
             <span className="tabular ml-auto font-mono text-xs text-faint">
               {formatDuration(totalDurationMs)}
@@ -282,7 +308,6 @@ export function TestRunDetail({
           ) : null}
         </div>
 
-        {/* Live progress bar — only while the run is active and has steps */}
         {isActive && steps.length > 0 ? (
           <div className="px-4 pb-4 sm:px-5">
             <div className="flex items-center justify-between gap-3 pb-1.5">
@@ -319,7 +344,32 @@ export function TestRunDetail({
         ) : null}
       </Card>
 
-      {/* ── Empty state while run is starting ─────────────────────────── */}
+      {/* Modo en vivo: preview + logs */}
+      {isActive ? (
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.1fr_1fr]">
+          <Card className="overflow-hidden">
+            <header className="border-b border-border bg-surface-2 px-4 py-2.5 font-mono text-xs text-muted">
+              vista previa · último paso
+            </header>
+            {latestShot ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={latestShot}
+                alt="Última captura del run en vivo"
+                className="max-h-[22rem] w-full bg-surface-2 object-contain"
+              />
+            ) : (
+              <div className="flex items-center justify-center gap-2.5 px-6 py-16 text-sm text-muted">
+                <Spinner size={15} />
+                Esperando la primera captura.
+              </div>
+            )}
+          </Card>
+          <LogPanel logs={run.logs} live />
+        </div>
+      ) : null}
+
+      {/* Empty state mientras arranca */}
       {cases.length === 0 ? (
         isActive ? (
           <Card className="flex items-center justify-center gap-2.5 px-6 py-12 text-sm text-muted">
@@ -337,34 +387,89 @@ export function TestRunDetail({
         )
       ) : null}
 
-      {/* ── Per-case cards ─────────────────────────────────────────────── */}
-      {cases.map((tc) => {
-        const list = stepsByCase.get(tc.id) ?? [];
-        return (
-          <Card key={tc.id} className="overflow-hidden">
-            <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-3.5 sm:px-5">
-              <div className="min-w-0">
-                <h3 className="truncate text-sm font-semibold text-text">
-                  {tc.name}
-                </h3>
-                {tc.description ? (
-                  <p className="mt-0.5 text-xs text-muted">{tc.description}</p>
-                ) : null}
-              </div>
-              <StepStatusBadge status={tc.status} />
-            </header>
-            {list.length === 0 ? (
-              <p className="px-4 py-4 text-xs text-faint sm:px-5">
-                Sin pasos registrados todavía.
-              </p>
-            ) : (
-              <StepTimeline steps={list} onOpenScreenshot={setOpenScreenshot} />
-            )}
-          </Card>
-        );
-      })}
+      {/* Modo detalle: pestañas (solo cuando el run terminó) */}
+      {!isActive && cases.length > 0 ? (
+        <>
+          <Tabs items={tabItems} value={tab} onValueChange={setTab} />
 
-      {/* ── Screenshot lightbox ────────────────────────────────────────── */}
+          {tab === "pasos"
+            ? cases.map((tc) => {
+                const list = stepsByCase.get(tc.id) ?? [];
+                return (
+                  <Card key={tc.id} className="overflow-hidden">
+                    <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-3.5 sm:px-5">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-sm font-semibold text-text">
+                          {tc.name}
+                        </h3>
+                        {tc.description ? (
+                          <p className="mt-0.5 text-xs text-muted">
+                            {tc.description}
+                          </p>
+                        ) : null}
+                      </div>
+                      <StepStatusBadge status={tc.status} />
+                    </header>
+                    {list.length === 0 ? (
+                      <p className="px-4 py-4 text-xs text-faint sm:px-5">
+                        Sin pasos registrados.
+                      </p>
+                    ) : (
+                      <StepTimeline
+                        steps={list}
+                        onOpenScreenshot={setOpenScreenshot}
+                      />
+                    )}
+                  </Card>
+                );
+              })
+            : null}
+
+          {tab === "logs" ? <LogPanel logs={run.logs} /> : null}
+
+          {tab === "screenshots" ? (
+            allShots.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {allShots.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setOpenScreenshot(s.screenshot_url)}
+                    className="overflow-hidden rounded-lg border border-border bg-surface-2"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={s.screenshot_url ?? ""}
+                      alt={`Captura del paso ${s.position + 1}`}
+                      className="aspect-video w-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <EmptyState
+                  icon={ImageIcon}
+                  title="Sin capturas"
+                  description="Este run no registró screenshots."
+                />
+              </Card>
+            )
+          ) : null}
+
+          {tab === "network" ? (
+            <Card>
+              <EmptyState
+                icon={Sparkles}
+                title="Network — próximamente"
+                description="La captura de peticiones de red estará disponible en una próxima versión."
+              />
+            </Card>
+          ) : null}
+        </>
+      ) : null}
+
+      {/* Lightbox de captura */}
       {openScreenshot ? (
         <div
           className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center p-4 sm:p-8"
@@ -372,17 +477,13 @@ export function TestRunDetail({
           aria-modal="true"
           aria-label="Captura del paso"
         >
-          {/* Backdrop */}
           <button
             type="button"
             aria-label="Cerrar captura"
             onClick={() => setOpenScreenshot(null)}
             className="absolute inset-0 bg-bg/90 backdrop-blur-md"
           />
-
-          {/* Viewer panel */}
           <figure className="relative flex max-h-full w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-e3">
-            {/* Toolbar */}
             <figcaption className="flex items-center justify-between gap-3 border-b border-border bg-surface-2 px-4 py-2.5">
               <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted">
                 <ImageIcon size={13} />
@@ -400,8 +501,6 @@ export function TestRunDetail({
                 <Close size={15} />
               </button>
             </figcaption>
-
-            {/* Image */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={openScreenshot}
@@ -440,5 +539,48 @@ function Stat({
         {label}
       </span>
     </span>
+  );
+}
+
+function LogPanel({
+  logs,
+  live,
+}: {
+  logs: LogEntry[];
+  live?: boolean;
+}): React.JSX.Element {
+  return (
+    <Card className="overflow-hidden">
+      <header className="flex items-center justify-between border-b border-border bg-surface-2 px-4 py-2.5">
+        <span className="font-mono text-xs text-muted">
+          {live ? "logs en vivo" : "logs"}
+        </span>
+        <span className="font-mono text-[0.6875rem] text-faint">
+          {logs.length} líneas
+        </span>
+      </header>
+      <div className="max-h-[22rem] overflow-auto bg-surface px-4 py-3 font-mono text-xs leading-relaxed">
+        {logs.length === 0 ? (
+          <p className="text-faint">Sin logs todavía.</p>
+        ) : (
+          logs.map((entry, i) => (
+            <div key={i} className="flex gap-2.5">
+              <span className="shrink-0 text-faint">
+                {String(i + 1).padStart(3, "0")}
+              </span>
+              <span
+                className={cn(
+                  "shrink-0 uppercase",
+                  LOG_LEVEL_CLASS[entry.level] ?? "text-muted",
+                )}
+              >
+                [{entry.level}]
+              </span>
+              <span className="text-muted">{entry.msg}</span>
+            </div>
+          ))
+        )}
+      </div>
+    </Card>
   );
 }
