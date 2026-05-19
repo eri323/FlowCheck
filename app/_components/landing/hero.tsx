@@ -52,7 +52,7 @@ export function Hero({ authed }: { authed: boolean }): React.JSX.Element {
             className="mt-5 max-w-xl animate-rise text-pretty text-base leading-relaxed text-muted sm:text-[1.0625rem]"
             style={{ animationDelay: "120ms" }}
           >
-            Pega la URL de tu aplicación y explica el flujo en una frase. Probe
+            Pega la URL de tu aplicación y explica el flujo en una frase. FlowCheck
             genera los casos en Playwright, los ejecuta en un navegador real y
             te devuelve un reporte en vivo con una captura por cada paso.
           </p>

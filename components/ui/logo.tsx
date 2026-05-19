@@ -45,7 +45,7 @@ export function Logo({
       <Mark size={size} />
       {showWord ? (
         <span className="text-[0.975rem] font-semibold tracking-[-0.01em] text-text">
-          Probe
+          FlowCheck
         </span>
       ) : null}
     </span>
@@ -56,7 +56,7 @@ export function Logo({
   return (
     <Link
       href={href}
-      aria-label="Probe — inicio"
+      aria-label="FlowCheck — inicio"
       className="inline-flex rounded-md"
     >
       {content}

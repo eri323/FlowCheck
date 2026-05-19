@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Probe — Testing automatizado con IA",
-    template: "%s · Probe",
+    default: "FlowCheck — Testing automatizado con IA",
+    template: "%s · FlowCheck",
   },
   description:
     "Pega una URL, describe el flujo en lenguaje natural y deja que la IA genere y ejecute las pruebas en un navegador real. Reporte en vivo con screenshots por paso.",

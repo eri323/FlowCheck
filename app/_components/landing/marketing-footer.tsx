@@ -59,7 +59,7 @@ export function MarketingFooter(): React.JSX.Element {
 
         <div className="mt-10 flex flex-col gap-2 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-faint">
-            © 2026 Probe. Proyecto de demostración técnica.
+            © 2026 FlowCheck. Proyecto de demostración técnica.
           </p>
           <p className="font-mono text-xs text-faint">
             Next.js · Playwright · Gemini · Supabase

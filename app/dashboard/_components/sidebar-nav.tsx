@@ -143,7 +143,7 @@ export function SidebarNav({
           <div className="h-full w-0 rounded-full bg-accent" />
         </div>
         <p className="font-mono text-[0.625rem] text-faint">
-          Probe · entorno de demostración
+          FlowCheck · entorno de demostración
         </p>
       </div>
     </div>
