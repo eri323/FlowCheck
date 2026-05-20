@@ -35,8 +35,11 @@ const STEPS: Step[] = [
 
 export function HowItWorks(): React.JSX.Element {
   return (
-    <section id="como-funciona" className="border-t border-border">
-      <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
+    <section
+      id="como-funciona"
+      className="flex min-h-[calc(100svh-4rem)] flex-col justify-center border-t border-border"
+    >
+      <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
         <Reveal>
           <div className="max-w-2xl">
             <h2 className="text-2xl font-semibold tracking-[-0.02em] text-text sm:text-3xl">

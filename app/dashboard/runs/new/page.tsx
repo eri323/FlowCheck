@@ -19,9 +19,7 @@ export default function NewRunPage(): React.JSX.Element {
         title="Nuevo test run"
         description="Describe el flujo en lenguaje natural y la IA generará la prueba."
       />
-      <div className="max-w-2xl">
-        <NewTestRunForm />
-      </div>
+      <NewTestRunForm />
     </div>
   );
 }

@@ -46,8 +46,11 @@ const TYPES: { name: string; icon: IconComponent; body: string }[] = [
 
 export function TestTypes(): React.JSX.Element {
   return (
-    <section id="tipos" className="border-t border-border bg-surface-2/40">
-      <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
+    <section
+      id="tipos"
+      className="flex min-h-[calc(100svh-4rem)] flex-col justify-center border-t border-border bg-surface-2/40"
+    >
+      <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
         <Reveal>
           <div className="max-w-2xl">
             <h2 className="text-2xl font-semibold tracking-[-0.02em] text-text sm:text-3xl">

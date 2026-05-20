@@ -24,8 +24,11 @@ const FEATURES: { icon: IconComponent; title: string; body: string }[] = [
 
 export function Features(): React.JSX.Element {
   return (
-    <section id="reporte" className="border-t border-border">
-      <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-16 lg:py-24">
+    <section
+      id="reporte"
+      className="flex min-h-[calc(100svh-4rem)] flex-col justify-center border-t border-border"
+    >
+      <div className="mx-auto grid w-full max-w-6xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-16 lg:py-24">
         <Reveal>
           <div className="lg:sticky lg:top-24">
             <h2 className="text-2xl font-semibold tracking-[-0.02em] text-text sm:text-3xl">

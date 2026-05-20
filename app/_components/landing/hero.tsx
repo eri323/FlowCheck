@@ -6,7 +6,7 @@ import { ReportMock } from "./report-mock";
 
 export function Hero({ authed }: { authed: boolean }): React.JSX.Element {
   return (
-    <section className="relative overflow-hidden">
+    <section className="relative flex min-h-[calc(100svh-4rem)] flex-col justify-center overflow-hidden">
       {/* Faint grid, faded out toward the edges. */}
       <div
         aria-hidden="true"

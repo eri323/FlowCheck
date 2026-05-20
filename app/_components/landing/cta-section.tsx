@@ -10,8 +10,8 @@ export function CtaSection({
   authed: boolean;
 }): React.JSX.Element {
   return (
-    <section className="border-t border-border">
-      <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
+    <section className="flex min-h-[calc(100svh-4rem)] flex-col justify-center border-t border-border">
+      <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
         <Reveal>
           <div className="relative overflow-hidden rounded-2xl border border-border bg-accent-subtle px-6 py-14 text-center sm:px-12 sm:py-16">
             <div
