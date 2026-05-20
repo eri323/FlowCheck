@@ -104,7 +104,6 @@ const baseFields = {
   // Este ciclo solo Chromium es ejecutable; la columna de DB admite los 3.
   browser: z.literal("chromium").default("chromium"),
   device: z.enum(["desktop", "mobile"]).default("desktop"),
-  retries: z.number().int().min(0).max(5).default(1),
 };
 
 export const createTestRunSchema = z.discriminatedUnion("test_type", [

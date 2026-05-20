@@ -88,7 +88,6 @@ export function NewTestRunForm(): React.JSX.Element {
   const [extraPrompt, setExtraPrompt] = useState("");
   const [testType, setTestType] = useState<TestType>("login");
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
-  const [retries, setRetries] = useState(1);
 
   const [login, setLogin] = useState<LoginState>({ email: "", password: "" });
   const [registro, setRegistro] = useState<RegistroState>({
@@ -115,7 +114,6 @@ export function NewTestRunForm(): React.JSX.Element {
       prompt: extraPrompt || undefined,
       browser: "chromium" as const,
       device,
-      retries,
     };
     switch (testType) {
       case "login":
@@ -509,7 +507,7 @@ export function NewTestRunForm(): React.JSX.Element {
           description="Por defecto: Chromium, escritorio, headless, 1 reintento."
           step="05"
         >
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
                 Navegador
@@ -552,32 +550,6 @@ export function NewTestRunForm(): React.JSX.Element {
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
-                Reintentos
-              </span>
-              <div className="flex items-center gap-0.5 rounded-md border border-border bg-surface-2">
-                <button
-                  type="button"
-                  aria-label="Menos reintentos"
-                  onClick={() => setRetries((r) => Math.max(0, r - 1))}
-                  className="px-3 py-1.5 text-muted transition-colors hover:text-text"
-                >
-                  −
-                </button>
-                <span className="tabular flex-1 text-center font-mono text-sm text-text">
-                  {retries}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Más reintentos"
-                  onClick={() => setRetries((r) => Math.min(5, r + 1))}
-                  className="px-3 py-1.5 text-muted transition-colors hover:text-text"
-                >
-                  +
-                </button>
-              </div>
-            </div>
           </div>
 
           <div
