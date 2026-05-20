@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
-import { testPlanSchema, type TestPlan } from "../validation/test-plan";
-import type { TestType } from "../validation/test-run";
+import { testPlanSchema, type TestPlan } from "./test-plan";
+import type { TestType } from "./types";
 
 const SYSTEM_PROMPT = `Eres un generador experto de casos de prueba E2E para sitios web.
 
