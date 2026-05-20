@@ -29,7 +29,7 @@ const STEPS: Step[] = [
     title: "Observa la ejecución en vivo",
     body: "Un worker corre la prueba en Chromium headless. Ves cada paso completarse en tiempo real, con su captura.",
     callout:
-      "Un proceso worker independiente consume una cola BullMQ sobre Redis — los jobs de 30–60 s no bloquean las requests HTTP. 3 jobs concurrentes, 2 reintentos.",
+      "Un servidor worker independiente en Render recibe los jobs por HTTP y los procesa en una cola en memoria con concurrencia 1 — los 30–60 s de ejecución nunca bloquean el ciclo request/response de Vercel.",
   },
 ];
 
