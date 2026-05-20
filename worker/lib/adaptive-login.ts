@@ -1,4 +1,4 @@
-import type { Locator, Page } from "playwright";
+import type { Locator, Page } from "playwright-core";
 
 const SUBMIT_KEYWORDS = [
   "ingresar",

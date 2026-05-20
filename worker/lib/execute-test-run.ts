@@ -1,14 +1,14 @@
 import {
-  chromium,
   devices,
   type Browser,
   type BrowserContextOptions,
   type Page,
-} from "playwright";
+} from "playwright-core";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { uploadScreenshot } from "../storage/upload-screenshot";
+import { launchBrowser } from "./chromium-launch";
+import { uploadScreenshot } from "./upload-screenshot";
 import { assertSafeNavigationUrl } from "./safe-url";
-import type { TestType } from "../validation/test-run";
+import type { TestType } from "./types";
 import {
   fillIdentifierField,
   findPasswordField,
@@ -409,7 +409,7 @@ export async function executeTestRun(
   log.add("info", `ejecución iniciada · device=${device} · ${cases.length} casos`);
   await log.flush(supabase, testRunId);
 
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchBrowser();
   log.add("ok", "navegador lanzado · chromium · headless");
   let anyFailed = false;
 

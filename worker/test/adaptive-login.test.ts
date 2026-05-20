@@ -4,7 +4,7 @@ import {
   isLoginSubmitSelector,
   isPasswordFillSelector,
   looksLikeEmail,
-} from "@/lib/playwright/adaptive-login";
+} from "../lib/adaptive-login";
 
 describe("isEmailFillSelector", () => {
   it("detecta type=email", () => {
