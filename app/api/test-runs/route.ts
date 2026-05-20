@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createTestRunSchema } from "@/lib/validation/test-run";
-import { enqueueTestRun } from "@/lib/queue/test-run-queue";
+import { triggerWorkerRun } from "@/lib/worker/trigger-worker";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_JOBS = 5;
@@ -86,7 +87,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       prompt: input.prompt ?? null,
       browser: input.browser,
       device: input.device,
-      retries: input.retries,
       status: "pendiente",
     })
     .select("id")
@@ -102,31 +102,27 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  try {
-    await enqueueTestRun(
-      { testRunId: testRun.id, userId: user.id },
-      input.retries + 1,
-    );
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Error desconocido";
-    await supabase
-      .from("test_runs")
-      .update({
-        status: "fallido",
-        error_message: `No se pudo encolar el job: ${message}`,
-        finished_at: new Date().toISOString(),
-      })
-      .eq("id", testRun.id);
+  const testRunId = testRun.id;
 
-    return NextResponse.json(
-      {
-        ok: false,
-        message: `Test run creado pero no se pudo encolar: ${message}`,
-        testRunId: testRun.id,
-      },
-      { status: 500 },
-    );
-  }
+  // El worker se contacta tras enviar la respuesta: el frontend recibe el
+  // 201 al instante y redirige a /dashboard/runs/[id]. Si el worker no
+  // responde (puede estar despertando), el run se marca como fallido.
+  after(async () => {
+    try {
+      await triggerWorkerRun(testRunId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Error desconocido";
+      const admin = createSupabaseAdminClient();
+      await admin
+        .from("test_runs")
+        .update({
+          status: "fallido",
+          error_message: `No se pudo contactar al worker (${message}). Puede estar despertando — reintenta en un minuto.`,
+          finished_at: new Date().toISOString(),
+        })
+        .eq("id", testRunId);
+    }
+  });
 
-  return NextResponse.json({ ok: true, testRunId: testRun.id }, { status: 201 });
+  return NextResponse.json({ ok: true, testRunId }, { status: 201 });
 }

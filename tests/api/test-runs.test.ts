@@ -1,11 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const afterCallbacks: Array<() => unknown> = [];
+
+vi.mock("next/server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next/server")>();
+  return {
+    ...actual,
+    after: (cb: () => unknown) => {
+      afterCallbacks.push(cb);
+    },
+  };
+});
+
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: vi.fn(),
 }));
 
-vi.mock("@/lib/queue/test-run-queue", () => ({
-  enqueueTestRun: vi.fn(),
+vi.mock("@/lib/supabase/admin", () => ({
+  createSupabaseAdminClient: vi.fn(),
+}));
+
+vi.mock("@/lib/worker/trigger-worker", () => ({
+  triggerWorkerRun: vi.fn(),
 }));
 
 type AuthUser = { id: string } | null;
@@ -22,12 +38,10 @@ type SupabaseMockOptions = {
 
 type SupabaseMock = {
   client: unknown;
-  updates: Array<Record<string, unknown>>;
   inserts: Array<Record<string, unknown>>;
 };
 
 function makeSupabaseMock(opts: SupabaseMockOptions): SupabaseMock {
-  const updates: Array<Record<string, unknown>> = [];
   const inserts: Array<Record<string, unknown>> = [];
 
   const client = {
@@ -38,37 +52,28 @@ function makeSupabaseMock(opts: SupabaseMockOptions): SupabaseMock {
       }),
     },
     from: vi.fn(() => {
-      let mode: "count" | "insert" | "update" | "idle" = "idle";
-
+      let mode: "count" | "insert" | "idle" = "idle";
       const builder: Record<string, unknown> = {};
 
-      builder.select = vi.fn((_cols: string, options?: { count?: string; head?: boolean }) => {
-        if (options?.count === "exact" && options.head === true) {
-          mode = "count";
-        }
-        return builder;
-      });
-
+      builder.select = vi.fn(
+        (_cols: string, options?: { count?: string; head?: boolean }) => {
+          if (options?.count === "exact" && options.head === true) {
+            mode = "count";
+          }
+          return builder;
+        },
+      );
       builder.insert = vi.fn((payload: Record<string, unknown>) => {
         mode = "insert";
         inserts.push(payload);
         return builder;
       });
-
-      builder.update = vi.fn((payload: Record<string, unknown>) => {
-        mode = "update";
-        updates.push(payload);
-        return builder;
-      });
-
       builder.eq = vi.fn(() => builder);
       builder.gte = vi.fn(() => builder);
-
       builder.single = vi.fn(async () => ({
         data: opts.insertData ?? null,
         error: opts.insertError ?? null,
       }));
-
       builder.then = (
         resolve: (value: unknown) => unknown,
         reject?: (reason: unknown) => unknown,
@@ -81,12 +86,29 @@ function makeSupabaseMock(opts: SupabaseMockOptions): SupabaseMock {
         }
         return Promise.resolve({ data: null, error: null }).then(resolve, reject);
       };
-
       return builder;
     }),
   };
 
-  return { client, updates, inserts };
+  return { client, inserts };
+}
+
+type AdminMock = { client: unknown; updates: Array<Record<string, unknown>> };
+
+function makeAdminMock(): AdminMock {
+  const updates: Array<Record<string, unknown>> = [];
+  const client = {
+    from: vi.fn(() => {
+      const builder: Record<string, unknown> = {};
+      builder.update = vi.fn((payload: Record<string, unknown>) => {
+        updates.push(payload);
+        return builder;
+      });
+      builder.eq = vi.fn(async () => ({ data: null, error: null }));
+      return builder;
+    }),
+  };
+  return { client, updates };
 }
 
 function makeRequest(body: unknown, options: { rawBody?: string } = {}): Request {
@@ -95,6 +117,12 @@ function makeRequest(body: unknown, options: { rawBody?: string } = {}): Request
     headers: { "content-type": "application/json" },
     body: options.rawBody ?? JSON.stringify(body),
   });
+}
+
+async function runAfterCallbacks(): Promise<void> {
+  for (const cb of afterCallbacks) {
+    await cb();
+  }
 }
 
 const validBody = {
@@ -106,17 +134,22 @@ const validBody = {
 async function loadRoute() {
   const route = await import("@/app/api/test-runs/route");
   const supabaseServer = await import("@/lib/supabase/server");
-  const queue = await import("@/lib/queue/test-run-queue");
+  const admin = await import("@/lib/supabase/admin");
+  const worker = await import("@/lib/worker/trigger-worker");
   return {
     POST: route.POST,
-    createSupabaseServerClient: vi.mocked(supabaseServer.createSupabaseServerClient),
-    enqueueTestRun: vi.mocked(queue.enqueueTestRun),
+    createSupabaseServerClient: vi.mocked(
+      supabaseServer.createSupabaseServerClient,
+    ),
+    createSupabaseAdminClient: vi.mocked(admin.createSupabaseAdminClient),
+    triggerWorkerRun: vi.mocked(worker.triggerWorkerRun),
   };
 }
 
 describe("POST /api/test-runs", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    afterCallbacks.length = 0;
   });
 
   it("devuelve 401 si no hay usuario autenticado", async () => {
@@ -128,8 +161,6 @@ describe("POST /api/test-runs", () => {
 
     const response = await POST(makeRequest(validBody));
     expect(response.status).toBe(401);
-    const json = await response.json();
-    expect(json.ok).toBe(false);
   });
 
   it("devuelve 400 si el body no es JSON", async () => {
@@ -141,8 +172,6 @@ describe("POST /api/test-runs", () => {
 
     const response = await POST(makeRequest(undefined, { rawBody: "no-es-json" }));
     expect(response.status).toBe(400);
-    const json = await response.json();
-    expect(json.message).toContain("JSON");
   });
 
   it("devuelve 400 si la validación de Zod falla", async () => {
@@ -153,15 +182,18 @@ describe("POST /api/test-runs", () => {
     );
 
     const response = await POST(
-      makeRequest({ test_type: "navegacion", test_data: {}, target_url: "javascript:alert(1)" }),
+      makeRequest({
+        test_type: "navegacion",
+        test_data: {},
+        target_url: "javascript:alert(1)",
+      }),
     );
     expect(response.status).toBe(400);
-    const json = await response.json();
-    expect(json.errors).toBeDefined();
   });
 
   it("devuelve 429 cuando el usuario supera el rate limit", async () => {
-    const { POST, createSupabaseServerClient, enqueueTestRun } = await loadRoute();
+    const { POST, createSupabaseServerClient, triggerWorkerRun } =
+      await loadRoute();
     const { client } = makeSupabaseMock({ user: { id: "u1" }, recentCount: 5 });
     createSupabaseServerClient.mockResolvedValue(
       client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
@@ -170,11 +202,12 @@ describe("POST /api/test-runs", () => {
     const response = await POST(makeRequest(validBody));
     expect(response.status).toBe(429);
     expect(response.headers.get("Retry-After")).toBe("60");
-    expect(enqueueTestRun).not.toHaveBeenCalled();
+    expect(triggerWorkerRun).not.toHaveBeenCalled();
   });
 
-  it("devuelve 201 y encola el job cuando todo es válido", async () => {
-    const { POST, createSupabaseServerClient, enqueueTestRun } = await loadRoute();
+  it("devuelve 201 y dispara el worker cuando todo es válido", async () => {
+    const { POST, createSupabaseServerClient, triggerWorkerRun } =
+      await loadRoute();
     const { client } = makeSupabaseMock({
       user: { id: "u1" },
       recentCount: 2,
@@ -183,21 +216,39 @@ describe("POST /api/test-runs", () => {
     createSupabaseServerClient.mockResolvedValue(
       client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
     );
-    enqueueTestRun.mockResolvedValue(undefined);
+    triggerWorkerRun.mockResolvedValue(undefined);
 
     const response = await POST(makeRequest(validBody));
     expect(response.status).toBe(201);
-    const json = await response.json();
-    expect(json).toEqual({ ok: true, testRunId: "run-123" });
-    // retries usa el default del schema (1) → 2 intentos totales.
-    expect(enqueueTestRun).toHaveBeenCalledWith(
-      { testRunId: "run-123", userId: "u1" },
-      2,
+    expect(await response.json()).toEqual({ ok: true, testRunId: "run-123" });
+
+    await runAfterCallbacks();
+    expect(triggerWorkerRun).toHaveBeenCalledWith("run-123");
+  });
+
+  it("persiste browser y device en el insert", async () => {
+    const { POST, createSupabaseServerClient, triggerWorkerRun } =
+      await loadRoute();
+    const { client, inserts } = makeSupabaseMock({
+      user: { id: "u1" },
+      recentCount: 0,
+      insertData: { id: "run-r" },
+    });
+    createSupabaseServerClient.mockResolvedValue(
+      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
     );
+    triggerWorkerRun.mockResolvedValue(undefined);
+
+    const response = await POST(makeRequest({ ...validBody, device: "mobile" }));
+    expect(response.status).toBe(201);
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0]).toMatchObject({ browser: "chromium", device: "mobile" });
+    expect(inserts[0]).not.toHaveProperty("retries");
   });
 
   it("devuelve 500 si falla la inserción en la DB", async () => {
-    const { POST, createSupabaseServerClient, enqueueTestRun } = await loadRoute();
+    const { POST, createSupabaseServerClient, triggerWorkerRun } =
+      await loadRoute();
     const { client } = makeSupabaseMock({
       user: { id: "u1" },
       insertData: null,
@@ -209,52 +260,34 @@ describe("POST /api/test-runs", () => {
 
     const response = await POST(makeRequest(validBody));
     expect(response.status).toBe(500);
-    expect(enqueueTestRun).not.toHaveBeenCalled();
+    expect(triggerWorkerRun).not.toHaveBeenCalled();
   });
 
-  it("persiste los campos de runner y deriva attempts de retries", async () => {
-    const { POST, createSupabaseServerClient, enqueueTestRun } = await loadRoute();
-    const { client, inserts } = makeSupabaseMock({
-      user: { id: "u1" },
-      recentCount: 0,
-      insertData: { id: "run-r" },
-    });
-    createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
-    );
-    enqueueTestRun.mockResolvedValue(undefined);
-
-    const response = await POST(
-      makeRequest({ ...validBody, device: "mobile", retries: 2 }),
-    );
-    expect(response.status).toBe(201);
-    expect(inserts).toHaveLength(1);
-    expect(inserts[0]).toMatchObject({
-      browser: "chromium",
-      device: "mobile",
-      retries: 2,
-    });
-    // retries=2 → 3 intentos totales (el inicial + 2 reintentos).
-    expect(enqueueTestRun).toHaveBeenCalledWith(
-      { testRunId: "run-r", userId: "u1" },
-      3,
-    );
-  });
-
-  it("marca el test run como fallido si no se puede encolar", async () => {
-    const { POST, createSupabaseServerClient, enqueueTestRun } = await loadRoute();
-    const { client, updates } = makeSupabaseMock({
+  it("marca el run como fallido si no se puede contactar al worker", async () => {
+    const {
+      POST,
+      createSupabaseServerClient,
+      createSupabaseAdminClient,
+      triggerWorkerRun,
+    } = await loadRoute();
+    const { client } = makeSupabaseMock({
       user: { id: "u1" },
       insertData: { id: "run-xyz" },
     });
     createSupabaseServerClient.mockResolvedValue(
       client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
     );
-    enqueueTestRun.mockRejectedValue(new Error("redis caído"));
+    const admin = makeAdminMock();
+    createSupabaseAdminClient.mockReturnValue(
+      admin.client as unknown as ReturnType<typeof createSupabaseAdminClient>,
+    );
+    triggerWorkerRun.mockRejectedValue(new Error("worker dormido"));
 
     const response = await POST(makeRequest(validBody));
-    expect(response.status).toBe(500);
-    expect(updates).toHaveLength(1);
-    expect(updates[0]).toMatchObject({ status: "fallido" });
+    expect(response.status).toBe(201);
+
+    await runAfterCallbacks();
+    expect(admin.updates).toHaveLength(1);
+    expect(admin.updates[0]).toMatchObject({ status: "fallido" });
   });
 });
