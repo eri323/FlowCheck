@@ -1,12 +1,12 @@
-import { createSupabaseAdminClient } from "../lib/supabase/admin";
+import { createSupabaseAdminClient } from "./lib/supabase-admin";
 import {
   generateTestPlan,
   TestPlanGenerationError,
   type GenerateTestPlanInput,
-} from "../lib/gemini/generate-test-plan";
-import { executeTestRun } from "../lib/playwright/execute-test-run";
-import type { TestCaseDraft, TestStepDraft } from "../lib/validation/test-plan";
-import type { TestType } from "../lib/validation/test-run";
+} from "./lib/gemini";
+import { executeTestRun } from "./lib/execute-test-run";
+import type { TestCaseDraft, TestStepDraft } from "./lib/test-plan";
+import type { TestType } from "./lib/types";
 
 type TestRunRow = {
   id: string;
