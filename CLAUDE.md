@@ -16,12 +16,13 @@ Equivalente real: Testim.io, Mabl, Reflect.run — pero construido desde cero.
 ```
 frontend/          → Next.js 16 App Router + Tailwind CSS v4 + TypeScript
 backend/           → API Routes de Next.js (mismo repo, /app/api/)
-worker/            → Proceso Node.js independiente — consumidor de BullMQ
+worker/            → Servidor Express HTTP independiente (Render) — ejecuta Playwright
 ```
 
-Monorepo. El frontend y las rutas de API viven en Next.js.
-El worker de Playwright es un proceso separado porque necesita correr jobs largos
-(30–60s) sin bloquear las requests HTTP.
+Monorepo. El frontend y las rutas de API viven en Next.js. El worker es un
+servidor Express desplegado en Render: la API Route inserta el `test_run` y
+delega vía `POST /run-test` para no bloquear el ciclo request/response de
+Vercel (los jobs duran 30–60s).
 
 ---
 
@@ -35,9 +36,9 @@ El worker de Playwright es un proceso separado porque necesita correr jobs largo
 | Archivos       | Supabase Storage        |
 | IA             | @google/genai (Gemini)  |
 | Tests browser  | Playwright (Chromium)   |
-| Cola de jobs   | BullMQ + Upstash Redis  |
+| Worker         | Express HTTP            |
 | Deploy front   | Vercel                  |
-| Deploy worker  | Railway                 |
+| Deploy worker  | Render (free, render.yaml) |
 | Lenguaje       | TypeScript en todo      |
 
 ---
@@ -46,7 +47,6 @@ El worker de Playwright es un proceso separado porque necesita correr jobs largo
 
 ```bash
 npm run dev          # Inicia servidor de desarrollo Next.js (puerto 3000)
-npm run worker       # Inicia proceso worker BullMQ
 npm run build        # Build de producción
 npm run typecheck    # tsc --noEmit
 npm run lint         # ESLint
@@ -61,7 +61,7 @@ npm run test:watch   # Vitest en modo watch
 - `profiles` — vinculado a auth.users, guarda plan y rol del usuario
 - `projects` — cada usuario tiene proyectos (nombre, url objetivo)
 - `test_runs` — un registro por ejecución (status, created_at, user_id,
-  browser, device, retries, logs, js_error_count)
+  browser, device, logs, js_error_count)
 - `test_cases` — generados por la IA, pertenecen a un test_run
 - `test_steps` — cada paso de un test_case (acción, selector, status, screenshot_url)
 
@@ -80,10 +80,14 @@ SUPABASE_SERVICE_ROLE_KEY=       # solo backend/worker, nunca en el cliente
 # Gemini (Google AI Studio)
 GEMINI_API_KEY=                  # solo worker, nunca en el cliente
 
-# Redis (Upstash)
-UPSTASH_REDIS_URL=
-UPSTASH_REDIS_TOKEN=
+# Worker en Render (la API Route lo contacta vía HTTP)
+WORKER_URL=
+WORKER_SECRET=                   # secreto compartido; también en el worker
 ```
+
+Las variables `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` y
+`WORKER_SECRET` viven en el worker (Render), declaradas en `render.yaml`. La
+service role key nunca debe llegar al cliente.
 
 ---
 
@@ -94,7 +98,7 @@ UPSTASH_REDIS_TOKEN=
 - Todas las rutas de API validan el input con Zod antes de tocar la DB.
 - Sin exports por defecto — solo exports nombrados.
 - Las queries de Supabase siempre manejan explícitamente el patrón `{ data, error }`.
-- Cada nuevo endpoint necesita su test correspondiente en `/tests/api/`. Stack de testing: Vitest + mocks manuales de Supabase y BullMQ (sin tocar Redis ni DB reales).
+- Cada nuevo endpoint necesita su test correspondiente en `/tests/api/`. Stack de testing: Vitest + mocks manuales de Supabase y del cliente HTTP del worker (sin tocar DB ni hacer requests reales).
 - Los screenshots se suben a Supabase Storage (bucket `screenshots`) antes de guardar la URL en DB.
 
 ---
@@ -115,8 +119,8 @@ UPSTASH_REDIS_TOKEN=
   (píldora con punto + etiqueta), el accent vive en botones llenos y enlaces.
   No uses `accent` para el texto de un estado ni `success` para acciones
   primarias.
-- La configuración del runner (navegador, dispositivo, reintentos) vive en
-  columnas de `test_runs` (migración `0005`). El worker captura un stream de
+- La configuración del runner (navegador, dispositivo) vive en columnas de
+  `test_runs` (migración `0005`; `retries` fue eliminada en `0006`). El worker captura un stream de
   logs (`test_runs.logs`) y el conteo de errores JS (`test_runs.js_error_count`).
   El detalle del run muestra logs y métricas; las features de Nivel C (API &
   webhooks, Configuración, plantillas, ejecución programada, Network) aparecen
@@ -300,16 +304,16 @@ y se suba el screenshot a Supabase Storage.
 - [x] Actualizar estado del test_run en Supabase al terminar (completed/failed)
 - [x] Implementar timeout por job (máximo 120s) para evitar procesos colgados
 
-### Fase 4 — Cola de jobs asíncrona
-Desacoplar la ejecución de Playwright del ciclo request-response de HTTP.
-El objetivo es que el usuario no espere bloqueado y el worker procese los jobs
-de forma independiente y resiliente.
+### Fase 4 — Worker HTTP asíncrono
+Desacoplar la ejecución de Playwright del ciclo request-response de Vercel.
+La API Route inserta el `test_run` y delega vía HTTP a un worker Express en
+Render; el frontend recibe `201` al instante y suscribe al run por Realtime.
 
-- [x] Instalar BullMQ y conectar con Upstash Redis
-- [x] Modificar POST /api/test-runs para encolar el job en lugar de ejecutar directo
-- [x] Crear el proceso worker que consume la cola y ejecuta Playwright
-- [x] Implementar reintentos automáticos (máximo 2 reintentos por job fallido)
-- [x] Configurar concurrencia: máximo 3 jobs simultáneos por instancia del worker
+- [x] Crear el cliente HTTP `triggerWorkerRun` que llama al worker con `Bearer WORKER_SECRET`
+- [x] Modificar POST /api/test-runs para insertar el run y disparar al worker en `after()`
+- [x] Construir el worker Express con `POST /run-test` y `GET /health`
+- [x] Cola en memoria de concurrencia 1 (Render free tier, 512 MB de RAM)
+- [x] Barrido de runs huérfanos al arrancar (limpia los runs pendientes/corriendo viejos)
 - [x] Registrar logs de cada job (inicio, fin, error) en la tabla test_runs
 
 ### Fase 5 — Reporte en tiempo real
@@ -328,8 +332,8 @@ Llevar el proyecto a producción con los dos servicios desplegados y funcionando
 El objetivo es tener una URL pública funcional lista para el portafolio.
 
 - [ ] Desplegar frontend en Vercel con variables de entorno de producción
-- [ ] Desplegar worker en Railway con variables de entorno de producción
-- [ ] Configurar Upstash Redis en producción
+- [ ] Desplegar worker en Render con `render.yaml` y variables de producción
+- [ ] Verificar `GET {WORKER_URL}/health` y un run end-to-end desde Vercel
 - [ ] Verificar que RLS de Supabase funciona correctamente en producción
 - [ ] Escribir README.md del proyecto con GIF demo del flujo completo
 - [ ] Agregar el proyecto al portafolio con descripción técnica del stack
@@ -370,9 +374,11 @@ El objetivo es tener una URL pública funcional lista para el portafolio.
 ### Ejecución de Playwright en el servidor
 
 - **Nunca** ejecutar Playwright directamente desde una ruta de API de Next.js.
-  Siempre pasar por la cola de BullMQ. Además del problema de timeout,
-  un atacante que sature el endpoint podría lanzar cientos de browsers simultáneos
-  y derribar el servidor.
+  Playwright corre en el worker de Render; la API Route delega vía
+  `POST /run-test` autenticado con `Bearer WORKER_SECRET`. Esto evita
+  timeouts de Vercel y, más importante, contiene el blast radius: aunque
+  alguien sature la API, los Chromium se serializan en el worker
+  (concurrencia 1) sin tumbar Vercel.
 - Implementar un límite de rate por usuario en el endpoint POST /api/test-runs.
   Un usuario no debe poder encolar más de 5 jobs por minuto. Implementado en
   `app/api/test-runs/route.ts` contando filas recientes en `test_runs` por

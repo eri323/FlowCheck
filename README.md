@@ -27,12 +27,12 @@ proyecto de portafolio.
 | Tiempo real     | Supabase Realtime (WebSocket)       |
 | Archivos        | Supabase Storage                    |
 | IA              | `@google/genai` — `gemini-2.5-flash` con `responseMimeType: application/json` |
-| Browser tests   | Playwright (Chromium headless)      |
-| Cola de jobs    | BullMQ sobre Upstash Redis          |
+| Browser tests   | Playwright (Chromium headless, `@sparticuz/chromium`) |
+| Worker          | Express HTTP (servidor de larga duración) |
 | Validación      | Zod en cada ruta de API             |
-| Tests           | Vitest + mocks manuales de Supabase y BullMQ |
+| Tests           | Vitest + mocks manuales de Supabase |
 | Deploy frontend | Vercel                              |
-| Deploy worker   | Railway (Dockerfile con base `mcr.microsoft.com/playwright`) |
+| Deploy worker   | Render (free tier, `render.yaml`)   |
 
 ---
 
@@ -42,17 +42,13 @@ proyecto de portafolio.
 ┌──────────────┐    POST /api/test-runs    ┌────────────┐
 │  Next.js UI  │ ────────────────────────▶ │  API Route │
 └──────┬───────┘                           └─────┬──────┘
-       │ Supabase Realtime                       │ enqueue
-       │ (test_runs, test_steps)                 ▼
-       │                                  ┌────────────┐
-       │                                  │   BullMQ   │
-       │                                  │  (Upstash) │
-       │                                  └─────┬──────┘
-       │                                        │ job
-       │                                        ▼
+       │ Supabase Realtime                       │ after() → POST /run-test
+       │ (test_runs, test_steps)                 │ (Bearer WORKER_SECRET)
+       │                                         ▼
        │                                  ┌────────────┐
        │                                  │   Worker   │
-       │                                  │ (Railway)  │
+       │                                  │   Express  │
+       │                                  │  (Render)  │
        │                                  └─────┬──────┘
        │                            Gemini ────▶│
        │                            Playwright ▶│
@@ -61,7 +57,9 @@ proyecto de portafolio.
 ```
 
 El worker corre como proceso independiente porque los jobs duran 30–60s,
-incompatibles con el tope de ejecución de Vercel Functions.
+incompatibles con el tope de ejecución de Vercel Functions. La API Route
+delega vía HTTP y responde `201` de inmediato; el frontend sigue el progreso
+por Realtime.
 
 ---
 
@@ -69,19 +67,19 @@ incompatibles con el tope de ejecución de Vercel Functions.
 
 ```
 app/
-  api/test-runs/         # POST: encola job, valida con Zod, rate-limit
+  api/test-runs/         # POST: inserta run, dispara worker, valida con Zod, rate-limit
   auth/, login/, signup/ # Flujo de Supabase Auth
   dashboard/             # Vistas protegidas + reporte en vivo
 lib/
-  gemini/                # Llamada a Gemini con responseMimeType JSON
-  playwright/            # Runner + safe-url + adaptive-login
-  queue/                 # BullMQ + conexión Upstash
-  storage/               # Subida de screenshots
   supabase/              # Clientes server / client / admin / middleware
-  validation/            # Schemas Zod
-worker/
-  index.ts               # Worker BullMQ con concurrencia 3 y reintentos
+  validation/            # Schemas Zod (excepto plan, que vive en el worker)
+  worker/                # Cliente HTTP triggerWorkerRun
+worker/                  # Paquete npm separado (deploy en Render)
+  server.ts              # Express: POST /run-test, GET /health
   process-test-run.ts    # Lee plan → ejecuta Playwright → escribe DB
+  concurrency.ts         # Cola en memoria con concurrencia 1
+  sweep-orphan-runs.ts   # Barrido de runs huérfanos al arrancar
+  lib/                   # gemini, test-plan, execute-test-run, adaptive-login, …
 supabase/migrations/     # SQL versionado de tablas, RLS, Realtime
 tests/api/               # Vitest sobre las rutas de API
 docs/DEPLOY.md           # Guía paso a paso de despliegue
@@ -95,8 +93,8 @@ docs/DEPLOY.md           # Guía paso a paso de despliegue
 git clone <repo>
 cd ai-testing-platform
 npm install
-npx playwright install chromium      # solo primera vez
 cp .env.example .env.local           # rellenar con tus claves reales
+cd worker && npm install && cd ..    # worker es paquete aparte
 ```
 
 Aplicar las migraciones de `supabase/migrations/` a tu proyecto de Supabase.
@@ -105,16 +103,16 @@ Crear bucket `screenshots` con lectura pública.
 ### Comandos
 
 ```bash
-npm run dev          # Next.js en http://localhost:3000
-npm run worker       # Worker BullMQ (proceso separado, dejarlo corriendo)
-npm run typecheck    # tsc --noEmit
-npm run lint         # ESLint
-npm test             # Vitest
-npm run build        # Build de producción
+npm run dev               # Next.js en http://localhost:3000
+cd worker && npm start    # Worker Express (proceso separado, dejarlo corriendo)
+npm run typecheck         # tsc --noEmit
+npm run lint              # ESLint
+npm test                  # Vitest
+npm run build             # Build de producción
 ```
 
-`npm run worker` consume jobs de la cola; sin él, los test_runs se quedan
-en `pending`.
+Sin el worker corriendo, los test_runs se quedan en `pendiente` y la API
+Route los marca como `fallido` tras el timeout del fetch.
 
 ---
 
@@ -122,7 +120,7 @@ en `pending`.
 
 Para `test_type === "login"`, el worker ignora los selectores literales que
 sugiere Gemini para email / password / submit y los reemplaza por una
-heurística (`lib/playwright/adaptive-login.ts`) que tolera variaciones de
+heurística (`worker/lib/adaptive-login.ts`) que tolera variaciones de
 idioma y maquetado entre apps. Tras un submit exitoso se abre una **ventana
 de verificación** donde los `expect_*` consecutivos se marcan automáticamente
 como `passed` (porque el redirect ya validó el login). Los pasos resueltos
@@ -138,10 +136,12 @@ Detalles completos en `CLAUDE.md`.
   `NEXT_PUBLIC_`. La service role vive solo en API Routes y worker;
   Gemini solo en el worker.
 - Toda entrada del usuario se valida con Zod antes de tocar la DB.
-- Las URLs del usuario se filtran con `lib/playwright/safe-url.ts`
+- Las URLs del usuario se filtran con `worker/lib/safe-url.ts`
   (solo `http`/`https`, sin `file://`, `javascript:`, `data:`).
 - Rate limit en `POST /api/test-runs`: 5 runs por minuto por usuario.
   Devuelve `429` con `Retry-After: 60`.
+- El endpoint `POST /run-test` del worker exige `Authorization: Bearer
+  WORKER_SECRET`. Sin el secreto, responde `401`.
 - RLS activado en todas las tablas. El `user_id` se lee de la sesión
   de Supabase, **nunca** del body.
 
@@ -149,8 +149,8 @@ Detalles completos en `CLAUDE.md`.
 
 ## Despliegue
 
-Ver [`docs/DEPLOY.md`](docs/DEPLOY.md) — guía completa de Supabase, Upstash,
-Vercel y Railway con checklist de verificación post-deploy.
+Ver [`docs/DEPLOY.md`](docs/DEPLOY.md) — guía completa de Supabase, Vercel
+y Render con checklist de verificación post-deploy.
 
 ---
 

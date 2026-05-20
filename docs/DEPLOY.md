@@ -1,14 +1,15 @@
 # Despliegue a producción
 
-Este proyecto se despliega en **dos servicios separados** porque el worker
-de Playwright necesita un proceso de larga duración con Chromium instalado,
-algo incompatible con el modelo serverless de Vercel.
+Este proyecto se despliega en **dos servicios separados** porque el worker de
+Playwright necesita un proceso de larga duración con Chromium instalado, algo
+incompatible con el modelo serverless de Vercel. El worker es un servidor
+Express en Render free tier; la API Route de Vercel lo contacta vía HTTP
+autenticada con `WORKER_SECRET`.
 
 | Pieza        | Provider | Build                              |
 |--------------|----------|------------------------------------|
 | Frontend + API Routes | Vercel   | `next build`                       |
-| Worker BullMQ + Playwright | Railway  | Dockerfile (`mcr.microsoft.com/playwright`) |
-| Cola Redis   | Upstash  | Base de datos serverless           |
+| Worker Express + Playwright | Render   | `render.yaml` (Node + `@sparticuz/chromium`) |
 | DB + Auth + Storage | Supabase | Proyecto remoto                    |
 
 ---
@@ -21,7 +22,7 @@ algo incompatible con el modelo serverless de Vercel.
 3. Crear el bucket `screenshots` en Storage. Política de acceso pública para
    `select`, escritura restringida al `service_role`.
 4. Copiar a un lado:
-   - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
+   - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL` (Vercel) y `SUPABASE_URL` (Render)
    - `anon` public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `service_role` secret → `SUPABASE_SERVICE_ROLE_KEY`
 5. En Authentication → URL Configuration, agregar el dominio de Vercel
@@ -29,26 +30,15 @@ algo incompatible con el modelo serverless de Vercel.
 
 ---
 
-## 2. Upstash Redis (cola)
-
-1. Crear una base **Redis** (no "Vector", no "QStash") en https://upstash.com.
-2. Habilitar TLS.
-3. Copiar `UPSTASH_REDIS_URL` y `UPSTASH_REDIS_TOKEN` (sección REST API).
-
-BullMQ requiere conexión Redis nativa (no REST); `lib/queue/connection.ts`
-parsea la URL para abrir un socket compatible.
-
----
-
-## 3. Gemini
+## 2. Gemini
 
 1. Generar la clave en https://aistudio.google.com/app/apikey.
-2. Guardar como `GEMINI_API_KEY`. **Solo el worker** la usa — nunca con
-   prefijo `NEXT_PUBLIC_`.
+2. Guardar como `GEMINI_API_KEY` **en Render** (worker). Nunca en Vercel ni
+   con prefijo `NEXT_PUBLIC_`.
 
 ---
 
-## 4. Vercel (frontend + API Routes)
+## 3. Vercel (frontend + API Routes)
 
 1. Importar el repo desde el dashboard de Vercel.
 2. Framework preset: **Next.js** (autodetectado).
@@ -57,42 +47,42 @@ parsea la URL para abrir un socket compatible.
    NEXT_PUBLIC_SUPABASE_URL
    NEXT_PUBLIC_SUPABASE_ANON_KEY
    SUPABASE_SERVICE_ROLE_KEY
-   UPSTASH_REDIS_URL
-   UPSTASH_REDIS_TOKEN
+   WORKER_URL                 # https://<tu-worker>.onrender.com
+   WORKER_SECRET              # mismo valor que en Render
    ```
-   `GEMINI_API_KEY` **no va** en Vercel — solo en Railway.
+   `GEMINI_API_KEY` **no va** en Vercel — solo en Render.
 4. Deploy. El archivo `.vercelignore` evita que Vercel intente bundlear
-   `worker/` ni Playwright.
+   `worker/`.
 
 ---
 
-## 5. Railway (worker)
+## 4. Render (worker)
 
-1. New Project → *Deploy from GitHub repo*.
-2. Railway detecta `railway.json` y usa el `Dockerfile`.
-3. En **Variables** agregar:
+1. *New → Blueprint* desde el repo: Render detecta `render.yaml` y crea el
+   servicio web `ai-testing-worker` con `rootDir: worker`.
+2. En **Environment** agregar:
    ```
-   NEXT_PUBLIC_SUPABASE_URL
-   NEXT_PUBLIC_SUPABASE_ANON_KEY
+   SUPABASE_URL
    SUPABASE_SERVICE_ROLE_KEY
    GEMINI_API_KEY
-   UPSTASH_REDIS_URL
-   UPSTASH_REDIS_TOKEN
+   WORKER_SECRET              # mismo valor que en Vercel
    ```
-4. El servicio se queda *idle-pero-vivo* esperando jobs en la cola.
-   Recomendado: mínimo 1 GB RAM (Chromium consume ~500 MB por instancia).
-5. Sin healthcheck HTTP: el worker no expone puerto. Si Railway pide uno,
-   desactivar healthchecks o exponer un endpoint dummy.
+3. El plan **free** duerme tras 15 min de inactividad y tarda ~30-50 s en
+   despertar (cold start). La API Route de Vercel usa `after()` con un
+   timeout de 55 s para tolerarlo; si la primera llamada falla, el run se
+   marca como `fallido` con un mensaje claro y el usuario puede reintentar.
+4. Healthcheck: `GET /health` (declarado en `render.yaml`).
 
 ---
 
-## 6. Verificar en producción
+## 5. Verificar en producción
 
 Checklist post-deploy:
 
+- [ ] `GET {WORKER_URL}/health` responde `{"ok": true}`.
 - [ ] Registro de un usuario nuevo desde la URL de Vercel completa el flujo.
-- [ ] Un test_run encolado pasa de `pending` → `running` → `completed`
-      (mirar logs de Railway).
+- [ ] Un test_run pasa de `pendiente` → `corriendo` → `exitoso` (mirar logs
+      de Render).
 - [ ] Los screenshots aparecen en el bucket `screenshots` y se renderizan
       en `/dashboard/runs/[id]`.
 - [ ] Abrir `/dashboard/runs/[id]` mientras un run está corriendo: los pasos
@@ -101,7 +91,6 @@ Checklist post-deploy:
       `refetch()` periódico del cliente cubre cualquier evento perdido.
 - [ ] Crear un segundo usuario y confirmar que **no** ve los test_runs del
       primero (RLS).
-- [ ] Encolar 6 runs en menos de 60s → el sexto debe responder `429`.
 
 ---
 
@@ -113,3 +102,6 @@ Checklist post-deploy:
   cualquier clave que aparezca en un commit público.
 - `SUPABASE_SERVICE_ROLE_KEY` y `GEMINI_API_KEY` nunca pueden tener prefijo
   `NEXT_PUBLIC_`.
+- `WORKER_SECRET` debe ser largo (≥ 32 caracteres aleatorios) y compartirse
+  por igual entre Vercel y Render. Si se filtra, rotar inmediatamente en
+  ambos lados.
