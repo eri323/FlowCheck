@@ -125,6 +125,16 @@ service role key nunca debe llegar al cliente.
   El detalle del run muestra logs y métricas; las features de Nivel C (API &
   webhooks, Configuración, plantillas, ejecución programada, Network) aparecen
   deshabilitadas en la UI.
+- **Heurística adaptativa por `test_type`** es un patrón establecido del worker:
+  para ciertos tipos de prueba se descartan los selectores literales de Gemini y
+  se usa lógica tolerante a idioma/maquetado que además **verifica el resultado
+  por comportamiento**. Hoy cubre `login` (`lib/adaptive-login.ts`) y `busqueda`
+  (`lib/adaptive-search.ts`); ambas se cablean en `lib/execute-test-run.ts`,
+  marcan sus pasos con el prefijo `[adaptive]` y traen tests puros + de
+  integración. Ver las secciones "Detección adaptativa en flujos de login" y
+  "…de búsqueda". Al añadir un nuevo `test_type` adaptativo, sigue este mismo
+  patrón (detectores puros testeables + orquestación con verificación + prefijo
+  `[adaptive]`).
 
 ---
 
@@ -218,6 +228,99 @@ en la columna `selector` del `test_step` (`[adaptive] email/usuario`,
 la URL real del
 post-login queda en `value`. Esto deja explícito en `/dashboard/runs/[id]`
 cuándo se activó la heurística y a dónde redirigió de verdad la app.
+
+---
+
+## Detección adaptativa en flujos de búsqueda
+
+Cuando `test_type === "busqueda"`, el worker tampoco ejecuta literalmente los
+selectores que sugiere Gemini para el campo del buscador ni el botón de envío.
+Usa una heurística (`lib/adaptive-search.ts`) análoga a la de login: tolera
+variaciones de idioma y maquetado, y —sobre todo— **verifica que la búsqueda
+realmente ocurrió** en vez de dar por buena la mera presencia de un contenedor.
+
+### Helpers
+
+- `findSearchField(page)` — localiza el input del buscador probando en orden:
+  `input[type=search]`, `name` con términos largos
+  (`search|query|buscar|busqueda|keyword|termino`, substring) o cortos
+  (`q|s`, atributo exacto / límite de palabra), `[role=searchbox]`,
+  `[role=search] input`, `getByPlaceholder` con la regex de búsqueda
+  (`buscar|search|¿qué buscas|…`), y como último recurso el primer `input`
+  visible que no sea password/email/hidden/submit/checkbox/radio/button.
+- `findSearchSubmit(page)` — `Locator | null`: prioriza el submit dentro del
+  landmark `[role=search]`, luego `button[type=submit]`,
+  `getByRole('button', { name: /buscar|search|go|ir/i })` e `input[type=submit]`.
+  Devuelve `null` cuando no hay botón (búsqueda live o por Enter).
+- `executeSearch(page, query, timeout, opts?)` — orquesta el flujo completo y
+  devuelve `{ success, resultsFound, finalUrl, reason? }`. Encuentra el campo
+  (re-llena solo si el valor cambió, para no re-disparar el typeahead), toma un
+  **baseline** de candidatos a resultado, envía (botón si existe, si no Enter) y
+  hace polling (hasta `opts.resultsTimeoutMs`, default 10s) buscando una señal
+  **fuerte**: `urlSignalsSearch`, un **delta** de nodos de resultado nuevos
+  respecto al baseline, o la desaparición del campo (transición de SPA). Si no
+  hay ninguna señal en el budget devuelve `success: false` con un diagnóstico.
+
+### Funciones puras (detectores)
+
+- `urlSignalsSearch(initialUrl, finalUrl, query)` — señal fuerte de página de
+  resultados: la URL cambió **y además** trae un parámetro de búsqueda conocido
+  con valor (`q|query|search|s|keyword|term|k|wd`), refleja el query en la URL,
+  o cae en una ruta de resultados (`/search|/buscar|/resultados|…`). Un cambio
+  de URL a secas (p. ej. redirect a login) no cuenta.
+- `looksLikeEmptyState(text)` — detecta estados de cero resultados
+  (`sin resultados`, `no se encontraron`, `0 resultados`, `no results found`,
+  …). Usa `\b` para no confundir el encabezado normal "Resultados de la
+  búsqueda" ni un "no results" embebido en otra palabra.
+- `isSearchFillSelector(selector)` / `isSearchSubmitSelector(selector)` /
+  `looksLikeSearchSelector(selector)` — detectan si un selector de Gemini apunta
+  al input o al botón del buscador. El de campo excluye selectores de
+  password/email/botón; el de submit excluye el propio campo de búsqueda.
+
+### Por qué la detección es por DELTA, no por presencia
+
+Muchos sitios ya tienen nodos `item`/`product`/`role=list` en nav, footer o
+sidebar **antes** de buscar. Confiar en su mera presencia haría que casi
+cualquier test de búsqueda pasara en verde (falso positivo). Por eso
+`executeSearch` exige que aparezcan nodos de resultado **nuevos** respecto al
+baseline, o una señal fuerte de URL, o una transición de SPA. `resultsFound`
+distingue además los resultados reales del estado de cero resultados.
+
+### Cómo se activa
+
+En `lib/execute-test-run.ts`, sólo para `test_type === "busqueda"`:
+
+- `fill`: cada `fill` guarda `ctx.searchQuery = step.value` (el último valor
+  llenado es el query que usará el submit). Si el selector huele a campo de
+  búsqueda (`isSearchFillSelector`) se usa `findSearchField` en vez del selector
+  literal, con `selector = "[adaptive] campo de búsqueda"`.
+- `click`: si el selector huele a submit de búsqueda (`isSearchSubmitSelector`)
+  se invoca `executeSearch(page, ctx.searchQuery, STEP_TIMEOUT_MS)`. La URL real
+  queda en `value` del paso. Si `success` es `false`, el paso falla con la razón
+  concreta.
+
+A diferencia de login, **no** se abre una ventana de verificación: en búsqueda
+los `expect_*` posteriores son la validación valiosa (que el resultado esperado
+aparezca), así que se ejecutan literalmente.
+
+### Reporte en la UI
+
+Los pasos resueltos por la heurística llevan el prefijo `[adaptive]` en la
+columna `selector` del `test_step` (`[adaptive] campo de búsqueda`,
+`[adaptive] submit búsqueda (con resultados)`,
+`[adaptive] submit búsqueda (sin resultados confirmados)`), y la URL real de la
+página de resultados queda en `value`.
+
+### Tests
+
+`worker/test/adaptive-search.test.ts` cubre las funciones puras (detectores,
+`urlSignalsSearch`, `looksLikeEmptyState`).
+`worker/test/adaptive-search.integration.test.ts` lanza un Chromium real
+(caché local de Playwright) contra fixtures servidas por un servidor HTTP
+efímero, cubriendo los caminos frágiles: form clásico GET, estado de cero
+resultados, SPA sin cambio de URL (delta), envío con Enter sin botón, el
+fallback que nunca toma el password, y la trampa de falso positivo (página con
+contenedores `result`/`product`/`item` preexistentes cuya búsqueda no hace nada).
 
 ---
 

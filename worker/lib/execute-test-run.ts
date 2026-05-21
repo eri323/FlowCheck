@@ -19,6 +19,12 @@ import {
   verifyLoginOutcome,
   type LoginOutcome,
 } from "./adaptive-login";
+import {
+  executeSearch,
+  findSearchField,
+  isSearchFillSelector,
+  isSearchSubmitSelector,
+} from "./adaptive-search";
 
 type StepAction =
   | "goto"
@@ -32,6 +38,8 @@ type LoginRunContext = {
   testType?: TestType;
   lastOutcome?: LoginOutcome;
   inVerificationWindow: boolean;
+  /** Último valor llenado — usado como query en flujos de búsqueda. */
+  searchQuery?: string;
 };
 
 type StepResult = { valueOverride?: string; selectorOverride?: string };
@@ -196,6 +204,21 @@ async function executeStep(
           selectorOverride: "[adaptive] submit",
         };
       }
+      if (ctx.testType === "busqueda" && isSearchSubmitSelector(step.selector)) {
+        const query = ctx.searchQuery ?? "";
+        const outcome = await executeSearch(page, query, STEP_TIMEOUT_MS);
+        if (!outcome.success) {
+          throw new Error(
+            `Búsqueda adaptativa falló: ${outcome.reason} (URL final: ${outcome.finalUrl})`,
+          );
+        }
+        return {
+          valueOverride: outcome.finalUrl,
+          selectorOverride: outcome.resultsFound
+            ? "[adaptive] submit búsqueda (con resultados)"
+            : "[adaptive] submit búsqueda (sin resultados confirmados)",
+        };
+      }
       await page.locator(step.selector).click({ timeout: STEP_TIMEOUT_MS });
       return {};
     }
@@ -219,6 +242,15 @@ async function executeStep(
               ? "[adaptive] identificador (validación nativa relajada)"
               : "[adaptive] email/usuario",
           };
+        }
+      }
+      if (ctx.testType === "busqueda") {
+        // El último valor llenado es el query que usará el submit adaptativo.
+        ctx.searchQuery = step.value;
+        if (isSearchFillSelector(step.selector)) {
+          const field = await findSearchField(page);
+          await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
+          return { selectorOverride: "[adaptive] campo de búsqueda" };
         }
       }
       await page.locator(step.selector).fill(step.value, { timeout: STEP_TIMEOUT_MS });
