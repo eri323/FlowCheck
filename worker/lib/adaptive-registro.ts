@@ -24,10 +24,6 @@ const REGISTER_VERBS = ["registrar", "registrarme", "regístrate", "registrate",
 const NAME_REGEX = new RegExp(`(${NAME_TOKENS.join("|")})`, "i");
 const CONFIRM_REGEX = new RegExp(`(${CONFIRM_TOKENS.join("|")})`, "i");
 const REGISTER_REGEX = new RegExp(`(${REGISTER_VERBS.join("|")})`, "i");
-const REGISTER_NAME_REGEX = new RegExp(
-  `^\\s*(?:${REGISTER_VERBS.map((v) => v.replace(/\s+/g, "\\s+")).join("|")})\\s*$`,
-  "i",
-);
 
 export function isNameFillSelector(selector?: string | null): boolean {
   if (!selector) return false;

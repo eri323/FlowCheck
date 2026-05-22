@@ -31,6 +31,14 @@ import {
   isFormSubmitSelector,
   parseFields,
 } from "./adaptive-formulario";
+import {
+  findConfirmPasswordField,
+  findNameField,
+  isConfirmPasswordSelector,
+  isNameFillSelector,
+  isRegisterSubmitSelector,
+  registerAndVerify,
+} from "./adaptive-registro";
 
 type StepAction =
   | "goto"
@@ -48,6 +56,13 @@ type LoginRunContext = {
   searchQuery?: string;
   /** Pares label:value del formulario (test_data.fields), para el submit. */
   formFields?: { label: string; value: string }[];
+  /** test_data del registro, para el submit adaptativo. */
+  registroData?: {
+    name: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+  };
 };
 
 type StepResult = { valueOverride?: string; selectorOverride?: string };
@@ -171,14 +186,17 @@ async function executeStep(
     step.action === "expect_url";
 
   if (
-    ctx.testType === "login" &&
+    (ctx.testType === "login" || ctx.testType === "registro") &&
     ctx.inVerificationWindow &&
     ctx.lastOutcome?.success &&
     isExpectAction
   ) {
     return {
       valueOverride: ctx.lastOutcome.finalUrl,
-      selectorOverride: "[adaptive] verificado por comportamiento post-login",
+      selectorOverride:
+        ctx.testType === "registro"
+          ? "[adaptive] verificado por comportamiento post-registro"
+          : "[adaptive] verificado por comportamiento post-login",
     };
   }
 
@@ -224,6 +242,31 @@ async function executeStep(
         return {
           valueOverride: outcome.finalUrl,
           selectorOverride: "[adaptive] submit",
+        };
+      }
+      if (ctx.testType === "registro" && isRegisterSubmitSelector(step.selector)) {
+        const initialUrl = page.url();
+        const outcome = await registerAndVerify(
+          page,
+          ctx.registroData ?? {
+            name: "",
+            email: "",
+            password: "",
+            confirmPassword: "",
+          },
+          initialUrl,
+          STEP_TIMEOUT_MS,
+        );
+        ctx.lastOutcome = outcome;
+        if (!outcome.success) {
+          throw new Error(
+            `Registro adaptativo falló: ${outcome.reason} (URL final: ${outcome.finalUrl})`,
+          );
+        }
+        ctx.inVerificationWindow = true;
+        return {
+          valueOverride: outcome.finalUrl,
+          selectorOverride: "[adaptive] submit registro",
         };
       }
       if (ctx.testType === "busqueda" && isSearchSubmitSelector(step.selector)) {
@@ -272,6 +315,39 @@ async function executeStep(
           const field = await findPasswordField(page);
           await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
           return { selectorOverride: "[adaptive] password" };
+        }
+        if (isEmailFillSelector(step.selector)) {
+          const { relaxed } = await fillIdentifierField(
+            page,
+            step.value,
+            STEP_TIMEOUT_MS,
+          );
+          return {
+            selectorOverride: relaxed
+              ? "[adaptive] identificador (validación nativa relajada)"
+              : "[adaptive] email/usuario",
+          };
+        }
+      }
+      if (ctx.testType === "registro") {
+        if (isConfirmPasswordSelector(step.selector)) {
+          const field = await findConfirmPasswordField(page);
+          if (field) {
+            await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
+            return { selectorOverride: "[adaptive] confirmar password" };
+          }
+        }
+        if (isPasswordFillSelector(step.selector)) {
+          const field = await findPasswordField(page);
+          await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
+          return { selectorOverride: "[adaptive] password" };
+        }
+        if (isNameFillSelector(step.selector)) {
+          const field = await findNameField(page);
+          if (field) {
+            await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
+            return { selectorOverride: "[adaptive] nombre" };
+          }
         }
         if (isEmailFillSelector(step.selector)) {
           const { relaxed } = await fillIdentifierField(
@@ -359,6 +435,9 @@ async function runCase(
   log: RunLog,
   jsErrors: { count: number },
   formFieldsRaw: string | undefined,
+  registroData:
+    | { name: string; email: string; password: string; confirmPassword: string }
+    | undefined,
 ): Promise<"completado" | "fallido"> {
   await supabase
     .from("test_cases")
@@ -385,6 +464,7 @@ async function runCase(
     testType,
     inVerificationWindow: false,
     formFields: formFieldsRaw ? parseFields(formFieldsRaw) : undefined,
+    registroData,
   };
   let caseFailed = false;
 
@@ -476,6 +556,12 @@ export type ExecuteTestRunOptions = {
   testType?: TestType;
   device?: "desktop" | "mobile";
   formFieldsRaw?: string;
+  registroData?: {
+    name: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+  };
 };
 
 export async function executeTestRun(
@@ -483,7 +569,7 @@ export async function executeTestRun(
   testRunId: string,
   opts: ExecuteTestRunOptions = {},
 ): Promise<"completado" | "fallido"> {
-  const { testType, formFieldsRaw } = opts;
+  const { testType, formFieldsRaw, registroData } = opts;
   const device = opts.device ?? "desktop";
   const cases = await loadCasesForRun(supabase, testRunId);
 
@@ -511,6 +597,7 @@ export async function executeTestRun(
         log,
         jsErrors,
         formFieldsRaw,
+        registroData,
       );
       if (result === "fallido") anyFailed = true;
     }

@@ -215,6 +215,15 @@ export async function processTestRun(testRunId: string): Promise<ProcessTestRunR
           testRun.test_type === "formulario"
             ? String(testRun.test_data.fields ?? "")
             : undefined,
+        registroData:
+          testRun.test_type === "registro"
+            ? {
+                name: String(testRun.test_data.name ?? ""),
+                email: String(testRun.test_data.email ?? ""),
+                password: String(testRun.test_data.password ?? ""),
+                confirmPassword: String(testRun.test_data.confirmPassword ?? ""),
+              }
+            : undefined,
       }),
       EXECUTION_TIMEOUT_MS,
       "Ejecución del plan con Playwright",
