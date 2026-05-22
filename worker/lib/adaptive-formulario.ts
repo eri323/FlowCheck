@@ -84,3 +84,101 @@ export async function fillField(control: Locator, value: string): Promise<void> 
   }
   await control.fill(value);
 }
+
+const FORM_POLL_INTERVAL_MS = 300;
+const FORM_RESULTS_TIMEOUT_MS = 8_000;
+
+export type FormOutcome = { success: boolean; finalUrl: string; reason: string };
+
+export async function fillAndSubmitForm(
+  page: Page,
+  fields: FieldPair[],
+  timeoutMs: number,
+  opts: { resultsTimeoutMs?: number } = {},
+): Promise<FormOutcome> {
+  const initialUrl = page.url();
+  let filled = 0;
+  for (const { label, value } of fields) {
+    const control = await resolveField(page, label);
+    if (!control) continue;
+    try {
+      await fillField(control, value);
+      filled += 1;
+    } catch {
+      // campo no llenable; el árbitro sigue siendo la verificación
+    }
+  }
+  if (filled === 0) {
+    return {
+      success: false,
+      finalUrl: page.url(),
+      reason: "No se pudo resolver ningún campo del formulario por su etiqueta.",
+    };
+  }
+
+  let submit: Locator;
+  try {
+    submit = await findGenericSubmit(page);
+  } catch {
+    return {
+      success: false,
+      finalUrl: page.url(),
+      reason: "No se encontró un botón de envío del formulario.",
+    };
+  }
+  await submit.click({ timeout: timeoutMs });
+
+  await page
+    .waitForLoadState("domcontentloaded", { timeout: SETTLE_TIMEOUT_MS })
+    .catch(() => {});
+
+  const deadline = Date.now() + (opts.resultsTimeoutMs ?? FORM_RESULTS_TIMEOUT_MS);
+  while (Date.now() < deadline) {
+    // Fallo inmediato si hay error visible o bloqueo de validación nativa.
+    const errorText = await readVisibleErrorText(page);
+    if (errorText) {
+      return {
+        success: false,
+        finalUrl: page.url(),
+        reason: `Error visible tras enviar: "${errorText}"`,
+      };
+    }
+    const nativeBlock = await detectNativeValidationBlock(page);
+    if (nativeBlock) {
+      return {
+        success: false,
+        finalUrl: page.url(),
+        reason: `Validación nativa bloqueó el envío: "${nativeBlock}"`,
+      };
+    }
+    // Éxito por comportamiento: URL cambió, mensaje de éxito, o form desapareció.
+    if (page.url() !== initialUrl) {
+      return { success: true, finalUrl: page.url(), reason: "La URL cambió tras enviar." };
+    }
+    if (await isSuccessTextVisible(page)) {
+      return {
+        success: true,
+        finalUrl: page.url(),
+        reason: "Apareció un mensaje de éxito tras enviar.",
+      };
+    }
+    const formGone = (await page.locator("form").count().catch(() => 0)) === 0;
+    if (formGone) {
+      return {
+        success: true,
+        finalUrl: page.url(),
+        reason: "El formulario desapareció tras enviar.",
+      };
+    }
+    await page.waitForTimeout(FORM_POLL_INTERVAL_MS);
+  }
+
+  return {
+    success: false,
+    finalUrl: page.url(),
+    reason:
+      "Tras enviar no hubo ninguna señal de éxito: la URL no cambió, no apareció " +
+      "mensaje de éxito ni desapareció el formulario, y no se detectó error visible. " +
+      "Revisa el screenshot.",
+  };
+}
