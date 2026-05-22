@@ -118,3 +118,54 @@ ejecución.
   el eco JSON de los datos) queda en *value*. Si algún campo no existiera o el
   envío no produjera ninguna señal, el run saldría **fallido** con el
   diagnóstico.
+
+---
+
+## Registro (alta de cuenta)
+
+### Cómo funciona técnicamente
+
+- Módulo: `worker/lib/adaptive-registro.ts` (`findNameField`,
+  `findConfirmPasswordField`, `registerAndVerify`); reutiliza los detectores de
+  email/contraseña de login (`findEmailField`, `findPasswordField`,
+  `looksLikeEmail`).
+- Detección por paso (espeja login), en este **orden** —el orden importa porque
+  un selector con "password" también matchea el de confirmación—: confirmar
+  contraseña → contraseña → nombre → email/usuario.
+- `registerAndVerify` llena los campos presentes y **omite con gracia** los
+  ausentes (p. ej. apps sin "confirmar contraseña"). Si el valor del
+  identificador no parece email, relaja la validación HTML5 nativa antes de
+  llenar (igual que login).
+- Verificación por comportamiento tras el submit: cambió la URL, apareció un
+  mensaje de éxito, o desapareció el formulario → éxito; un error visible de
+  tipo "el email ya está en uso" → **fallo real** (no falso verde). Luego abre
+  una ventana de verificación post-registro para los `expect_*` siguientes.
+- Trampa de falso positivo cubierta por test: registro con email duplicado
+  devuelve `success: false` con la razón, aunque el formulario siga en pantalla.
+
+### Experiencia de usuario
+
+- **URL de ejemplo:** `https://demo.realworld.io/#/register` (Conduit) — un
+  registro de formulario único con Usuario + Email + Contraseña, el calce ideal
+  para la heurística.
+- **Datos:** nombre/usuario, email (conviene uno único por corrida), contraseña
+  (y confirmación si la app la pide).
+- **Qué pasa:** el usuario elige *Registro*, pega la URL y sus datos. El sistema
+  llena nombre, email y contraseña (omite "confirmar" si no existe), envía y
+  verifica que la cuenta quedó creada (redirección al feed).
+- **Tiempo típico:** ~12–30 s (generación ~3–6 s + llenado de campos + submit +
+  ventana de verificación).
+- **Respuesta esperada:** run **completado** en verde con los pasos
+  `[adaptive] nombre` / `[adaptive] email/usuario` / `[adaptive] password` /
+  `[adaptive] submit registro` y la URL real post-registro en *value*. Si el
+  email ya estuviera registrado, el run saldría **fallido** indicando el motivo.
+
+> **Nota de verificación:** durante esta verificación, el instance público de
+> Conduit respondió `403` al navegador headless (las demos públicas a veces
+> limitan tráfico automatizado). La heurística de registro está validada por los
+> tests de integración con Chromium real contra fixtures locales
+> (`worker/test/adaptive-registro.integration.test.ts`), que reproducen el flujo
+> exacto incluyendo la trampa de email duplicado. Otra demo de registro de
+> formulario único, confirmada en vivo, es
+> `https://practice.expandtesting.com/register` (Usuario + Contraseña +
+> Confirmar Contraseña; sin campo email).
