@@ -39,6 +39,16 @@ import {
   isRegisterSubmitSelector,
   registerAndVerify,
 } from "./adaptive-registro";
+import {
+  addToCartStage,
+  confirmOrderAndVerify,
+  fillPaymentStage,
+  goToCheckoutStage,
+  isAddToCartSelector,
+  isCheckoutNavSelector,
+  isConfirmOrderSelector,
+  isPaymentFieldSelector,
+} from "./adaptive-ecommerce";
 
 type StepAction =
   | "goto"
@@ -63,6 +73,8 @@ type LoginRunContext = {
     password: string;
     confirmPassword: string;
   };
+  /** Datos de pago para ecommerce. */
+  ecommerceData?: { email: string; card: string; expiry: string; cvc: string };
 };
 
 type StepResult = { valueOverride?: string; selectorOverride?: string };
@@ -304,6 +316,37 @@ async function executeStep(
           selectorOverride: "[adaptive] formulario enviado y verificado",
         };
       }
+      if (ctx.testType === "ecommerce") {
+        // El orden importa: las regex se solapan ("comprar" matchea varias). Hay
+        // que comprobar confirmar > add-to-cart > checkout para no tratar el botón
+        // final de pago como un add-to-cart.
+        if (isConfirmOrderSelector(step.selector)) {
+          const outcome = await confirmOrderAndVerify(page, STEP_TIMEOUT_MS);
+          if (!outcome.success) {
+            throw new Error(
+              `Confirmación de orden falló: ${outcome.reason} (URL: ${outcome.finalUrl})`,
+            );
+          }
+          return {
+            valueOverride: outcome.finalUrl,
+            selectorOverride: "[adaptive] confirmar orden",
+          };
+        }
+        if (isAddToCartSelector(step.selector)) {
+          const stage = await addToCartStage(page, STEP_TIMEOUT_MS);
+          if (!stage.success) {
+            throw new Error(`Agregar al carrito falló: ${stage.reason}`);
+          }
+          return { selectorOverride: "[adaptive] agregar al carrito" };
+        }
+        if (isCheckoutNavSelector(step.selector)) {
+          const stage = await goToCheckoutStage(page, STEP_TIMEOUT_MS);
+          if (!stage.success) {
+            throw new Error(`Ir a checkout falló: ${stage.reason}`);
+          }
+          return { selectorOverride: "[adaptive] ir a checkout" };
+        }
+      }
       await page.locator(step.selector).click({ timeout: STEP_TIMEOUT_MS });
       return {};
     }
@@ -370,6 +413,14 @@ async function executeStep(
           await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
           return { selectorOverride: "[adaptive] campo de búsqueda" };
         }
+      }
+      if (ctx.testType === "ecommerce" && isPaymentFieldSelector(step.selector)) {
+        await fillPaymentStage(
+          page,
+          ctx.ecommerceData ?? { email: "", card: "", expiry: "", cvc: "" },
+          STEP_TIMEOUT_MS,
+        );
+        return { selectorOverride: "[adaptive] datos de pago" };
       }
       await page.locator(step.selector).fill(step.value, { timeout: STEP_TIMEOUT_MS });
       return {};
@@ -438,6 +489,9 @@ async function runCase(
   registroData:
     | { name: string; email: string; password: string; confirmPassword: string }
     | undefined,
+  ecommerceData:
+    | { email: string; card: string; expiry: string; cvc: string }
+    | undefined,
 ): Promise<"completado" | "fallido"> {
   await supabase
     .from("test_cases")
@@ -465,6 +519,7 @@ async function runCase(
     inVerificationWindow: false,
     formFields: formFieldsRaw ? parseFields(formFieldsRaw) : undefined,
     registroData,
+    ecommerceData,
   };
   let caseFailed = false;
 
@@ -562,6 +617,7 @@ export type ExecuteTestRunOptions = {
     password: string;
     confirmPassword: string;
   };
+  ecommerceData?: { email: string; card: string; expiry: string; cvc: string };
 };
 
 export async function executeTestRun(
@@ -569,7 +625,7 @@ export async function executeTestRun(
   testRunId: string,
   opts: ExecuteTestRunOptions = {},
 ): Promise<"completado" | "fallido"> {
-  const { testType, formFieldsRaw, registroData } = opts;
+  const { testType, formFieldsRaw, registroData, ecommerceData } = opts;
   const device = opts.device ?? "desktop";
   const cases = await loadCasesForRun(supabase, testRunId);
 
@@ -598,6 +654,7 @@ export async function executeTestRun(
         jsErrors,
         formFieldsRaw,
         registroData,
+        ecommerceData,
       );
       if (result === "fallido") anyFailed = true;
     }

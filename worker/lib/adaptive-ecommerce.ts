@@ -49,6 +49,8 @@ export async function findAddToCart(page: Page): Promise<Locator | null> {
 
 export async function addToCartStage(page: Page, timeoutMs: number): Promise<StageOutcome> {
   // Aceptar diálogos nativos (algunas tiendas hacen alert("Producto agregado")).
+  // Reset previo para no acumular listeners duplicados entre llamadas sucesivas.
+  page.removeAllListeners("dialog");
   page.on("dialog", (d) => void d.accept().catch(() => {}));
   const button = await findAddToCart(page);
   if (!button) return { success: false, reason: "No se encontró el botón de agregar al carrito." };

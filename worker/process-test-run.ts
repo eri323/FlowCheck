@@ -224,6 +224,15 @@ export async function processTestRun(testRunId: string): Promise<ProcessTestRunR
                 confirmPassword: String(testRun.test_data.confirmPassword ?? ""),
               }
             : undefined,
+        ecommerceData:
+          testRun.test_type === "ecommerce"
+            ? {
+                email: String(testRun.test_data.email ?? ""),
+                card: String(testRun.test_data.card ?? ""),
+                expiry: String(testRun.test_data.expiry ?? ""),
+                cvc: String(testRun.test_data.cvc ?? ""),
+              }
+            : undefined,
       }),
       EXECUTION_TIMEOUT_MS,
       "Ejecución del plan con Playwright",
