@@ -72,3 +72,49 @@ ejecución.
   cargado y los pasos de verificación marcados
   `[adaptive] navegación verificada por salud de página`. Si la URL fuera una
   página de error o no renderizara, el run saldría **fallido** con la razón.
+
+---
+
+## Formulario (llenado genérico)
+
+### Cómo funciona técnicamente
+
+- Módulo: `worker/lib/adaptive-formulario.ts` (`parseFields`, `resolveField`,
+  `fillField`, `fillAndSubmitForm`).
+- El usuario describe los campos como líneas `etiqueta: valor`. `parseFields` los
+  parsea (corta en el primer `:` o `=`).
+- Para cada par, `resolveField` localiza el control tolerando idioma/maquetado:
+  prueba `getByLabel`, `getByPlaceholder`, `[aria-label*=…]`, y `name`/`id` por
+  substring. **Escapa los metacaracteres de regex** del label, así una etiqueta
+  como "Teléfono (móvil)" no rompe la búsqueda.
+- `fillField` llena según el tipo de control: texto/textarea (`fill`), `select`
+  (`selectOption` por etiqueta o valor), checkbox/radio (`check`/`uncheck` según
+  `asBoolean` del valor: sí/no/true/false/x…).
+- El submit dispara `fillAndSubmitForm`: hace un **barrido de completitud**
+  (rellena cualquier campo aún vacío), envía con `findGenericSubmit` y
+  **verifica por comportamiento**: la URL cambió, apareció un mensaje de éxito o
+  el formulario desapareció. Falla si tras enviar hay un error visible o un
+  bloqueo de validación nativa, o si no hay ninguna señal.
+- Trampa de falso positivo cubierta por test: un `<form>` con `preventDefault`
+  que no hace nada al enviar devuelve `success: false` (no da verde).
+
+### Experiencia de usuario
+
+- **URL de ejemplo:** `https://httpbin.org/forms/post`
+- **Datos (campos):**
+  ```
+  Customer name: Ana Pérez
+  Telephone: 5551234
+  E-mail address: ana@ejemplo.com
+  Preferred delivery time: 18:00
+  Delivery instructions: Tocar el timbre
+  ```
+- **Qué pasa:** el usuario elige *Formulario*, pega la URL y lista los campos. El
+  sistema resuelve cada campo por su etiqueta, lo llena, hace click en
+  "Submit order" y verifica que la página de eco del POST se cargó.
+- **Tiempo típico:** ~10–25 s (generación ~2–6 s + un paso por campo + submit).
+- **Respuesta esperada:** run **completado** en verde; el paso de envío aparece
+  como `[adaptive] formulario enviado y verificado` y la URL real (`/post`, con
+  el eco JSON de los datos) queda en *value*. Si algún campo no existiera o el
+  envío no produjera ninguna señal, el run saldría **fallido** con el
+  diagnóstico.
