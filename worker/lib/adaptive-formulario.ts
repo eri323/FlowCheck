@@ -56,12 +56,20 @@ export async function resolveField(
   page: Page,
   label: string,
 ): Promise<Locator | null> {
-  const escaped = label.replace(/["\\]/g, "\\$&");
+  // Para las dos llamadas a `new RegExp(...)` hay que escapar TODOS los
+  // metacaracteres de regex; si no, una etiqueta como "Teléfono (móvil)"
+  // lanza "Invalid regular expression" (aborta el submit) o no matchea.
+  const regexEscaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // Para el selector CSS de substring de atributo, el backslash-escaping de
+  // un metacaracter rompería la coincidencia literal (buscaría "\(" en vez de
+  // "("); ahí solo hay que escapar `"` y `\`, que son lo único especial dentro
+  // de la cadena entrecomillada de un selector de atributo.
+  const cssEscaped = label.replace(/["\\]/g, "\\$&");
   const s = slug(label);
   return pickFirstVisibleOrNull([
-    page.getByLabel(new RegExp(escaped, "i")),
-    page.getByPlaceholder(new RegExp(escaped, "i")),
-    page.locator(`[aria-label*="${escaped}" i]`),
+    page.getByLabel(new RegExp(regexEscaped, "i")),
+    page.getByPlaceholder(new RegExp(regexEscaped, "i")),
+    page.locator(`[aria-label*="${cssEscaped}" i]`),
     page.locator(`input[name*="${s}" i], textarea[name*="${s}" i], select[name*="${s}" i]`),
     page.locator(`input[id*="${s}" i], textarea[id*="${s}" i], select[id*="${s}" i]`),
   ]);

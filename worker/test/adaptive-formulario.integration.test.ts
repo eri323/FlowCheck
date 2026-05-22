@@ -26,6 +26,12 @@ const server = http.createServer((req, res) => {
     case "/done":
       res.end(html(`<h1>Gracias</h1><p>Formulario enviado correctamente</p>`));
       return;
+    case "/parens":
+      res.end(html(`
+        <form action="/done" method="get">
+          <label>Teléfono (móvil) <input name="phone"></label>
+        </form>`));
+      return;
     case "/noop":
       res.end(html(`
         <form id="f"><input name="a" placeholder="Campo A"><button type="submit">Enviar</button></form>
@@ -77,6 +83,15 @@ describe("resolveField + fillField (browser)", () => {
     const tos = await resolveField(activePage, "Acepto términos");
     await fillField(tos!, "sí");
     expect(await activePage.locator('input[name="tos"]').isChecked()).toBe(true);
+  }, 30_000);
+
+  it("resuelve una etiqueta con metacaracteres de regex (paréntesis)", async () => {
+    await activePage.goto(`${base}/parens`);
+
+    const phone = await resolveField(activePage, "Teléfono (móvil)");
+    expect(phone).not.toBeNull();
+    await fillField(phone!, "3001234567");
+    expect(await activePage.locator('input[name="phone"]').inputValue()).toBe("3001234567");
   }, 30_000);
 });
 
