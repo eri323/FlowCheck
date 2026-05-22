@@ -25,6 +25,7 @@ import {
   isSearchFillSelector,
   isSearchSubmitSelector,
 } from "./adaptive-search";
+import { clickAdaptive, verifyPageHealthy } from "./adaptive-navegacion";
 
 type StepAction =
   | "goto"
@@ -174,6 +175,17 @@ async function executeStep(
     };
   }
 
+  if (ctx.testType === "navegacion" && isExpectAction) {
+    const health = await verifyPageHealthy(page);
+    if (!health.healthy) {
+      throw new Error(`Navegación no saludable: ${health.reason} (URL: ${health.finalUrl})`);
+    }
+    return {
+      valueOverride: health.finalUrl,
+      selectorOverride: "[adaptive] navegación verificada por salud de página",
+    };
+  }
+
   if (!isExpectAction) {
     ctx.inVerificationWindow = false;
   }
@@ -218,6 +230,10 @@ async function executeStep(
             ? "[adaptive] submit búsqueda (con resultados)"
             : "[adaptive] submit búsqueda (sin resultados confirmados)",
         };
+      }
+      if (ctx.testType === "navegacion") {
+        await clickAdaptive(page, step.selector, STEP_TIMEOUT_MS);
+        return { selectorOverride: "[adaptive] click tolerante" };
       }
       await page.locator(step.selector).click({ timeout: STEP_TIMEOUT_MS });
       return {};
