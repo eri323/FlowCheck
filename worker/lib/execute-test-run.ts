@@ -26,6 +26,11 @@ import {
   isSearchSubmitSelector,
 } from "./adaptive-search";
 import { clickAdaptive, verifyPageHealthy } from "./adaptive-navegacion";
+import {
+  fillAndSubmitForm,
+  isFormSubmitSelector,
+  parseFields,
+} from "./adaptive-formulario";
 
 type StepAction =
   | "goto"
@@ -41,6 +46,8 @@ type LoginRunContext = {
   inVerificationWindow: boolean;
   /** Último valor llenado — usado como query en flujos de búsqueda. */
   searchQuery?: string;
+  /** Pares label:value del formulario (test_data.fields), para el submit. */
+  formFields?: { label: string; value: string }[];
 };
 
 type StepResult = { valueOverride?: string; selectorOverride?: string };
@@ -238,6 +245,22 @@ async function executeStep(
         await clickAdaptive(page, step.selector, STEP_TIMEOUT_MS);
         return { selectorOverride: "[adaptive] click tolerante" };
       }
+      if (ctx.testType === "formulario" && isFormSubmitSelector(step.selector)) {
+        const outcome = await fillAndSubmitForm(
+          page,
+          ctx.formFields ?? [],
+          STEP_TIMEOUT_MS,
+        );
+        if (!outcome.success) {
+          throw new Error(
+            `Formulario adaptativo falló: ${outcome.reason} (URL: ${outcome.finalUrl})`,
+          );
+        }
+        return {
+          valueOverride: outcome.finalUrl,
+          selectorOverride: "[adaptive] formulario enviado y verificado",
+        };
+      }
       await page.locator(step.selector).click({ timeout: STEP_TIMEOUT_MS });
       return {};
     }
@@ -335,6 +358,7 @@ async function runCase(
   contextOptions: BrowserContextOptions,
   log: RunLog,
   jsErrors: { count: number },
+  formFieldsRaw: string | undefined,
 ): Promise<"completado" | "fallido"> {
   await supabase
     .from("test_cases")
@@ -357,7 +381,11 @@ async function runCase(
   });
 
   log.add("info", `caso "${testCase.name}" — ${testCase.steps.length} pasos`);
-  const loginCtx: LoginRunContext = { testType, inVerificationWindow: false };
+  const loginCtx: LoginRunContext = {
+    testType,
+    inVerificationWindow: false,
+    formFields: formFieldsRaw ? parseFields(formFieldsRaw) : undefined,
+  };
   let caseFailed = false;
 
   try {
@@ -444,12 +472,19 @@ async function runCase(
   return caseStatus;
 }
 
+export type ExecuteTestRunOptions = {
+  testType?: TestType;
+  device?: "desktop" | "mobile";
+  formFieldsRaw?: string;
+};
+
 export async function executeTestRun(
   supabase: SupabaseClient,
   testRunId: string,
-  testType?: TestType,
-  device: "desktop" | "mobile" = "desktop",
+  opts: ExecuteTestRunOptions = {},
 ): Promise<"completado" | "fallido"> {
+  const { testType, formFieldsRaw } = opts;
+  const device = opts.device ?? "desktop";
   const cases = await loadCasesForRun(supabase, testRunId);
 
   const contextOptions: BrowserContextOptions =
@@ -475,6 +510,7 @@ export async function executeTestRun(
         contextOptions,
         log,
         jsErrors,
+        formFieldsRaw,
       );
       if (result === "fallido") anyFailed = true;
     }
