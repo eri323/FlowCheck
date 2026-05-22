@@ -82,10 +82,12 @@ export async function fillPaymentStage(
     const emailCtl = await resolveField(page, "email");
     if (emailCtl) await emailCtl.fill(data.email, { timeout: timeoutMs }).catch(() => {});
   }
-  // Tarjeta.
+  // Tarjeta. Orden: name/autocomplete primero, luego id, label/placeholder al final.
   const cardCtl = await pickFirstVisibleOrNull([
     page.locator('input[name*="card" i]:not([name*="holder" i])'),
     page.locator('input[autocomplete="cc-number"]'),
+    page.locator('input[id*="card" i]:not([id*="holder" i])'),
+    page.getByLabel(/credit\s*card|tarjeta|card number|número de tarjeta/i),
     page.getByPlaceholder(/(card|tarjeta|número de tarjeta)/i),
   ]);
   if (cardCtl) await cardCtl.fill(data.card, { timeout: timeoutMs }).catch(() => {});
@@ -94,6 +96,8 @@ export async function fillPaymentStage(
   const { month, year } = splitExpiry(data.expiry);
   const expCombined = await pickFirstVisibleOrNull([
     page.locator('input[autocomplete="cc-exp"]'),
+    page.locator('input[id*="exp" i]'),
+    page.getByLabel(/exp|vencimiento|mm\s*\/\s*(aa|yy)/i),
     page.getByPlaceholder(/(mm\/aa|mm\/yy|expir|vencimiento)/i),
   ]);
   if (expCombined) {
@@ -101,9 +105,13 @@ export async function fillPaymentStage(
   } else {
     const monthCtl = await pickFirstVisibleOrNull([
       page.locator('input[name*="month" i], input[name*="mes" i]'),
+      page.locator('input[id*="month" i], input[id*="mes" i]'),
+      page.getByLabel(/month|mes/i),
     ]);
     const yearCtl = await pickFirstVisibleOrNull([
       page.locator('input[name*="year" i], input[name*="anio" i], input[name*="año" i]'),
+      page.locator('input[id*="year" i], input[id*="anio" i], input[id*="año" i]'),
+      page.getByLabel(/year|año|anio/i),
     ]);
     if (monthCtl && month) await monthCtl.fill(month, { timeout: timeoutMs }).catch(() => {});
     if (yearCtl && year) await yearCtl.fill(year, { timeout: timeoutMs }).catch(() => {});
@@ -113,6 +121,8 @@ export async function fillPaymentStage(
   const cvcCtl = await pickFirstVisibleOrNull([
     page.locator('input[name*="cvc" i], input[name*="cvv" i]'),
     page.locator('input[autocomplete="cc-csc"]'),
+    page.locator('input[id*="cvc" i], input[id*="cvv" i]'),
+    page.getByLabel(/cvc|cvv|security code|código de seguridad/i),
     page.getByPlaceholder(/(cvc|cvv|security code|código de seguridad)/i),
   ]);
   if (cvcCtl) await cvcCtl.fill(data.cvc, { timeout: timeoutMs }).catch(() => {});

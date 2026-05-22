@@ -46,11 +46,21 @@ const broken = `
     buy.addEventListener('click', () => {});
   </script>`;
 
+// Checkout estilo demoblaze: campos con SOLO `id` + <label for=...>,
+// sin name/placeholder/autocomplete.
+const idCheckout = `
+  <form>
+    <label for="card">Credit card:</label><input type="text" id="card">
+    <label for="month">Month:</label><input type="text" id="month">
+    <label for="year">Year:</label><input type="text" id="year">
+  </form>`;
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
   res.setHeader("content-type", "text/html; charset=utf-8");
   if (url.pathname === "/shop") return void res.end(html(shop));
   if (url.pathname === "/broken") return void res.end(html(broken));
+  if (url.pathname === "/idcheckout") return void res.end(html(idCheckout));
   res.statusCode = 404;
   res.end(html("not found"));
 });
@@ -91,6 +101,22 @@ describe("flujo ecommerce (browser)", () => {
 
     const order = await confirmOrderAndVerify(activePage, 5_000);
     expect(order.success).toBe(true);
+  }, 40_000);
+
+  it("resuelve campos de pago por id + label (estilo demoblaze, sin name/placeholder)", async () => {
+    await activePage.goto(`${base}/idcheckout`);
+
+    expect(
+      (await fillPaymentStage(
+        activePage,
+        { email: "", card: "4111111111111111", expiry: "09/27", cvc: "123" },
+        5_000,
+      )).success,
+    ).toBe(true);
+
+    expect(await activePage.locator("#card").inputValue()).toBe("4111111111111111");
+    expect(await activePage.locator("#month").inputValue()).toBe("09");
+    expect(await activePage.locator("#year").inputValue()).toBe("27");
   }, 40_000);
 
   it("trampa: confirmar no produce confirmación → success=false", async () => {
