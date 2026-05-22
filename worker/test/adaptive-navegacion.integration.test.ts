@@ -20,6 +20,13 @@ const server = http.createServer((req, res) => {
     case "/about":
       res.end(html(`<h1>Acerca de</h1><p>${"Info ".repeat(40)}</p>`, "Acerca de"));
       return;
+    case "/name-trap":
+      // El name "Acerca de" no existe en ningún elemento, pero su valor
+      // coincide como substring con el texto visible del enlace "Acerca de".
+      // Tras eliminar el fallback por name, NO debe hacer click en ese enlace.
+      res.end(html(`<main><h1>Trampa</h1><p>${"Contenido real ".repeat(40)}</p>
+        <a href="/about">Acerca de</a></main>`, "Trampa"));
+      return;
     case "/missing":
       res.statusCode = 404;
       res.end(html(`404 Not Found`, "404"));
@@ -79,5 +86,15 @@ describe("clickAdaptive (browser)", () => {
     await clickAdaptive(activePage, 'text=Acerca de', 5_000);
     await activePage.waitForLoadState("domcontentloaded");
     expect(activePage.url()).toContain("/about");
+  }, 20_000);
+
+  it("NO deriva un click del valor de name= (sin fallback peligroso)", async () => {
+    await activePage.goto(`${base}/name-trap`);
+    const urlBefore = activePage.url();
+    // El name "Acerca de" no existe como atributo en la página, pero su valor
+    // coincide como substring con el texto del enlace real. Sin el fallback por
+    // name, clickAdaptive debe lanzar en vez de clickear el elemento equivocado.
+    await expect(clickAdaptive(activePage, 'a[name="Acerca de"]', 2_000)).rejects.toThrow();
+    expect(activePage.url()).toBe(urlBefore);
   }, 20_000);
 });

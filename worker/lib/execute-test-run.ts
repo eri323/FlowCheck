@@ -175,6 +175,9 @@ async function executeStep(
     };
   }
 
+  // Navegación es un smoke test: su test_data es {} vacío, así que cualquier
+  // expect_text de Gemini es una aserción alucinada, no una expectativa del
+  // usuario. Por eso se reemplaza TODO expect_* por verifyPageHealthy a propósito.
   if (ctx.testType === "navegacion" && isExpectAction) {
     const health = await verifyPageHealthy(page);
     if (!health.healthy) {

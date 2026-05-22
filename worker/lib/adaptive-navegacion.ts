@@ -1,5 +1,5 @@
 // worker/lib/adaptive-navegacion.ts
-import type { Page } from "playwright-core";
+import type { Locator, Page } from "playwright-core";
 import { SETTLE_TIMEOUT_MS } from "./adaptive-common";
 
 const ERROR_PAGE_REGEX =
@@ -22,7 +22,9 @@ export type PageHealth = {
   reason: string;
 };
 
-const MIN_BODY_TEXT = 1; // al menos algo de texto renderizado
+// Umbral mínimo de contenido: por debajo se asume un render roto o en blanco
+// (no solo un body totalmente vacío), señal de una página que no cargó bien.
+const MIN_BODY_TEXT = 20;
 
 export async function verifyPageHealthy(page: Page): Promise<PageHealth> {
   await page
@@ -30,10 +32,9 @@ export async function verifyPageHealthy(page: Page): Promise<PageHealth> {
     .catch(() => {});
 
   const finalUrl = page.url();
-  const title = (await page.title().catch(() => "")) ?? "";
+  const title = await page.title().catch(() => "");
   const bodyText = (
-    (await page.locator("body").innerText({ timeout: SETTLE_TIMEOUT_MS }).catch(() => "")) ??
-    ""
+    await page.locator("body").innerText({ timeout: SETTLE_TIMEOUT_MS }).catch(() => "")
   ).trim();
 
   if (bodyText.length < MIN_BODY_TEXT) {
@@ -70,28 +71,49 @@ export async function clickAdaptive(
     return;
   } catch (literalError) {
     // Fallback: extraer texto del selector y buscar un enlace/botón por texto.
+    // Se prefiere el nombre accesible (getByRole) antes que el substring crudo.
     const text = extractTextHint(selector);
     if (text) {
+      const clickIfPresent = async (locator: Locator): Promise<boolean> => {
+        if ((await locator.count().catch(() => 0)) > 0) {
+          await locator.click({ timeout: timeoutMs });
+          return true;
+        }
+        return false;
+      };
+
+      const link = page.getByRole("link", { name: text, exact: false }).first();
+      if ((await link.count().catch(() => 0)) > 0 && (await link.isVisible().catch(() => false))) {
+        await link.click({ timeout: timeoutMs });
+        return;
+      }
+
+      const button = page.getByRole("button", { name: text, exact: false }).first();
+      if (
+        (await button.count().catch(() => 0)) > 0 &&
+        (await button.isVisible().catch(() => false))
+      ) {
+        await button.click({ timeout: timeoutMs });
+        return;
+      }
+
       const byText = page
         .locator(':is(a, button, [role="button"], [role="link"])')
         .filter({ hasText: text })
         .first();
-      if ((await byText.count().catch(() => 0)) > 0) {
-        await byText.click({ timeout: timeoutMs });
-        return;
-      }
+      if (await clickIfPresent(byText)) return;
     }
     throw literalError;
   }
 }
 
-// Extrae una pista de texto de un selector tipo text=, :has-text(), [name="..."].
+// Extrae una pista de TEXTO VISIBLE de un selector tipo text= o :has-text().
+// Deliberadamente NO deriva texto de name=: un name es un id interno, no texto
+// visible; reusarlo como hasText podría hacer click en el elemento equivocado.
 function extractTextHint(selector: string): string | null {
   const textEq = selector.match(/^text=["']?(.+?)["']?$/i);
   if (textEq) return textEq[1]!.trim();
   const hasText = selector.match(/has-text\(["'](.+?)["']\)/i);
   if (hasText) return hasText[1]!.trim();
-  const nameAttr = selector.match(/name=["']([^"']+)["']/i);
-  if (nameAttr) return nameAttr[1]!.trim();
   return null;
 }
