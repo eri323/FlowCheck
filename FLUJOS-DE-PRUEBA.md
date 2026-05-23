@@ -35,6 +35,21 @@ son rangos típicos observados; el sitio real, su latencia y el número de pasos
 hacen variar el total. Hay un límite duro de 90 s para generación y 120 s para
 ejecución.
 
+## Resumen de los 6 tipos
+
+| Tipo | Módulo | Demo de referencia | Criterio de verificación por comportamiento |
+|------|--------|--------------------|---------------------------------------------|
+| Login | `adaptive-login.ts` | saucedemo.com | URL cambió / desapareció el password / mensaje de error → fallo veraz |
+| Registro | `adaptive-registro.ts` | demo.realworld.io (Conduit) | URL cambió / mensaje de éxito / form desapareció; "email en uso" → fallo |
+| Búsqueda | `adaptive-search.ts` | en.wikipedia.org | señal fuerte de URL / DELTA de resultados nuevos / transición SPA |
+| Navegación | `adaptive-navegacion.ts` | the-internet.herokuapp.com | página sana: cargó, con contenido, no es página de error |
+| Formulario | `adaptive-formulario.ts` | httpbin.org/forms/post | URL cambió / mensaje de éxito / form desapareció |
+| E-commerce | `adaptive-ecommerce.ts` | demoblaze.com | **solo** si se detecta la confirmación de la orden |
+
+Todos comparten helpers en `adaptive-common.ts` y marcan sus pasos con
+`[adaptive]`. Cada uno tiene tests puros + de integración (Chromium real contra
+fixtures locales), incluyendo su **trampa de falso positivo**.
+
 ---
 
 ## Navegación (smoke test)
@@ -226,3 +241,68 @@ E-commerce es el tipo **menos generalizable**: cada tienda es distinta.
   `[adaptive] datos de pago` / `[adaptive] confirmar orden` y la confirmación en
   *value*. Si la tienda exige un dato fuera del modelo o usa pago en iframe, el
   run sale **fallido** con el diagnóstico — nunca un falso verde.
+
+---
+
+## Login (inicio de sesión)
+
+### Cómo funciona técnicamente
+
+- Módulo: `worker/lib/adaptive-login.ts` (`findEmailField`, `findPasswordField`,
+  `findSubmitButton`, `verifyLoginOutcome`, `fillIdentifierField`).
+- Detecta el campo de identificador tolerando que la credencial **no** sea email
+  (usuario, cédula, documento: `cc`/`dni`/`nit`/`rut`…). Si el valor no parece
+  email y el campo es `type=email`, **relaja la validación HTML5 nativa** del
+  cliente antes de llenar (sin eso, el navegador bloquearía el envío).
+- Verificación por comportamiento (`verifyLoginOutcome`, polling hasta 30 s):
+  éxito si cambió la URL o desapareció el campo de contraseña; **fallo** si
+  aparece un mensaje de error (lista amplia de selectores de alerta/toast) o un
+  bloqueo de validación nativa. Tras un login exitoso abre una ventana de
+  verificación para los `expect_*` siguientes.
+
+### Experiencia de usuario
+
+- **URL de ejemplo:** `https://www.saucedemo.com/` (usuario `standard_user`,
+  contraseña `secret_sauce`).
+- **Datos:** identificador (email/usuario/documento) y contraseña.
+- **Qué pasa:** el usuario elige *Login*, pega la URL y las credenciales. El
+  sistema localiza los campos, los llena, envía y verifica que entró.
+- **Tiempo típico:** ~10–25 s (generación ~2–6 s + llenado + verificación).
+- **Respuesta esperada:** run **completado** en verde con
+  `[adaptive] email/usuario` / `[adaptive] password` / `[adaptive] submit` y la
+  URL real post-login en *value*. Con credenciales inválidas, run **fallido** con
+  el mensaje de error real de la app (no un timeout genérico).
+
+---
+
+## Búsqueda
+
+### Cómo funciona técnicamente
+
+- Módulo: `worker/lib/adaptive-search.ts` (`findSearchField`, `findSearchSubmit`,
+  `executeSearch`, `urlSignalsSearch`, `looksLikeEmptyState`).
+- Localiza el buscador (`type=search`, `name=q`/`s`, `role=searchbox`,
+  placeholder…), toma un **baseline** de candidatos a resultado, envía (botón o
+  Enter) y verifica con una señal **fuerte**: la URL trae un parámetro de
+  búsqueda conocido / refleja el query / es ruta de resultados, **o** aparecen
+  nodos de resultado **nuevos** (DELTA) respecto al baseline, **o** hay una
+  transición de SPA.
+- **Por qué DELTA y no presencia:** muchos sitios ya tienen nodos
+  `item`/`product` en nav/footer antes de buscar; exigir nodos *nuevos* evita el
+  falso positivo de "casi cualquier búsqueda pasa verde". `resultsFound`
+  distingue además los resultados reales del estado de cero resultados.
+
+### Experiencia de usuario
+
+- **URL de ejemplo:** `https://en.wikipedia.org/wiki/Main_Page` (buscador con el
+  query reflejado en la página de resultados).
+- **Datos:** término de búsqueda y, opcionalmente, un resultado esperado.
+- **Qué pasa:** el usuario elige *Búsqueda*, pega la URL y el término. El sistema
+  escribe en el buscador, envía y verifica que realmente aparecieron resultados.
+- **Tiempo típico:** ~10–25 s (generación ~2–6 s + envío + polling de
+  resultados, hasta ~10 s).
+- **Respuesta esperada:** run **completado** en verde con
+  `[adaptive] campo de búsqueda` / `[adaptive] submit búsqueda (con resultados)`
+  y la URL real de resultados en *value*. Si la búsqueda no produce ninguna
+  señal (envío que no dispara, o cero resultados sin confirmar), el run sale
+  **fallido** con el diagnóstico.
