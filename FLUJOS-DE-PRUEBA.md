@@ -169,3 +169,60 @@ ejecución.
 > formulario único, confirmada en vivo, es
 > `https://practice.expandtesting.com/register` (Usuario + Contraseña +
 > Confirmar Contraseña; sin campo email).
+
+---
+
+## E-commerce (compra completa)
+
+### Cómo funciona técnicamente
+
+- Módulo: `worker/lib/adaptive-ecommerce.ts` — una **macro multi-etapa** con un
+  checkpoint de comportamiento en cada paso:
+  1. `addToCartStage` — localiza y pulsa "agregar al carrito" (tolera idioma) y
+     acepta el diálogo nativo "producto agregado" si aparece.
+  2. `goToCheckoutStage` — navega al carrito y avanza al checkout.
+  3. `fillPaymentStage` — llena los datos de pago (mapea `card`→tarjeta,
+     `expiry`→campo único o `splitExpiry` a mes/año, `cvc`→cvc/cvv, `email`),
+     resolviendo los campos por `name`, `id`, `label`, `placeholder` y
+     `autocomplete` (best-effort; los campos ausentes se omiten).
+  4. `confirmOrderAndVerify` — pulsa confirmar/pagar.
+- **El criterio de éxito es estricto:** el run solo sale verde si se **detecta la
+  confirmación de la orden** (mensaje tipo "thank you for your purchase",
+  "compra exitosa", "order placed", SweetAlert de confirmación). No hay ningún
+  camino de éxito más débil. Trampa de falso positivo cubierta por test: una
+  tienda cuyo "confirmar" no produce confirmación devuelve `success: false`.
+- **Detección por intención** (los selectores se solapan), evaluada en orden
+  confirmar-orden → agregar-al-carrito → ir-a-checkout para resolver siempre
+  hacia la intención más fuerte.
+
+### Honestidad de QA — límites conocidos
+
+E-commerce es el tipo **menos generalizable**: cada tienda es distinta.
+
+- **Pagos en iframe** (Stripe Elements, PayPal): quedan **fuera de alcance**; los
+  campos dentro de un iframe de terceros no son accesibles inline. La macro lo
+  reporta con un diagnóstico claro.
+- **Modelo de datos:** los datos de e-commerce son `email`, `card`, `expiry`,
+  `cvc`. Si el checkout de una tienda exige campos que no están en ese modelo
+  (p. ej. demoblaze pide un campo **"Name"** del comprador, y otras piden
+  dirección o requieren login), la confirmación final puede no completarse — no
+  por el motor, sino por el dato faltante. El motor conduce el flujo
+  correctamente y **falla con veracidad** si no hay confirmación.
+
+### Experiencia de usuario
+
+- **URL de referencia:** `https://www.demoblaze.com/` — tienda demo SPA con
+  carrito y checkout de **tarjeta inline** (no iframe), el caso que la macro
+  cubre. (Confirmado en vivo que la tienda y su flujo carrito→checkout cargan.)
+- **Datos:** email del comprador, número de tarjeta, vencimiento (MM/AA), CVC.
+- **Qué pasa:** el usuario elige *E-commerce*, pega la URL. El sistema agrega un
+  producto al carrito, va a checkout, llena los datos de pago detectados y pulsa
+  comprar; verifica la confirmación de la orden.
+- **Tiempo típico:** ~20–45 s (generación ~3–6 s + varias etapas de navegación y
+  llenado + verificación de confirmación).
+- **Respuesta esperada:** con una tienda de tarjeta inline cuyos campos
+  requeridos estén dentro del modelo de datos, run **completado** en verde con
+  los pasos `[adaptive] agregar al carrito` / `[adaptive] ir a checkout` /
+  `[adaptive] datos de pago` / `[adaptive] confirmar orden` y la confirmación en
+  *value*. Si la tienda exige un dato fuera del modelo o usa pago en iframe, el
+  run sale **fallido** con el diagnóstico — nunca un falso verde.
