@@ -99,3 +99,34 @@ describe("createTestRunSchema — configuración de runner", () => {
     expect(result.success).toBe(false);
   });
 });
+
+describe("createTestRunSchema — SSRF (host interno literal)", () => {
+  const cases = [
+    "http://localhost:3000",
+    "http://127.0.0.1",
+    "http://169.254.169.254/latest/meta-data/",
+    "http://[::1]:8080",
+    "http://2130706433", // decimal de 127.0.0.1
+    "http://10.0.0.5",
+    "http://192.168.1.1",
+  ];
+  for (const target_url of cases) {
+    it(`rechaza target_url interno: ${target_url}`, () => {
+      const result = createTestRunSchema.safeParse({
+        target_url,
+        test_type: "navegacion",
+        test_data: {},
+      });
+      expect(result.success).toBe(false);
+    });
+  }
+
+  it("sigue aceptando una URL pública normal", () => {
+    const result = createTestRunSchema.safeParse({
+      target_url: "https://example.com",
+      test_type: "navegacion",
+      test_data: {},
+    });
+    expect(result.success).toBe(true);
+  });
+});

@@ -755,6 +755,30 @@ El objetivo es tener una URL pública funcional lista para el portafolio.
 - Toda entrada del usuario que llegue a una ruta de API debe pasar por un schema
   de Zod antes de cualquier otra operación. Si la validación falla, responder
   con status 400 y no continuar.
+- **Protección SSRF (defensa en profundidad).** Validar el esquema no basta: el
+  worker navega con un navegador real y sube screenshots, así que un destino
+  interno permitiría exfiltrar contenido. La protección vive en tres capas:
+  1. **API (Zod)** — `lib/validation/test-run.ts` rechaza `target_url` cuyo host
+     sea interno por forma literal (`localhost`, IPs privadas/loopback/link-local
+     y encodings) vía `isBlockedLiteralHost` (`lib/validation/safe-host.ts`).
+     Filtro síncrono de UX; no resuelve DNS.
+  2. **Worker pre-navegación** — `assertSafeUrl` (`worker/lib/safe-url.ts`)
+     resuelve DNS y bloquea si el host resuelve a una IP interna, antes de cada
+     `goto`.
+  3. **Worker interceptor** — `installSsrfGuard` registra `context.route("**/*")`
+     y valida **cada request** (la frontera real: cubre redirects y sub-recursos).
+     Aplicado al crear el contexto en `execute-test-run.ts`. Frente al DNS
+     rebinding reduce la ventana a un solo request (el navegador re-resuelve por
+     su cuenta tras `route.continue()`, así que queda un TOCTOU residual de un
+     request; es la mitigación estándar sin pinning de IP en el socket, y se
+     acepta para este modelo de amenaza).
+  El núcleo de clasificación de IP/host está **duplicado** en
+  `worker/lib/safe-url.ts` y `lib/validation/safe-host.ts` porque Render
+  despliega el worker con `rootDir: worker` (no puede importar fuera de
+  `worker/`); ambas copias son puras (sin node builtins, seguras para el bundle
+  del cliente) y tienen tests. El flag `SSRF_ALLOW_PRIVATE_NETWORK=1` desactiva
+  el guard y **solo** debe usarse en test/dev (los integration tests lo setean
+  para navegar a `127.0.0.1`); en Render se deja sin definir.
 
 ### Ejecución de Playwright en el servidor
 

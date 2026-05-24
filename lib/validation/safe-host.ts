@@ -1,6 +1,3 @@
-import { promises as dns } from "node:dns";
-import type { BrowserContext } from "playwright-core";
-
 // --- IPv4 ---
 
 export function ipv4ToInt(ip: string): number | null {
@@ -98,8 +95,8 @@ function isBlockedIpv6(g: number[]): boolean {
 
 // --- Clasificadores públicos ---
 
-// Detecta el tipo de IP literal SIN node:net (la app importa esto en el bundle
-// del cliente, donde node:net no existe).
+// Detecta el tipo de IP literal SIN node:net (este módulo se importa en el
+// bundle del cliente, donde node:net no existe).
 function ipKind(s: string): 0 | 4 | 6 {
   if (ipv4ToInt(s) !== null) return 4;
   if (s.includes(":") && ipv6Groups(s) !== null) return 6;
@@ -113,12 +110,12 @@ export function isBlockedIp(ip: string): boolean {
     const g = ipv6Groups(ip);
     return g ? isBlockedIpv6(g) : true;
   }
-  return false; // no es IP literal: el caller decide vía DNS
+  return false; // no es IP literal: la enforcement real (con DNS) vive en el worker
 }
 
 // Encodings de IPv4 de un solo número: decimal (2130706433) y hex (0x7f000001).
 // NOTA: los encodings octales multi-octeto (p. ej. 0177.0.0.1) quedan FUERA de
-// alcance aquí; los cubre la capa de resolución DNS (assertSafeUrl).
+// alcance aquí; los cubre la resolución DNS del worker.
 function parseLooseIpv4(host: string): number | null {
   if (/^\d+$/.test(host)) {
     const n = Number(host);
@@ -138,56 +135,4 @@ export function isBlockedLiteralHost(hostname: string): boolean {
   const loose = parseLooseIpv4(host);
   if (loose !== null) return isBlockedIpv4(loose);
   return false;
-}
-
-// --- Guard de navegación (async, resuelve DNS) ---
-
-const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
-
-export function isPrivateNetworkAllowed(): boolean {
-  return process.env.SSRF_ALLOW_PRIVATE_NETWORK === "1";
-}
-
-export async function assertSafeUrl(value: string): Promise<void> {
-  let parsed: URL;
-  try {
-    parsed = new URL(value);
-  } catch {
-    throw new Error(`URL inválida para navegación: "${value}"`);
-  }
-  if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) {
-    throw new Error(
-      `Esquema de URL no permitido (${parsed.protocol}). Solo http o https.`,
-    );
-  }
-  if (isPrivateNetworkAllowed()) return;
-
-  const host = parsed.hostname.replace(/^\[/, "").replace(/\]$/, "");
-  if (ipKind(host) !== 0) {
-    if (isBlockedIp(host)) {
-      throw new Error("URL bloqueada por política de red interna.");
-    }
-    return;
-  }
-  let addrs: Array<{ address: string }>;
-  try {
-    addrs = await dns.lookup(host, { all: true });
-  } catch {
-    throw new Error(`No se pudo resolver el host: "${host}".`);
-  }
-  if (addrs.some((a) => isBlockedIp(a.address))) {
-    throw new Error("URL bloqueada por política de red interna.");
-  }
-}
-
-export async function installSsrfGuard(context: BrowserContext): Promise<void> {
-  if (isPrivateNetworkAllowed()) return;
-  await context.route("**/*", async (route) => {
-    try {
-      await assertSafeUrl(route.request().url());
-      await route.continue();
-    } catch {
-      await route.abort("blockedbyclient");
-    }
-  });
 }
