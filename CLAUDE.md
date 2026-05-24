@@ -766,8 +766,12 @@ El objetivo es tener una URL pública funcional lista para el portafolio.
      resuelve DNS y bloquea si el host resuelve a una IP interna, antes de cada
      `goto`.
   3. **Worker interceptor** — `installSsrfGuard` registra `context.route("**/*")`
-     y valida **cada request** (la frontera real: cubre redirects, DNS rebinding
-     y sub-recursos). Aplicado al crear el contexto en `execute-test-run.ts`.
+     y valida **cada request** (la frontera real: cubre redirects y sub-recursos).
+     Aplicado al crear el contexto en `execute-test-run.ts`. Frente al DNS
+     rebinding reduce la ventana a un solo request (el navegador re-resuelve por
+     su cuenta tras `route.continue()`, así que queda un TOCTOU residual de un
+     request; es la mitigación estándar sin pinning de IP en el socket, y se
+     acepta para este modelo de amenaza).
   El núcleo de clasificación de IP/host está **duplicado** en
   `worker/lib/safe-url.ts` y `lib/validation/safe-host.ts` porque Render
   despliega el worker con `rootDir: worker` (no puede importar fuera de
