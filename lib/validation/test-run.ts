@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isBlockedLiteralHost } from "./safe-host";
 
 const httpUrlSchema = z
   .string()
@@ -9,12 +10,13 @@ const httpUrlSchema = z
     (value) => {
       try {
         const url = new URL(value);
-        return url.protocol === "http:" || url.protocol === "https:";
+        if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+        return !isBlockedLiteralHost(url.hostname);
       } catch {
         return false;
       }
     },
-    { message: "La URL debe usar http o https" },
+    { message: "La URL debe usar http/https y no apuntar a una dirección interna" },
   );
 
 const extraPromptSchema = z
