@@ -71,3 +71,24 @@ describe("isBlockedLiteralHost", () => {
     }
   });
 });
+
+describe("isBlockedIp — casos límite adicionales", () => {
+  it("bloquea fe80 con zone id y forma completa sin ::", () => {
+    expect(isBlockedIp("fe80::1%eth0")).toBe(true);
+    expect(isBlockedIp("fe80:0:0:0:0:0:0:1")).toBe(true);
+  });
+
+  it("respeta los bordes del rango 172.16.0.0/12", () => {
+    expect(isBlockedIp("172.15.255.255")).toBe(false);
+    expect(isBlockedIp("172.16.0.0")).toBe(true);
+    expect(isBlockedIp("172.31.255.255")).toBe(true);
+    expect(isBlockedIp("172.32.0.0")).toBe(false);
+  });
+});
+
+describe("isBlockedLiteralHost — casos límite adicionales", () => {
+  it("bloquea '0' (0.0.0.0/8) y un IPv4-mapped entre corchetes", () => {
+    expect(isBlockedLiteralHost("0")).toBe(true);
+    expect(isBlockedLiteralHost("[::ffff:127.0.0.1]")).toBe(true);
+  });
+});

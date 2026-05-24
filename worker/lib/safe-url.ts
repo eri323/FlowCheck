@@ -13,27 +13,30 @@ export function ipv4ToInt(ip: string): number | null {
   return acc >>> 0;
 }
 
-function inV4Range(ip: number, base: string, bits: number): boolean {
-  const baseInt = ipv4ToInt(base)!;
+// Rangos IPv4 a bloquear, pre-parseados a [baseInt, bits] al cargar el módulo
+// (evita re-parsear el string base en cada chequeo).
+const BLOCKED_V4: Array<[number, number]> = (
+  [
+    ["0.0.0.0", 8],
+    ["10.0.0.0", 8],
+    ["100.64.0.0", 10],
+    ["127.0.0.0", 8],
+    ["169.254.0.0", 16],
+    ["172.16.0.0", 12],
+    ["192.0.0.0", 24], // IETF Protocol Assignments (RFC 6890)
+    ["192.168.0.0", 16],
+    ["224.0.0.0", 4],
+    ["240.0.0.0", 4],
+  ] as Array<[string, number]>
+).map(([base, bits]) => [ipv4ToInt(base)!, bits] as [number, number]);
+
+function inV4Range(ip: number, baseInt: number, bits: number): boolean {
   const mask = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0;
   return ((ip & mask) >>> 0) === ((baseInt & mask) >>> 0);
 }
 
-const BLOCKED_V4: Array<[string, number]> = [
-  ["0.0.0.0", 8],
-  ["10.0.0.0", 8],
-  ["100.64.0.0", 10],
-  ["127.0.0.0", 8],
-  ["169.254.0.0", 16],
-  ["172.16.0.0", 12],
-  ["192.0.0.0", 24],
-  ["192.168.0.0", 16],
-  ["224.0.0.0", 4],
-  ["240.0.0.0", 4],
-];
-
 function isBlockedIpv4(ip: number): boolean {
-  return BLOCKED_V4.some(([base, bits]) => inV4Range(ip, base, bits));
+  return BLOCKED_V4.some(([baseInt, bits]) => inV4Range(ip, baseInt, bits));
 }
 
 // --- IPv6 ---
@@ -73,14 +76,14 @@ function ipv6Groups(ip: string): number[] | null {
 function isBlockedIpv6(g: number[]): boolean {
   if (g.every((x) => x === 0)) return true; // ::
   if (
-    g[0] === 0 && g[1] === 0 && g[2] === 0 && g[3] === 0 &&
-    g[4] === 0 && g[5] === 0 && g[6] === 0 && g[7] === 1
+    g[0]! === 0 && g[1]! === 0 && g[2]! === 0 && g[3]! === 0 &&
+    g[4]! === 0 && g[5]! === 0 && g[6]! === 0 && g[7]! === 1
   ) {
     return true; // ::1
   }
   if (
-    g[0] === 0 && g[1] === 0 && g[2] === 0 && g[3] === 0 &&
-    g[4] === 0 && g[5] === 0xffff
+    g[0]! === 0 && g[1]! === 0 && g[2]! === 0 && g[3]! === 0 &&
+    g[4]! === 0 && g[5]! === 0xffff
   ) {
     return isBlockedIpv4((((g[6]! << 16) | g[7]!) >>> 0)); // ::ffff:a.b.c.d
   }
@@ -110,6 +113,9 @@ export function isBlockedIp(ip: string): boolean {
   return false; // no es IP literal: el caller decide vía DNS
 }
 
+// Encodings de IPv4 de un solo número: decimal (2130706433) y hex (0x7f000001).
+// NOTA: los encodings octales multi-octeto (p. ej. 0177.0.0.1) quedan FUERA de
+// alcance aquí; los cubre la capa de resolución DNS (assertSafeUrl).
 function parseLooseIpv4(host: string): number | null {
   if (/^\d+$/.test(host)) {
     const n = Number(host);
