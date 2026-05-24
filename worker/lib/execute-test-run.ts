@@ -7,7 +7,7 @@ import {
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { launchBrowser } from "./chromium-launch";
 import { uploadScreenshot } from "./upload-screenshot";
-import { assertSafeNavigationUrl } from "./safe-url";
+import { assertSafeUrl, installSsrfGuard } from "./safe-url";
 import type { TestType } from "./types";
 import {
   fillIdentifierField,
@@ -233,7 +233,7 @@ async function executeStep(
   switch (step.action) {
     case "goto": {
       if (!step.value) throw new Error("La acción 'goto' requiere un value (URL)");
-      assertSafeNavigationUrl(step.value);
+      await assertSafeUrl(step.value);
       await page.goto(step.value, { timeout: STEP_TIMEOUT_MS, waitUntil: "load" });
       return {};
     }
@@ -499,6 +499,7 @@ async function runCase(
     .eq("id", testCase.id);
 
   const context = await browser.newContext(contextOptions);
+  await installSsrfGuard(context);
   const page = await context.newPage();
 
   // Errores JS de la página: excepciones no capturadas y console.error.

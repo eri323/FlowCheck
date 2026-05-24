@@ -1,4 +1,5 @@
 import { promises as dns } from "node:dns";
+import type { BrowserContext } from "playwright-core";
 
 // --- IPv4 ---
 
@@ -177,4 +178,16 @@ export async function assertSafeUrl(value: string): Promise<void> {
   if (addrs.some((a) => isBlockedIp(a.address))) {
     throw new Error("URL bloqueada por política de red interna.");
   }
+}
+
+export async function installSsrfGuard(context: BrowserContext): Promise<void> {
+  if (isPrivateNetworkAllowed()) return;
+  await context.route("**/*", async (route) => {
+    try {
+      await assertSafeUrl(route.request().url());
+      await route.continue();
+    } catch {
+      await route.abort("blockedbyclient");
+    }
+  });
 }
