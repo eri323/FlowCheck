@@ -25,6 +25,30 @@ import {
   isSearchFillSelector,
   isSearchSubmitSelector,
 } from "./adaptive-search";
+import { clickAdaptive, verifyPageHealthy } from "./adaptive-navegacion";
+import {
+  fillAndSubmitForm,
+  isFormSubmitSelector,
+  parseFields,
+} from "./adaptive-formulario";
+import {
+  findConfirmPasswordField,
+  findNameField,
+  isConfirmPasswordSelector,
+  isNameFillSelector,
+  isRegisterSubmitSelector,
+  registerAndVerify,
+} from "./adaptive-registro";
+import {
+  addToCartStage,
+  confirmOrderAndVerify,
+  fillPaymentStage,
+  goToCheckoutStage,
+  isAddToCartSelector,
+  isCheckoutNavSelector,
+  isConfirmOrderSelector,
+  isPaymentFieldSelector,
+} from "./adaptive-ecommerce";
 
 type StepAction =
   | "goto"
@@ -40,6 +64,17 @@ type LoginRunContext = {
   inVerificationWindow: boolean;
   /** Último valor llenado — usado como query en flujos de búsqueda. */
   searchQuery?: string;
+  /** Pares label:value del formulario (test_data.fields), para el submit. */
+  formFields?: { label: string; value: string }[];
+  /** test_data del registro, para el submit adaptativo. */
+  registroData?: {
+    name: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+  };
+  /** Datos de pago para ecommerce. */
+  ecommerceData?: { email: string; card: string; expiry: string; cvc: string };
 };
 
 type StepResult = { valueOverride?: string; selectorOverride?: string };
@@ -163,14 +198,31 @@ async function executeStep(
     step.action === "expect_url";
 
   if (
-    ctx.testType === "login" &&
+    (ctx.testType === "login" || ctx.testType === "registro") &&
     ctx.inVerificationWindow &&
     ctx.lastOutcome?.success &&
     isExpectAction
   ) {
     return {
       valueOverride: ctx.lastOutcome.finalUrl,
-      selectorOverride: "[adaptive] verificado por comportamiento post-login",
+      selectorOverride:
+        ctx.testType === "registro"
+          ? "[adaptive] verificado por comportamiento post-registro"
+          : "[adaptive] verificado por comportamiento post-login",
+    };
+  }
+
+  // Navegación es un smoke test: su test_data es {} vacío, así que cualquier
+  // expect_text de Gemini es una aserción alucinada, no una expectativa del
+  // usuario. Por eso se reemplaza TODO expect_* por verifyPageHealthy a propósito.
+  if (ctx.testType === "navegacion" && isExpectAction) {
+    const health = await verifyPageHealthy(page);
+    if (!health.healthy) {
+      throw new Error(`Navegación no saludable: ${health.reason} (URL: ${health.finalUrl})`);
+    }
+    return {
+      valueOverride: health.finalUrl,
+      selectorOverride: "[adaptive] navegación verificada por salud de página",
     };
   }
 
@@ -204,6 +256,31 @@ async function executeStep(
           selectorOverride: "[adaptive] submit",
         };
       }
+      if (ctx.testType === "registro" && isRegisterSubmitSelector(step.selector)) {
+        const initialUrl = page.url();
+        const outcome = await registerAndVerify(
+          page,
+          ctx.registroData ?? {
+            name: "",
+            email: "",
+            password: "",
+            confirmPassword: "",
+          },
+          initialUrl,
+          STEP_TIMEOUT_MS,
+        );
+        ctx.lastOutcome = outcome;
+        if (!outcome.success) {
+          throw new Error(
+            `Registro adaptativo falló: ${outcome.reason} (URL final: ${outcome.finalUrl})`,
+          );
+        }
+        ctx.inVerificationWindow = true;
+        return {
+          valueOverride: outcome.finalUrl,
+          selectorOverride: "[adaptive] submit registro",
+        };
+      }
       if (ctx.testType === "busqueda" && isSearchSubmitSelector(step.selector)) {
         const query = ctx.searchQuery ?? "";
         const outcome = await executeSearch(page, query, STEP_TIMEOUT_MS);
@@ -218,6 +295,57 @@ async function executeStep(
             ? "[adaptive] submit búsqueda (con resultados)"
             : "[adaptive] submit búsqueda (sin resultados confirmados)",
         };
+      }
+      if (ctx.testType === "navegacion") {
+        await clickAdaptive(page, step.selector, STEP_TIMEOUT_MS);
+        return { selectorOverride: "[adaptive] click tolerante" };
+      }
+      if (ctx.testType === "formulario" && isFormSubmitSelector(step.selector)) {
+        const outcome = await fillAndSubmitForm(
+          page,
+          ctx.formFields ?? [],
+          STEP_TIMEOUT_MS,
+        );
+        if (!outcome.success) {
+          throw new Error(
+            `Formulario adaptativo falló: ${outcome.reason} (URL: ${outcome.finalUrl})`,
+          );
+        }
+        return {
+          valueOverride: outcome.finalUrl,
+          selectorOverride: "[adaptive] formulario enviado y verificado",
+        };
+      }
+      if (ctx.testType === "ecommerce") {
+        // El orden importa: las regex se solapan ("comprar" matchea varias). Hay
+        // que comprobar confirmar > add-to-cart > checkout para no tratar el botón
+        // final de pago como un add-to-cart.
+        if (isConfirmOrderSelector(step.selector)) {
+          const outcome = await confirmOrderAndVerify(page, STEP_TIMEOUT_MS);
+          if (!outcome.success) {
+            throw new Error(
+              `Confirmación de orden falló: ${outcome.reason} (URL: ${outcome.finalUrl})`,
+            );
+          }
+          return {
+            valueOverride: outcome.finalUrl,
+            selectorOverride: "[adaptive] confirmar orden",
+          };
+        }
+        if (isAddToCartSelector(step.selector)) {
+          const stage = await addToCartStage(page, STEP_TIMEOUT_MS);
+          if (!stage.success) {
+            throw new Error(`Agregar al carrito falló: ${stage.reason}`);
+          }
+          return { selectorOverride: "[adaptive] agregar al carrito" };
+        }
+        if (isCheckoutNavSelector(step.selector)) {
+          const stage = await goToCheckoutStage(page, STEP_TIMEOUT_MS);
+          if (!stage.success) {
+            throw new Error(`Ir a checkout falló: ${stage.reason}`);
+          }
+          return { selectorOverride: "[adaptive] ir a checkout" };
+        }
       }
       await page.locator(step.selector).click({ timeout: STEP_TIMEOUT_MS });
       return {};
@@ -244,6 +372,39 @@ async function executeStep(
           };
         }
       }
+      if (ctx.testType === "registro") {
+        if (isConfirmPasswordSelector(step.selector)) {
+          const field = await findConfirmPasswordField(page);
+          if (field) {
+            await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
+            return { selectorOverride: "[adaptive] confirmar password" };
+          }
+        }
+        if (isPasswordFillSelector(step.selector)) {
+          const field = await findPasswordField(page);
+          await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
+          return { selectorOverride: "[adaptive] password" };
+        }
+        if (isNameFillSelector(step.selector)) {
+          const field = await findNameField(page);
+          if (field) {
+            await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
+            return { selectorOverride: "[adaptive] nombre" };
+          }
+        }
+        if (isEmailFillSelector(step.selector)) {
+          const { relaxed } = await fillIdentifierField(
+            page,
+            step.value,
+            STEP_TIMEOUT_MS,
+          );
+          return {
+            selectorOverride: relaxed
+              ? "[adaptive] identificador (validación nativa relajada)"
+              : "[adaptive] email/usuario",
+          };
+        }
+      }
       if (ctx.testType === "busqueda") {
         // El último valor llenado es el query que usará el submit adaptativo.
         ctx.searchQuery = step.value;
@@ -252,6 +413,14 @@ async function executeStep(
           await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
           return { selectorOverride: "[adaptive] campo de búsqueda" };
         }
+      }
+      if (ctx.testType === "ecommerce" && isPaymentFieldSelector(step.selector)) {
+        await fillPaymentStage(
+          page,
+          ctx.ecommerceData ?? { email: "", card: "", expiry: "", cvc: "" },
+          STEP_TIMEOUT_MS,
+        );
+        return { selectorOverride: "[adaptive] datos de pago" };
       }
       await page.locator(step.selector).fill(step.value, { timeout: STEP_TIMEOUT_MS });
       return {};
@@ -316,6 +485,13 @@ async function runCase(
   contextOptions: BrowserContextOptions,
   log: RunLog,
   jsErrors: { count: number },
+  formFieldsRaw: string | undefined,
+  registroData:
+    | { name: string; email: string; password: string; confirmPassword: string }
+    | undefined,
+  ecommerceData:
+    | { email: string; card: string; expiry: string; cvc: string }
+    | undefined,
 ): Promise<"completado" | "fallido"> {
   await supabase
     .from("test_cases")
@@ -338,7 +514,13 @@ async function runCase(
   });
 
   log.add("info", `caso "${testCase.name}" — ${testCase.steps.length} pasos`);
-  const loginCtx: LoginRunContext = { testType, inVerificationWindow: false };
+  const loginCtx: LoginRunContext = {
+    testType,
+    inVerificationWindow: false,
+    formFields: formFieldsRaw ? parseFields(formFieldsRaw) : undefined,
+    registroData,
+    ecommerceData,
+  };
   let caseFailed = false;
 
   try {
@@ -425,12 +607,26 @@ async function runCase(
   return caseStatus;
 }
 
+export type ExecuteTestRunOptions = {
+  testType?: TestType;
+  device?: "desktop" | "mobile";
+  formFieldsRaw?: string;
+  registroData?: {
+    name: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+  };
+  ecommerceData?: { email: string; card: string; expiry: string; cvc: string };
+};
+
 export async function executeTestRun(
   supabase: SupabaseClient,
   testRunId: string,
-  testType?: TestType,
-  device: "desktop" | "mobile" = "desktop",
+  opts: ExecuteTestRunOptions = {},
 ): Promise<"completado" | "fallido"> {
+  const { testType, formFieldsRaw, registroData, ecommerceData } = opts;
+  const device = opts.device ?? "desktop";
   const cases = await loadCasesForRun(supabase, testRunId);
 
   const contextOptions: BrowserContextOptions =
@@ -456,6 +652,9 @@ export async function executeTestRun(
         contextOptions,
         log,
         jsErrors,
+        formFieldsRaw,
+        registroData,
+        ecommerceData,
       );
       if (result === "fallido") anyFailed = true;
     }

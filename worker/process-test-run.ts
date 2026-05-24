@@ -208,7 +208,32 @@ export async function processTestRun(testRunId: string): Promise<ProcessTestRunR
     await persistTestPlan(supabase, testRunId, plan.test_cases);
 
     const finalStatus = await withTimeout(
-      executeTestRun(supabase, testRunId, testRun.test_type, testRun.device),
+      executeTestRun(supabase, testRunId, {
+        testType: testRun.test_type,
+        device: testRun.device,
+        formFieldsRaw:
+          testRun.test_type === "formulario"
+            ? String(testRun.test_data.fields ?? "")
+            : undefined,
+        registroData:
+          testRun.test_type === "registro"
+            ? {
+                name: String(testRun.test_data.name ?? ""),
+                email: String(testRun.test_data.email ?? ""),
+                password: String(testRun.test_data.password ?? ""),
+                confirmPassword: String(testRun.test_data.confirmPassword ?? ""),
+              }
+            : undefined,
+        ecommerceData:
+          testRun.test_type === "ecommerce"
+            ? {
+                email: String(testRun.test_data.email ?? ""),
+                card: String(testRun.test_data.card ?? ""),
+                expiry: String(testRun.test_data.expiry ?? ""),
+                cvc: String(testRun.test_data.cvc ?? ""),
+              }
+            : undefined,
+      }),
       EXECUTION_TIMEOUT_MS,
       "Ejecución del plan con Playwright",
     );
