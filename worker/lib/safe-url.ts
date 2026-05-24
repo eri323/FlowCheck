@@ -1,3 +1,5 @@
+import { promises as dns } from "node:dns";
+
 // --- IPv4 ---
 
 export function ipv4ToInt(ip: string): number | null {
@@ -137,11 +139,15 @@ export function isBlockedLiteralHost(hostname: string): boolean {
   return false;
 }
 
-// --- Compatibilidad temporal (se elimina en una tarea posterior) ---
+// --- Guard de navegación (async, resuelve DNS) ---
 
 const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
 
-export function assertSafeNavigationUrl(value: string): void {
+export function isPrivateNetworkAllowed(): boolean {
+  return process.env.SSRF_ALLOW_PRIVATE_NETWORK === "1";
+}
+
+export async function assertSafeUrl(value: string): Promise<void> {
   let parsed: URL;
   try {
     parsed = new URL(value);
@@ -152,5 +158,23 @@ export function assertSafeNavigationUrl(value: string): void {
     throw new Error(
       `Esquema de URL no permitido (${parsed.protocol}). Solo http o https.`,
     );
+  }
+  if (isPrivateNetworkAllowed()) return;
+
+  const host = parsed.hostname.replace(/^\[/, "").replace(/\]$/, "");
+  if (ipKind(host) !== 0) {
+    if (isBlockedIp(host)) {
+      throw new Error("URL bloqueada por política de red interna.");
+    }
+    return;
+  }
+  let addrs: Array<{ address: string }>;
+  try {
+    addrs = await dns.lookup(host, { all: true });
+  } catch {
+    throw new Error(`No se pudo resolver el host: "${host}".`);
+  }
+  if (addrs.some((a) => isBlockedIp(a.address))) {
+    throw new Error("URL bloqueada por política de red interna.");
   }
 }

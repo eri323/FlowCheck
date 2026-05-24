@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { isBlockedIp, isBlockedLiteralHost } from "../lib/safe-url";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { assertSafeUrl, isBlockedIp, isBlockedLiteralHost, isPrivateNetworkAllowed } from "../lib/safe-url";
 
 describe("isBlockedIp — IPv4", () => {
   it("bloquea loopback, privadas, link-local/metadata y especiales", () => {
@@ -90,5 +90,36 @@ describe("isBlockedLiteralHost — casos límite adicionales", () => {
   it("bloquea '0' (0.0.0.0/8) y un IPv4-mapped entre corchetes", () => {
     expect(isBlockedLiteralHost("0")).toBe(true);
     expect(isBlockedLiteralHost("[::ffff:127.0.0.1]")).toBe(true);
+  });
+});
+
+describe("assertSafeUrl", () => {
+  const original = process.env.SSRF_ALLOW_PRIVATE_NETWORK;
+  beforeEach(() => {
+    delete process.env.SSRF_ALLOW_PRIVATE_NETWORK;
+  });
+  afterEach(() => {
+    if (original === undefined) delete process.env.SSRF_ALLOW_PRIVATE_NETWORK;
+    else process.env.SSRF_ALLOW_PRIVATE_NETWORK = original;
+  });
+
+  it("rechaza esquemas no http/https", async () => {
+    await expect(assertSafeUrl("file:///etc/passwd")).rejects.toThrow();
+  });
+
+  it("rechaza IPs literales internas", async () => {
+    await expect(assertSafeUrl("http://127.0.0.1")).rejects.toThrow();
+    await expect(assertSafeUrl("http://169.254.169.254/latest/meta-data/")).rejects.toThrow();
+    await expect(assertSafeUrl("http://[::1]:3000")).rejects.toThrow();
+  });
+
+  it("rechaza hostnames que resuelven a interno (localhost → loopback)", async () => {
+    await expect(assertSafeUrl("http://localhost:3000")).rejects.toThrow();
+  });
+
+  it("respeta el escape hatch SSRF_ALLOW_PRIVATE_NETWORK", async () => {
+    process.env.SSRF_ALLOW_PRIVATE_NETWORK = "1";
+    expect(isPrivateNetworkAllowed()).toBe(true);
+    await expect(assertSafeUrl("http://127.0.0.1")).resolves.toBeUndefined();
   });
 });
