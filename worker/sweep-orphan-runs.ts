@@ -24,7 +24,9 @@ export async function sweepOrphanRuns(): Promise<number> {
     .select("id");
 
   if (error) {
-    console.error(`[worker] el barrido de runs huérfanos falló: ${error.message}`);
+    console.error(
+      `[worker] el barrido de runs huérfanos falló: ${error.message}`,
+    );
     return 0;
   }
 

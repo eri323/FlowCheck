@@ -1,4 +1,5 @@
 @AGENTS.md
+
 # Plataforma de Testing Automatizado con IA — CLAUDE.md
 
 ## Qué es este proyecto
@@ -28,18 +29,18 @@ Vercel (los jobs duran 30–60s).
 
 ## Stack
 
-| Capa           | Tecnología              |
-|----------------|-------------------------|
-| Frontend       | Next.js 16, Tailwind v4 |
-| Auth + DB      | Supabase                |
-| Tiempo real    | Supabase Realtime       |
-| Archivos       | Supabase Storage        |
-| IA             | @google/genai (Gemini)  |
-| Tests browser  | Playwright (Chromium)   |
-| Worker         | Express HTTP            |
-| Deploy front   | Vercel                  |
-| Deploy worker  | Render (free, render.yaml) |
-| Lenguaje       | TypeScript en todo      |
+| Capa          | Tecnología                 |
+| ------------- | -------------------------- |
+| Frontend      | Next.js 16, Tailwind v4    |
+| Auth + DB     | Supabase                   |
+| Tiempo real   | Supabase Realtime          |
+| Archivos      | Supabase Storage           |
+| IA            | @google/genai (Gemini)     |
+| Tests browser | Playwright (Chromium)      |
+| Worker        | Express HTTP               |
+| Deploy front  | Vercel                     |
+| Deploy worker | Render (free, render.yaml) |
+| Lenguaje      | TypeScript en todo         |
 
 ---
 
@@ -128,13 +129,18 @@ service role key nunca debe llegar al cliente.
 - **Heurística adaptativa por `test_type`** es un patrón establecido del worker:
   para ciertos tipos de prueba se descartan los selectores literales de Gemini y
   se usa lógica tolerante a idioma/maquetado que además **verifica el resultado
-  por comportamiento**. Hoy cubre `login` (`lib/adaptive-login.ts`) y `busqueda`
-  (`lib/adaptive-search.ts`); ambas se cablean en `lib/execute-test-run.ts`,
+  por comportamiento**. Hoy cubre **los seis** `test_type`: `login`
+  (`lib/adaptive-login.ts`), `busqueda` (`lib/adaptive-search.ts`), `registro`
+  (`lib/adaptive-registro.ts`), `navegacion` (`lib/adaptive-navegacion.ts`),
+  `formulario` (`lib/adaptive-formulario.ts`) y `ecommerce`
+  (`lib/adaptive-ecommerce.ts`). Los helpers compartidos
+  (`pickFirstVisible`, `readVisibleErrorText`, `detectNativeValidationBlock`,
+  `isSuccessTextVisible`, `findGenericSubmit`, regex y selectores comunes) viven
+  en `lib/adaptive-common.ts`. Todos se cablean en `lib/execute-test-run.ts`,
   marcan sus pasos con el prefijo `[adaptive]` y traen tests puros + de
-  integración. Ver las secciones "Detección adaptativa en flujos de login" y
-  "…de búsqueda". Al añadir un nuevo `test_type` adaptativo, sigue este mismo
-  patrón (detectores puros testeables + orquestación con verificación + prefijo
-  `[adaptive]`).
+  integración. Ver las secciones "Detección adaptativa en flujos de …". Al
+  añadir un nuevo `test_type` adaptativo, sigue este mismo patrón (detectores
+  puros testeables + orquestación con verificación + prefijo `[adaptive]`).
 
 ---
 
@@ -324,6 +330,283 @@ contenedores `result`/`product`/`item` preexistentes cuya búsqueda no hace nada
 
 ---
 
+## Detección adaptativa en flujos de navegación
+
+Cuando `test_type === "navegacion"` el worker trata el run como un smoke test:
+su `test_data` es `{}`, así que cualquier `selector`/`expect_text` que invente
+Gemini es una aserción alucinada, no una expectativa real del usuario. Por eso
+los clicks se hacen tolerantes y **toda** aserción se reemplaza por una
+verificación de salud de la página (`lib/adaptive-navegacion.ts`).
+
+### Helpers
+
+- `clickAdaptive(page, selector, timeoutMs)` — intenta el selector literal; si
+  falla, extrae una pista de texto **visible** del selector (`text=` o
+  `:has-text(...)`, nunca de `name=`, que es un id interno) y reintenta por
+  nombre accesible (`getByRole('link'|'button')`) y, como último recurso, por
+  `hasText` sobre `a|button|[role=button]|[role=link]`. Si no hay pista o nada
+  matchea, re-lanza el error literal.
+- `verifyPageHealthy(page)` — devuelve `{ healthy, finalUrl, title, reason }`.
+  Espera `domcontentloaded`, lee título y texto del `body` y marca la página
+  como no saludable si el body tiene menos de 20 caracteres de texto (render
+  roto/en blanco) o si parece un documento de error.
+
+### Funciones puras (detectores)
+
+- `looksLikeErrorPage(title, bodyText)` — detecta páginas de error (`404`,
+  `500`, `403`, `not found`, `internal server error`, `forbidden`, …) usando
+  `\b`, pero **solo** cuando el body tiene poco contenido (< 200 caracteres):
+  si la página es sustancial, una mención de "error" es incidental y no cuenta.
+
+### Cómo se activa
+
+En `lib/execute-test-run.ts`, sólo para `test_type === "navegacion"`:
+
+- `click`: siempre se enruta por `clickAdaptive` en vez del `locator(...).click`
+  literal, con `selector = "[adaptive] click tolerante"`.
+- `expect_visible` / `expect_text` / `expect_url`: se descarta la aserción de
+  Gemini y se ejecuta `verifyPageHealthy`. Si la página no está sana el paso
+  falla con la razón concreta; si está sana, el paso pasa con
+  `selector = "[adaptive] navegación verificada por salud de página"` y la URL
+  real queda en `value`.
+
+### Reporte en la UI
+
+Los pasos resueltos por la heurística llevan el prefijo `[adaptive]`
+(`[adaptive] click tolerante`,
+`[adaptive] navegación verificada por salud de página`), y la URL final queda
+en `value`.
+
+### Tests
+
+`worker/test/adaptive-navegacion.test.ts` cubre la función pura
+`looksLikeErrorPage` (error con poco contenido, página real que menciona
+"error", home normal). `worker/test/adaptive-navegacion.integration.test.ts`
+lanza Chromium contra fixtures HTTP: home sana, 404 con poco contenido (sin
+falso positivo), `clickAdaptive` con selector literal válido, fallback por texto
+cuando el literal no existe, y la trampa donde el valor de un `name=` coincide
+como substring con el texto de un enlace real — `clickAdaptive` debe lanzar en
+vez de clickear el elemento equivocado.
+
+---
+
+## Detección adaptativa en flujos de formulario
+
+Cuando `test_type === "formulario"` el worker no confía en los selectores de
+campo ni en el submit literal de Gemini: resuelve cada campo por su **etiqueta**
+(provista por el usuario en `test_data.fields`) y **verifica que el envío
+realmente surtió efecto** (`lib/adaptive-formulario.ts`).
+
+### Helpers
+
+- `resolveField(page, label)` — localiza un control (`input|textarea|select`)
+  por etiqueta probando en orden `getByLabel`, `getByPlaceholder`,
+  `[aria-label*=...]`, `name*=...` y `id*=...`. Escapa metacaracteres de regex
+  para la vía label/placeholder y, por separado, sólo `"`/`\` para el selector
+  CSS de atributo (una etiqueta como "Teléfono (móvil)" no debe romper la
+  regex ni la coincidencia literal).
+- `fillField(control, value)` — llena según el tipo: `select` →
+  `selectOption` (por label, con fallback a value); `checkbox`/`radio` →
+  `check`/`uncheck` según `asBoolean`; resto → `fill`.
+- `fillAndSubmitForm(page, fields, timeoutMs, opts?)` — orquesta el flujo y
+  devuelve `{ success, finalUrl, reason }`. Resuelve y llena cada par, exige al
+  menos un campo llenado, encuentra el submit con `findGenericSubmit`, lo
+  clickea y hace polling (hasta `opts.resultsTimeoutMs`, default 8s).
+
+### Funciones puras (detectores)
+
+- `parseFields(raw)` — parsea el `test_data.fields` del usuario en pares
+  `{ label, value }`, una línea por par, cortando en el primer `:` o `=` e
+  ignorando líneas vacías o sin separador.
+- `asBoolean(value)` — mapea tokens (`sí`/`si`/`true`/`x`/`yes`/`on`/`1`/
+  `checked` → `true`; `no`/`false`/`off`/`0`/`unchecked` → `false`; resto →
+  `null`) para checkboxes/radios.
+- `isFormSubmitSelector(selector)` — detecta si un selector de Gemini apunta al
+  botón de envío (verbos de `SUBMIT_VERBS`), excluyendo inputs de texto y
+  `input[name...]`.
+
+### Cómo se activa
+
+En `lib/execute-test-run.ts`, sólo para `test_type === "formulario"`:
+
+- Los pares `label:value` se parsean con `parseFields(formFieldsRaw)` al iniciar
+  el caso y se guardan en `ctx.formFields`.
+- `click`: si el selector huele a submit (`isFormSubmitSelector`) se invoca
+  `fillAndSubmitForm(page, ctx.formFields, …)`. La URL real queda en `value` y
+  el paso lleva `selector = "[adaptive] formulario enviado y verificado"`. Si
+  `success` es `false`, el paso falla con la razón concreta.
+
+### Verificación por comportamiento
+
+Tras enviar, `fillAndSubmitForm` falla de inmediato si aparece un error visible
+(`readVisibleErrorText`) o un bloqueo de validación nativa
+(`detectNativeValidationBlock`); declara éxito solo si la URL cambió, aparece un
+mensaje de éxito (`isSuccessTextVisible`) o el `<form>` desapareció. Si en el
+budget no hay ninguna señal, devuelve fallo: un form que "no hace nada" no se
+da por bueno.
+
+### Reporte en la UI
+
+El paso de envío lleva el prefijo `[adaptive]`
+(`[adaptive] formulario enviado y verificado`) y la URL final en `value`.
+
+### Tests
+
+`worker/test/adaptive-formulario.test.ts` cubre las funciones puras
+(`parseFields`, `asBoolean`, `isFormSubmitSelector`).
+`worker/test/adaptive-formulario.integration.test.ts` lanza Chromium contra
+fixtures HTTP: resolución por label y llenado de texto/textarea/select/checkbox,
+una etiqueta con paréntesis (metacaracteres de regex), un envío GET clásico que
+verifica el éxito, y la trampa de falso positivo (form con
+`preventDefault` que no hace nada → `success: false`).
+
+---
+
+## Detección adaptativa en flujos de registro
+
+Cuando `test_type === "registro"` el worker reusa los detectores de login para
+email y password, añade detección de **nombre** y **confirmar contraseña**, y
+verifica el alta por comportamiento (`lib/adaptive-registro.ts`). Comparte con
+login la **ventana de verificación** post-submit.
+
+### Helpers
+
+- `findNameField(page)` — localiza el campo de nombre por
+  `autocomplete=name|given-name`, `name*=fullname|nombre|name|firstname`,
+  `id*=name` (excluyendo email/password) y label/placeholder.
+- `findConfirmPasswordField(page)` — estrategia primaria: si hay 2+ inputs
+  `type=password`, el segundo visible es "confirmar"; secundaria, por tokens
+  (`confirm`/`repeat`/`repetir`/…) en `name`, label o placeholder.
+- `registerAndVerify(page, data, initialUrl, timeoutMs)` — devuelve un
+  `RegisterOutcome` (alias de `LoginOutcome`). Llena los campos disponibles
+  (nombre, email —relajando la validación HTML5 si el valor no parece email—,
+  password y confirmación; los ausentes se omiten), envía con
+  `findGenericSubmit(page, REGISTER_VERBS)` y verifica el resultado.
+
+### Funciones puras (detectores)
+
+- `isNameFillSelector(selector)` — detecta selectores de campo de nombre,
+  excluyendo email y password.
+- `isConfirmPasswordSelector(selector)` — exige que el selector huela a password
+  (`password`/`contrase`/`clave`) **y** a confirmación.
+- `isRegisterSubmitSelector(selector)` — `type=submit` o verbos de registro
+  (`registrar`/`crear cuenta`/`sign up`/`register`/…).
+
+### Cómo se activa
+
+En `lib/execute-test-run.ts`, sólo para `test_type === "registro"`:
+
+- `fill`: el orden importa — primero `isConfirmPasswordSelector`
+  (`[adaptive] confirmar password`), luego `isPasswordFillSelector`
+  (`[adaptive] password`), `isNameFillSelector` (`[adaptive] nombre`) e
+  `isEmailFillSelector` (`[adaptive] email/usuario` o
+  `[adaptive] identificador (validación nativa relajada)`).
+- `click`: si el selector huele a submit de registro
+  (`isRegisterSubmitSelector`) se invoca `registerAndVerify` con
+  `ctx.registroData`. Tras éxito se abre la **ventana de verificación** y los
+  `expect_*` consecutivos pasan con
+  `selector = "[adaptive] verificado por comportamiento post-registro"`; la
+  ventana se cierra ante el primer `goto`/`click`/`fill` posterior. El paso de
+  submit lleva `selector = "[adaptive] submit registro"` y la URL real en
+  `value`.
+
+### Verificación por comportamiento
+
+`registerAndVerify` hace polling (hasta 15s): éxito si la URL cambia o aparece
+un mensaje de éxito; fallo inmediato ante error visible (distinguiendo el caso
+de **email ya en uso**) o bloqueo de validación nativa; si no hay ninguna señal,
+fallo con diagnóstico (validación silenciosa, redirect lento o submit erróneo).
+
+### Reporte en la UI
+
+Los pasos resueltos llevan el prefijo `[adaptive]`
+(`[adaptive] nombre`, `[adaptive] confirmar password`,
+`[adaptive] submit registro`,
+`[adaptive] verificado por comportamiento post-registro`, además de los de
+login reusados), con la URL final en `value`.
+
+### Tests
+
+`worker/test/adaptive-registro.test.ts` cubre las funciones puras
+(`isNameFillSelector`, `isConfirmPasswordSelector`, `isRegisterSubmitSelector`).
+`worker/test/adaptive-registro.integration.test.ts` lanza Chromium contra
+fixtures HTTP: detección de nombre y del segundo password como confirmación, un
+registro exitoso (éxito por cambio de URL), y la trampa donde el alta siempre
+muestra "email ya en uso" y no navega → `success: false` con el error real.
+
+---
+
+## Detección adaptativa en flujos de e-commerce
+
+Cuando `test_type === "ecommerce"` el worker orquesta un flujo de compra por
+etapas —agregar al carrito, ir al checkout, llenar el pago, confirmar la
+orden— tolerando idioma/maquetado y **declarando éxito SOLO cuando se detecta
+la confirmación de la orden** (`lib/adaptive-ecommerce.ts`).
+
+### Helpers
+
+- `findAddToCart(page)` / `addToCartStage(page, timeoutMs)` — encuentra y
+  clickea el botón de agregar al carrito (acepta diálogos nativos del tipo
+  `alert("Producto agregado")`).
+- `goToCheckoutStage(page, timeoutMs)` — navega al carrito/checkout por
+  rol/texto o por `href*=cart|checkout`.
+- `fillPaymentStage(page, data, timeoutMs)` — llena email (si lo pide el
+  checkout), tarjeta, expiración (campo único vía `splitExpiry` o mes/año
+  separados) y CVC, resolviendo cada campo por `name`/`autocomplete`/`id`/label/
+  placeholder; los campos ausentes se omiten.
+- `confirmOrderAndVerify(page, timeoutMs)` — clickea el botón de
+  confirmar/pagar y hace polling (hasta 8s) buscando un mensaje de éxito;
+  devuelve `{ success, finalUrl, reason }`.
+
+### Funciones puras (detectores)
+
+- `isAddToCartSelector` / `isCheckoutNavSelector` / `isConfirmOrderSelector` /
+  `isPaymentFieldSelector` — clasifican el selector de Gemini por etapa.
+- `splitExpiry(expiry)` — parte `MM/AA` o `MM/AAAA` en `{ month, year }`
+  (rellena el mes a dos dígitos); devuelve vacíos si no parsea.
+
+### Cómo se activa
+
+En `lib/execute-test-run.ts`, sólo para `test_type === "ecommerce"`:
+
+- `click`: el **orden de comprobación importa** porque las regex se solapan
+  (`comprar` matchea varias); se evalúa **confirmar > add-to-cart > checkout**
+  para no tratar el botón final de pago como un add-to-cart.
+  `isConfirmOrderSelector` → `confirmOrderAndVerify`
+  (`[adaptive] confirmar orden`); `isAddToCartSelector` → `addToCartStage`
+  (`[adaptive] agregar al carrito`); `isCheckoutNavSelector` →
+  `goToCheckoutStage` (`[adaptive] ir a checkout`).
+- `fill`: si el selector huele a campo de pago (`isPaymentFieldSelector`) se
+  invoca `fillPaymentStage` con `ctx.ecommerceData`
+  (`[adaptive] datos de pago`).
+
+### Verificación por comportamiento y límites conocidos
+
+El único árbitro de éxito es la **confirmación de la orden**
+(`confirmOrderAndVerify` con `isSuccessTextVisible`); las etapas previas solo
+fallan si no encuentran su botón/destino. Límites: las **pasarelas de pago en
+iframe** quedan **fuera de alcance** (no se puede escribir dentro del iframe ni
+leer su confirmación); el modelo de datos de pago es **email + tarjeta +
+expiración + cvc** (`EcommerceData`), sin soporte para titular ni dirección.
+
+### Reporte en la UI
+
+Los pasos llevan el prefijo `[adaptive]` (`[adaptive] agregar al carrito`,
+`[adaptive] ir a checkout`, `[adaptive] datos de pago`,
+`[adaptive] confirmar orden`), con la URL final en `value`.
+
+### Tests
+
+`worker/test/adaptive-ecommerce.test.ts` cubre las funciones puras (los cuatro
+detectores y `splitExpiry`). `worker/test/adaptive-ecommerce.integration.test.ts`
+lanza Chromium contra fixtures HTTP: el flujo completo carrito → checkout →
+pago → confirmación verde en una SPA mínima, la resolución de campos de pago por
+`id` + `<label for>` (estilo demoblaze, sin name/placeholder), y la trampa de
+falso positivo (botón comprar que no produce ninguna confirmación →
+`success: false`).
+
+---
+
 ## Reporte en tiempo real — reconciliación
 
 `/dashboard/runs/[id]` muestra el avance en vivo combinando dos mecanismos.
@@ -370,6 +653,7 @@ debe haber añadido las tres tablas a la publication `supabase_realtime`.
 ## Roadmap del proyecto
 
 ### Fase 1 — Base del proyecto
+
 Configuración inicial del entorno, autenticación y estructura de la base de datos.
 El objetivo de esta fase es tener el proyecto corriendo localmente con login funcional
 y la estructura de tablas lista en Supabase.
@@ -382,6 +666,7 @@ y la estructura de tablas lista en Supabase.
 - [x] Configurar ESLint, Prettier y TypeScript en modo strict
 
 ### Fase 2 — Integración con IA
+
 Conectar el formulario del usuario con la API de Gemini.
 El objetivo es que el sistema reciba un prompt en lenguaje natural y devuelva
 un JSON válido con los casos de prueba estructurados.
@@ -395,6 +680,7 @@ un JSON válido con los casos de prueba estructurados.
 - [x] Manejar errores: respuesta malformada, timeout, límite de tokens, rate limit (429)
 
 ### Fase 3 — Motor de ejecución con Playwright
+
 Ejecutar los casos de prueba generados por la IA en un browser real.
 El objetivo es que cada paso del JSON se ejecute, se capture su resultado
 y se suba el screenshot a Supabase Storage.
@@ -408,6 +694,7 @@ y se suba el screenshot a Supabase Storage.
 - [x] Implementar timeout por job (máximo 120s) para evitar procesos colgados
 
 ### Fase 4 — Worker HTTP asíncrono
+
 Desacoplar la ejecución de Playwright del ciclo request-response de Vercel.
 La API Route inserta el `test_run` y delega vía HTTP a un worker Express en
 Render; el frontend recibe `201` al instante y suscribe al run por Realtime.
@@ -420,6 +707,7 @@ Render; el frontend recibe `201` al instante y suscribe al run por Realtime.
 - [x] Registrar logs de cada job (inicio, fin, error) en la tabla test_runs
 
 ### Fase 5 — Reporte en tiempo real
+
 Mostrar el progreso y resultado de la ejecución en el dashboard sin recargar la página.
 El objetivo es que el usuario vea cada paso completarse en vivo mientras Playwright trabaja.
 
@@ -431,6 +719,7 @@ El objetivo es que el usuario vea cada paso completarse en vivo mientras Playwri
 - [x] Crear vista de historial: todos los test_runs del usuario ordenados por fecha
 
 ### Fase 6 — Despliegue y producción
+
 Llevar el proyecto a producción con los dos servicios desplegados y funcionando.
 El objetivo es tener una URL pública funcional lista para el portafolio.
 
@@ -473,6 +762,30 @@ El objetivo es tener una URL pública funcional lista para el portafolio.
 - Toda entrada del usuario que llegue a una ruta de API debe pasar por un schema
   de Zod antes de cualquier otra operación. Si la validación falla, responder
   con status 400 y no continuar.
+- **Protección SSRF (defensa en profundidad).** Validar el esquema no basta: el
+  worker navega con un navegador real y sube screenshots, así que un destino
+  interno permitiría exfiltrar contenido. La protección vive en tres capas:
+  1. **API (Zod)** — `lib/validation/test-run.ts` rechaza `target_url` cuyo host
+     sea interno por forma literal (`localhost`, IPs privadas/loopback/link-local
+     y encodings) vía `isBlockedLiteralHost` (`lib/validation/safe-host.ts`).
+     Filtro síncrono de UX; no resuelve DNS.
+  2. **Worker pre-navegación** — `assertSafeUrl` (`worker/lib/safe-url.ts`)
+     resuelve DNS y bloquea si el host resuelve a una IP interna, antes de cada
+     `goto`.
+  3. **Worker interceptor** — `installSsrfGuard` registra `context.route("**/*")`
+     y valida **cada request** (la frontera real: cubre redirects y sub-recursos).
+     Aplicado al crear el contexto en `execute-test-run.ts`. Frente al DNS
+     rebinding reduce la ventana a un solo request (el navegador re-resuelve por
+     su cuenta tras `route.continue()`, así que queda un TOCTOU residual de un
+     request; es la mitigación estándar sin pinning de IP en el socket, y se
+     acepta para este modelo de amenaza).
+     El núcleo de clasificación de IP/host está **duplicado** en
+     `worker/lib/safe-url.ts` y `lib/validation/safe-host.ts` porque Render
+     despliega el worker con `rootDir: worker` (no puede importar fuera de
+     `worker/`); ambas copias son puras (sin node builtins, seguras para el bundle
+     del cliente) y tienen tests. El flag `SSRF_ALLOW_PRIVATE_NETWORK=1` desactiva
+     el guard y **solo** debe usarse en test/dev (los integration tests lo setean
+     para navegar a `127.0.0.1`); en Render se deja sin definir.
 
 ### Ejecución de Playwright en el servidor
 

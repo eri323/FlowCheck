@@ -3,6 +3,7 @@ import { z } from "zod";
 import { enqueueExclusive } from "./concurrency";
 import { processTestRun } from "./process-test-run";
 import { sweepOrphanRuns } from "./sweep-orphan-runs";
+import { assertWorkerEnv } from "./lib/env";
 
 const runTestSchema = z.object({ testRunId: z.uuid() });
 
@@ -23,9 +24,10 @@ export function createApp(): express.Express {
 
     const parsed = runTestSchema.safeParse(req.body);
     if (!parsed.success) {
-      res
-        .status(400)
-        .json({ ok: false, message: "Body inválido: se espera { testRunId: uuid }" });
+      res.status(400).json({
+        ok: false,
+        message: "Body inválido: se espera { testRunId: uuid }",
+      });
       return;
     }
 
@@ -41,6 +43,7 @@ export function createApp(): express.Express {
 }
 
 async function main(): Promise<void> {
+  assertWorkerEnv();
   const swept = await sweepOrphanRuns();
   if (swept > 0) {
     console.log(

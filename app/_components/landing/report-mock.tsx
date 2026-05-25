@@ -17,8 +17,18 @@ const STEPS: Step[] = [
 function Dot({ state }: { state: "done" | "running" | "idle" }) {
   if (state === "done") {
     return (
-      <span className="grid size-4 shrink-0 place-items-center rounded-full bg-success-bg text-success-text">
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <span className="bg-success-bg text-success-text grid size-4 shrink-0 place-items-center rounded-full">
+        <svg
+          width="9"
+          height="9"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
           <path d="M20 6L9 17l-5-5" />
         </svg>
       </span>
@@ -27,13 +37,13 @@ function Dot({ state }: { state: "done" | "running" | "idle" }) {
   if (state === "running") {
     return (
       <span className="grid size-4 shrink-0 place-items-center">
-        <span className="size-2.5 animate-pulse-dot rounded-full bg-running" />
+        <span className="animate-pulse-dot bg-running size-2.5 rounded-full" />
       </span>
     );
   }
   return (
     <span className="grid size-4 shrink-0 place-items-center">
-      <span className="size-2 rounded-full border border-border-strong" />
+      <span className="border-border-strong size-2 rounded-full border" />
     </span>
   );
 }
@@ -60,12 +70,12 @@ export function ReportMock({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border border-border bg-surface shadow-e3",
+        "border-border bg-surface shadow-e3 overflow-hidden rounded-xl border",
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-3 border-b border-border bg-surface-2 px-4 py-2.5">
-        <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted">
+      <div className="border-border bg-surface-2 flex items-center justify-between gap-3 border-b px-4 py-2.5">
+        <span className="text-muted inline-flex items-center gap-1.5 font-mono text-xs">
           <Globe size={13} />
           demo-shop.com
         </span>
@@ -89,10 +99,10 @@ export function ReportMock({
 
       <div className="px-4 py-3.5">
         <div className="flex items-baseline justify-between gap-3">
-          <h3 className="text-[0.8125rem] font-semibold text-text">
+          <h3 className="text-text text-[0.8125rem] font-semibold">
             Flujo de inicio de sesión
           </h3>
-          <span className="font-mono text-[0.6875rem] text-faint">
+          <span className="text-faint font-mono text-[0.6875rem]">
             {Math.min(progress, total)}/{total} pasos
           </span>
         </div>
@@ -110,7 +120,7 @@ export function ReportMock({
                 )}
               >
                 <Dot state={state} />
-                <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[0.6875rem] font-medium text-accent-text">
+                <code className="bg-surface-2 text-accent-text rounded px-1.5 py-0.5 font-mono text-[0.6875rem] font-medium">
                   {step.action}
                 </code>
                 <span
@@ -121,7 +131,7 @@ export function ReportMock({
                 >
                   {step.target}
                 </span>
-                <span className="tabular shrink-0 font-mono text-[0.6875rem] text-faint">
+                <span className="tabular text-faint shrink-0 font-mono text-[0.6875rem]">
                   {state === "idle" ? "—" : step.dur}
                 </span>
               </li>
@@ -129,7 +139,7 @@ export function ReportMock({
           })}
         </ol>
 
-        <div className="mt-3.5 flex items-center gap-1.5 border-t border-border pt-3">
+        <div className="border-border mt-3.5 flex items-center gap-1.5 border-t pt-3">
           {STEPS.map((step, i) => (
             <div
               key={step.action + i}
@@ -137,21 +147,21 @@ export function ReportMock({
                 "flex h-9 flex-1 flex-col gap-1 rounded border p-1 transition-colors duration-300",
                 i < progress
                   ? "border-border bg-surface-2"
-                  : "border-dashed border-border",
+                  : "border-border border-dashed",
               )}
               aria-hidden="true"
             >
               {i < progress ? (
                 <>
-                  <span className="h-1 w-2/3 rounded-full bg-border-strong" />
-                  <span className="h-1 w-full rounded-full bg-border" />
-                  <span className="h-1 w-1/2 rounded-full bg-border" />
+                  <span className="bg-border-strong h-1 w-2/3 rounded-full" />
+                  <span className="bg-border h-1 w-full rounded-full" />
+                  <span className="bg-border h-1 w-1/2 rounded-full" />
                 </>
               ) : null}
             </div>
           ))}
         </div>
-        <p className="mt-2 font-mono text-[0.625rem] text-faint">
+        <p className="text-faint mt-2 font-mono text-[0.625rem]">
           una captura por paso · subidas a storage
         </p>
       </div>

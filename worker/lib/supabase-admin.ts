@@ -9,7 +9,9 @@ export function createSupabaseAdminClient(): SupabaseClient {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceRoleKey) {
-    throw new Error("Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en el entorno");
+    throw new Error(
+      "Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en el entorno",
+    );
   }
 
   return createClient(url, serviceRoleKey, {

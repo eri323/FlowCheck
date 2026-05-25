@@ -107,7 +107,9 @@ function buildUserMessage(input: GenerateTestPlanInput): string {
       lines.push("");
       lines.push(
         "Objetivo: usar el buscador del sitio, enviar el término y verificar que aparecen resultados relevantes." +
-          (d.expectedResult ? " Verifica también la expectativa indicada." : ""),
+          (d.expectedResult
+            ? " Verifica también la expectativa indicada."
+            : ""),
       );
       break;
     }
@@ -156,10 +158,20 @@ function buildUserMessage(input: GenerateTestPlanInput): string {
 }
 
 export type GenerateTestPlanInput =
-  | { testType: "login"; testData: { email: string; password: string }; targetUrl: string; extraInstruction?: string }
+  | {
+      testType: "login";
+      testData: { email: string; password: string };
+      targetUrl: string;
+      extraInstruction?: string;
+    }
   | {
       testType: "registro";
-      testData: { name: string; email: string; password: string; confirmPassword: string };
+      testData: {
+        name: string;
+        email: string;
+        password: string;
+        confirmPassword: string;
+      };
       targetUrl: string;
       extraInstruction?: string;
     }
@@ -169,8 +181,18 @@ export type GenerateTestPlanInput =
       targetUrl: string;
       extraInstruction?: string;
     }
-  | { testType: "navegacion"; testData: Record<string, never>; targetUrl: string; extraInstruction?: string }
-  | { testType: "formulario"; testData: { fields: string }; targetUrl: string; extraInstruction?: string }
+  | {
+      testType: "navegacion";
+      testData: Record<string, never>;
+      targetUrl: string;
+      extraInstruction?: string;
+    }
+  | {
+      testType: "formulario";
+      testData: { fields: string };
+      targetUrl: string;
+      extraInstruction?: string;
+    }
   | {
       testType: "ecommerce";
       testData: { email: string; card: string; expiry: string; cvc: string };
@@ -183,10 +205,14 @@ export type SupportedTestType = TestType;
 const GEMINI_MODEL = "gemini-2.5-flash";
 const MAX_OUTPUT_TOKENS = 16000;
 
-export async function generateTestPlan(input: GenerateTestPlanInput): Promise<TestPlan> {
+export async function generateTestPlan(
+  input: GenerateTestPlanInput,
+): Promise<TestPlan> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new TestPlanGenerationError("GEMINI_API_KEY no está configurada en el entorno");
+    throw new TestPlanGenerationError(
+      "GEMINI_API_KEY no está configurada en el entorno",
+    );
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -248,7 +274,10 @@ export async function generateTestPlan(input: GenerateTestPlanInput): Promise<Te
   try {
     parsed = JSON.parse(cleaned);
   } catch (error) {
-    throw new TestPlanGenerationError("La respuesta de la IA no es JSON válido", error);
+    throw new TestPlanGenerationError(
+      "La respuesta de la IA no es JSON válido",
+      error,
+    );
   }
 
   const result = testPlanSchema.safeParse(parsed);

@@ -24,23 +24,23 @@ export function StatTile({
   trend?: number[];
 }): React.JSX.Element {
   return (
-    <div className="relative flex flex-col gap-2 overflow-hidden bg-surface px-4 py-4">
+    <div className="bg-surface relative flex flex-col gap-2 overflow-hidden px-4 py-4">
       <div className="flex items-center gap-1.5">
         <span className={cn("size-1.5 rounded-full", DOT[tone])} />
-        <span className="font-mono text-[0.6875rem] uppercase tracking-[0.1em] text-muted">
+        <span className="text-muted font-mono text-[0.6875rem] tracking-[0.1em] uppercase">
           {label}
         </span>
       </div>
-      <p className="tabular text-[1.75rem] font-semibold leading-none tracking-tight text-text">
+      <p className="tabular text-text text-[1.75rem] leading-none font-semibold tracking-tight">
         {value}
         {unit ? (
-          <span className="ml-1 text-sm font-medium text-faint">{unit}</span>
+          <span className="text-faint ml-1 text-sm font-medium">{unit}</span>
         ) : null}
       </p>
       {trend && trend.length >= 2 ? (
         <Sparkline
           data={trend}
-          className="pointer-events-none absolute bottom-0 right-0 h-2/3 w-1/2 opacity-60"
+          className="pointer-events-none absolute right-0 bottom-0 h-2/3 w-1/2 opacity-60"
         />
       ) : null}
     </div>

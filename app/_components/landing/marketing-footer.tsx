@@ -10,7 +10,7 @@ function FooterCol({
 }): React.JSX.Element {
   return (
     <div className="flex flex-col gap-2.5">
-      <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-faint">
+      <h3 className="text-faint text-xs font-semibold tracking-[0.08em] uppercase">
         {title}
       </h3>
       {children}
@@ -23,12 +23,12 @@ const linkClass =
 
 export function MarketingFooter(): React.JSX.Element {
   return (
-    <footer className="border-t border-border bg-surface-2/40">
+    <footer className="border-border bg-surface-2/40 border-t">
       <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8">
         <div className="flex flex-col gap-10 sm:flex-row sm:justify-between">
           <div className="max-w-xs">
             <Logo />
-            <p className="mt-3 text-sm leading-relaxed text-muted">
+            <p className="text-muted mt-3 text-sm leading-relaxed">
               Pruebas end-to-end generadas por IA y ejecutadas en un navegador
               real.
             </p>
@@ -57,11 +57,11 @@ export function MarketingFooter(): React.JSX.Element {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-2 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-faint">
+        <div className="border-border mt-10 flex flex-col gap-2 border-t pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-faint text-xs">
             © 2026 FlowCheck. Proyecto de demostración técnica.
           </p>
-          <p className="font-mono text-xs text-faint">
+          <p className="text-faint font-mono text-xs">
             Next.js · Playwright · Gemini · Supabase
           </p>
         </div>

@@ -11,7 +11,7 @@ export function Card({
 }: HTMLAttributes<HTMLDivElement>): React.JSX.Element {
   return (
     <div
-      className={cn("rounded-lg border border-border bg-surface", className)}
+      className={cn("border-border bg-surface rounded-lg border", className)}
       {...props}
     />
   );

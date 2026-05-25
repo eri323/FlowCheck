@@ -24,6 +24,7 @@
 ## Task 1: Migración — eliminar la columna `retries`
 
 **Files:**
+
 - Create: `supabase/migrations/0006_drop_retries.sql`
 
 - [ ] **Step 1: Crear el archivo de migración**
@@ -56,6 +57,7 @@ Nota: la migración se **aplica manualmente** en Supabase al desplegar (igual qu
 ## Task 2: Desacoplar `worker/` del tooling de la raíz
 
 **Files:**
+
 - Modify: `tsconfig.json:36`
 - Modify: `eslint.config.mjs:10`
 - Modify: `.gitignore`
@@ -110,6 +112,7 @@ git commit -m "chore: desacopla el directorio worker del tooling de la raiz"
 ## Task 3: Cliente HTTP del worker — `triggerWorkerRun`
 
 **Files:**
+
 - Create: `lib/worker/trigger-worker.ts`
 - Test: `tests/lib/trigger-worker.test.ts`
 
@@ -224,6 +227,7 @@ git commit -m "feat(api): cliente HTTP triggerWorkerRun para delegar al worker"
 ## Task 4: API Route — delegar al worker vía `after()`
 
 **Files:**
+
 - Modify: `app/api/test-runs/route.ts` (reescritura completa)
 - Test: `tests/api/test-runs.test.ts` (reescritura completa)
 
@@ -318,7 +322,10 @@ function makeSupabaseMock(opts: SupabaseMockOptions): SupabaseMock {
             error: opts.rateError ?? null,
           }).then(resolve, reject);
         }
-        return Promise.resolve({ data: null, error: null }).then(resolve, reject);
+        return Promise.resolve({ data: null, error: null }).then(
+          resolve,
+          reject,
+        );
       };
       return builder;
     }),
@@ -345,7 +352,10 @@ function makeAdminMock(): AdminMock {
   return { client, updates };
 }
 
-function makeRequest(body: unknown, options: { rawBody?: string } = {}): Request {
+function makeRequest(
+  body: unknown,
+  options: { rawBody?: string } = {},
+): Request {
   return new Request("http://localhost/api/test-runs", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -390,7 +400,9 @@ describe("POST /api/test-runs", () => {
     const { POST, createSupabaseServerClient } = await loadRoute();
     const { client } = makeSupabaseMock({ user: null });
     createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+      client as unknown as Awaited<
+        ReturnType<typeof createSupabaseServerClient>
+      >,
     );
 
     const response = await POST(makeRequest(validBody));
@@ -401,10 +413,14 @@ describe("POST /api/test-runs", () => {
     const { POST, createSupabaseServerClient } = await loadRoute();
     const { client } = makeSupabaseMock({ user: { id: "u1" } });
     createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+      client as unknown as Awaited<
+        ReturnType<typeof createSupabaseServerClient>
+      >,
     );
 
-    const response = await POST(makeRequest(undefined, { rawBody: "no-es-json" }));
+    const response = await POST(
+      makeRequest(undefined, { rawBody: "no-es-json" }),
+    );
     expect(response.status).toBe(400);
   });
 
@@ -412,7 +428,9 @@ describe("POST /api/test-runs", () => {
     const { POST, createSupabaseServerClient } = await loadRoute();
     const { client } = makeSupabaseMock({ user: { id: "u1" } });
     createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+      client as unknown as Awaited<
+        ReturnType<typeof createSupabaseServerClient>
+      >,
     );
 
     const response = await POST(
@@ -430,7 +448,9 @@ describe("POST /api/test-runs", () => {
       await loadRoute();
     const { client } = makeSupabaseMock({ user: { id: "u1" }, recentCount: 5 });
     createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+      client as unknown as Awaited<
+        ReturnType<typeof createSupabaseServerClient>
+      >,
     );
 
     const response = await POST(makeRequest(validBody));
@@ -448,7 +468,9 @@ describe("POST /api/test-runs", () => {
       insertData: { id: "run-123" },
     });
     createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+      client as unknown as Awaited<
+        ReturnType<typeof createSupabaseServerClient>
+      >,
     );
     triggerWorkerRun.mockResolvedValue(undefined);
 
@@ -469,11 +491,15 @@ describe("POST /api/test-runs", () => {
       insertData: { id: "run-r" },
     });
     createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+      client as unknown as Awaited<
+        ReturnType<typeof createSupabaseServerClient>
+      >,
     );
     triggerWorkerRun.mockResolvedValue(undefined);
 
-    const response = await POST(makeRequest({ ...validBody, device: "mobile" }));
+    const response = await POST(
+      makeRequest({ ...validBody, device: "mobile" }),
+    );
     expect(response.status).toBe(201);
     expect(inserts).toHaveLength(1);
     expect(inserts[0]).toMatchObject({ browser: "chromium", device: "mobile" });
@@ -489,7 +515,9 @@ describe("POST /api/test-runs", () => {
       insertError: { message: "boom" },
     });
     createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+      client as unknown as Awaited<
+        ReturnType<typeof createSupabaseServerClient>
+      >,
     );
 
     const response = await POST(makeRequest(validBody));
@@ -509,7 +537,9 @@ describe("POST /api/test-runs", () => {
       insertData: { id: "run-xyz" },
     });
     createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+      client as unknown as Awaited<
+        ReturnType<typeof createSupabaseServerClient>
+      >,
     );
     const admin = makeAdminMock();
     createSupabaseAdminClient.mockReturnValue(
@@ -650,7 +680,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     try {
       await triggerWorkerRun(testRunId);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Error desconocido";
+      const message =
+        error instanceof Error ? error.message : "Error desconocido";
       const admin = createSupabaseAdminClient();
       await admin
         .from("test_runs")
@@ -691,6 +722,7 @@ git commit -m "refactor(api): la ruta delega al worker HTTP en vez de encolar en
 ## Task 5: Eliminar `lib/queue/`
 
 **Files:**
+
 - Delete: `lib/queue/connection.ts`, `lib/queue/test-run-queue.ts`
 
 - [ ] **Step 1: Borrar el directorio de la cola**
@@ -715,6 +747,7 @@ git commit -m "refactor: elimina lib/queue (BullMQ + conexion Upstash)"
 ## Task 6: Eliminar la funcionalidad de reintentos
 
 **Files:**
+
 - Modify: `lib/validation/test-run.ts:100-108`
 - Modify: `app/dashboard/runs/new/_components/new-test-run-form.tsx`
 - Test: `tests/lib/validation/test-run.test.ts`
@@ -726,22 +759,22 @@ En `tests/lib/validation/test-run.test.ts`:
 En el test `"aplica los defaults de runner cuando no se envían"`, **eliminar** la línea:
 
 ```ts
-      expect(result.data.retries).toBe(1);
+expect(result.data.retries).toBe(1);
 ```
 
 Reemplazar el test `"acepta device 'mobile' y un número de reintentos válido"` completo por:
 
 ```ts
-  it("acepta device 'mobile'", () => {
-    const result = createTestRunSchema.safeParse({
-      ...base,
-      test_type: "navegacion",
-      test_data: {},
-      browser: "chromium",
-      device: "mobile",
-    });
-    expect(result.success).toBe(true);
+it("acepta device 'mobile'", () => {
+  const result = createTestRunSchema.safeParse({
+    ...base,
+    test_type: "navegacion",
+    test_data: {},
+    browser: "chromium",
+    device: "mobile",
   });
+  expect(result.success).toBe(true);
+});
 ```
 
 **Eliminar** por completo el test `"rechaza un número de reintentos fuera de rango"`.
@@ -792,6 +825,7 @@ git commit -m "refactor: elimina la funcionalidad de reintentos del schema y la 
 ## Task 7: Scaffold del paquete worker
 
 **Files:**
+
 - Create: `worker/package.json`, `worker/tsconfig.json`, `worker/vitest.config.ts`, `worker/.env.example`
 - Delete: `worker/index.ts`
 
@@ -902,6 +936,7 @@ cd .. && git add worker/package.json worker/tsconfig.json worker/vitest.config.t
 ## Task 8: Cola de concurrencia 1 del worker
 
 **Files:**
+
 - Create: `worker/concurrency.ts`
 - Test: `worker/test/concurrency.test.ts`
 
@@ -1006,6 +1041,7 @@ git commit -m "feat(worker): cola en memoria con concurrencia 1"
 ## Task 9: Cliente admin y barrido de runs huérfanos
 
 **Files:**
+
 - Create: `worker/lib/supabase-admin.ts`
 - Create: `worker/sweep-orphan-runs.ts`
 - Test: `worker/test/sweep-orphan-runs.test.ts`
@@ -1026,7 +1062,9 @@ export function createSupabaseAdminClient(): SupabaseClient {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceRoleKey) {
-    throw new Error("Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en el entorno");
+    throw new Error(
+      "Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en el entorno",
+    );
   }
 
   return createClient(url, serviceRoleKey, {
@@ -1133,7 +1171,9 @@ export async function sweepOrphanRuns(): Promise<number> {
     .select("id");
 
   if (error) {
-    console.error(`[worker] el barrido de runs huérfanos falló: ${error.message}`);
+    console.error(
+      `[worker] el barrido de runs huérfanos falló: ${error.message}`,
+    );
     return 0;
   }
 
@@ -1158,6 +1198,7 @@ git commit -m "feat(worker): cliente admin y barrido de runs huerfanos al arranc
 ## Task 10: Mover el stack de Playwright al worker
 
 **Files:**
+
 - Create: `worker/lib/types.ts`, `worker/lib/chromium-launch.ts`
 - Move: `lib/storage/upload-screenshot.ts` → `worker/lib/upload-screenshot.ts`
 - Move: `lib/playwright/safe-url.ts` → `worker/lib/safe-url.ts`
@@ -1262,7 +1303,7 @@ import {
 Y reemplazar la línea de lanzamiento del navegador (era `const browser = await chromium.launch({ headless: true });`) por:
 
 ```ts
-  const browser = await launchBrowser();
+const browser = await launchBrowser();
 ```
 
 (El resto de `execute-test-run.ts` —ejecución de pasos, screenshots, logs, ventana de verificación adaptativa— no cambia.)
@@ -1287,6 +1328,7 @@ git commit -m "refactor(worker): mueve el stack de Playwright al paquete worker"
 ## Task 11: Mover Gemini y el schema del plan al worker
 
 **Files:**
+
 - Move: `lib/gemini/generate-test-plan.ts` → `worker/lib/gemini.ts`
 - Move: `lib/validation/test-plan.ts` → `worker/lib/test-plan.ts`
 
@@ -1325,6 +1367,7 @@ git commit -m "refactor(worker): mueve la generacion con Gemini y el schema del 
 ## Task 12: Ajustar imports de `worker/process-test-run.ts`
 
 **Files:**
+
 - Modify: `worker/process-test-run.ts:1-9`
 
 - [ ] **Step 1: Reescribir el bloque de imports**
@@ -1362,6 +1405,7 @@ git commit -m "refactor(worker): ajusta imports de process-test-run al layout de
 ## Task 13: Servidor Express del worker
 
 **Files:**
+
 - Create: `worker/server.ts`
 - Test: `worker/test/server.test.ts`
 
@@ -1462,9 +1506,10 @@ export function createApp(): express.Express {
 
     const parsed = runTestSchema.safeParse(req.body);
     if (!parsed.success) {
-      res
-        .status(400)
-        .json({ ok: false, message: "Body inválido: se espera { testRunId: uuid }" });
+      res.status(400).json({
+        ok: false,
+        message: "Body inválido: se espera { testRunId: uuid }",
+      });
       return;
     }
 
@@ -1542,6 +1587,7 @@ git commit -m "fix: correcciones del gate de verificacion del refactor"
 ## Task 15: Limpieza de dependencias y archivos de deploy
 
 **Files:**
+
 - Modify: `package.json`
 - Delete: `Dockerfile`, `railway.json`, `.dockerignore`
 - Create: `render.yaml`
@@ -1549,6 +1595,7 @@ git commit -m "fix: correcciones del gate de verificacion del refactor"
 - [ ] **Step 1: Quitar dependencias muertas y el script `worker` de `package.json`**
 
 En `package.json` raíz:
+
 1. En `scripts`, eliminar la línea `"worker": "tsx --env-file=.env.local worker/index.ts"`.
 2. En `dependencies`, eliminar `"bullmq"`, `"ioredis"` y `"@google/genai"`.
 3. En `devDependencies`, eliminar `"playwright"`.
@@ -1604,6 +1651,7 @@ git rm --cached Dockerfile railway.json .dockerignore 2>/dev/null; git commit -m
 ## Task 16: Documentación
 
 **Files:**
+
 - Modify: `.env.example`
 - Modify: `CLAUDE.md`
 - Modify: `docs/DEPLOY.md`
@@ -1632,6 +1680,7 @@ WORKER_SECRET=
 - [ ] **Step 2: Actualizar `CLAUDE.md`**
 
 Aplicar estos cambios:
+
 1. **Bloque "Arquitectura":** `worker/` ya no es un consumidor de BullMQ; es un servidor Express HTTP en Render. Actualizar el comentario que lo describe.
 2. **Tabla "Stack":** eliminar la fila "Cola de jobs · BullMQ + Upstash Redis"; cambiar "Deploy worker · Railway" por "Deploy worker · Render". Añadir/ajustar una fila "Worker · Express HTTP".
 3. **"Comandos principales":** eliminar la línea `npm run worker`.
@@ -1644,11 +1693,12 @@ Aplicar estos cambios:
 - [ ] **Step 3: Reescribir `docs/DEPLOY.md`**
 
 Reescribir la guía para la arquitectura de dos servicios **Vercel + Render** (sin Upstash):
+
 1. Encabezado: el worker es un servicio Express en Render free tier; Vercel lo contacta vía HTTP.
 2. Eliminar por completo la sección "2. Upstash Redis".
 3. Sección Gemini: la `GEMINI_API_KEY` vive en Render.
 4. Sección Vercel: variables `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `WORKER_URL`, `WORKER_SECRET`.
-5. Reemplazar la sección "Railway (worker)" por "Render (worker)": *New → Blueprint* desde el repo, Render detecta `render.yaml`; variables `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `WORKER_SECRET`; notar que el free tier duerme tras 15 min (cold start ~30-50 s).
+5. Reemplazar la sección "Railway (worker)" por "Render (worker)": _New → Blueprint_ desde el repo, Render detecta `render.yaml`; variables `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `WORKER_SECRET`; notar que el free tier duerme tras 15 min (cold start ~30-50 s).
 6. Checklist post-deploy: quitar el ítem de los 6 runs/Upstash si aplica; añadir verificar `GET {WORKER_URL}/health`.
 
 - [ ] **Step 4: Actualizar `README.md`**

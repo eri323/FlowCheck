@@ -21,7 +21,7 @@ los tokens de color.
 
 - **Nombre**: se eligió `FlowCheck` (estilo descriptivo) frente a `Probe`,
   `TestPilot`, `Testwright` y `SnapCheck`. El nombre mapea directamente al
-  producto: el usuario describe un *flujo* y el sistema lo *verifica*.
+  producto: el usuario describe un _flujo_ y el sistema lo _verifica_.
 - **Estructura**: se eligió el enfoque "profundidad entretejida" — sin sección
   técnica dedicada; cada sección existente gana su capa técnica — frente a un
   capítulo "Bajo el capó" aislado o a un caso de estudio completo.
@@ -40,14 +40,14 @@ palabra.
 Archivos a editar (6 archivos; `logo.tsx` y `layout.tsx` tienen 2
 ocurrencias cada uno):
 
-| Archivo | Ocurrencia |
-|---|---|
-| `components/ui/logo.tsx` | Wordmark `Probe`; `aria-label="Probe — inicio"` |
-| `app/layout.tsx` | `metadata.title.default` y `metadata.title.template` |
-| `app/_components/landing/hero.tsx` | Frase del párrafo de subtítulo |
-| `app/_components/landing/how-it-works.tsx` | Frase del párrafo introductorio |
-| `app/_components/landing/marketing-footer.tsx` | Línea de copyright |
-| `app/dashboard/_components/sidebar-nav.tsx` | Texto del pie del sidebar |
+| Archivo                                        | Ocurrencia                                           |
+| ---------------------------------------------- | ---------------------------------------------------- |
+| `components/ui/logo.tsx`                       | Wordmark `Probe`; `aria-label="Probe — inicio"`      |
+| `app/layout.tsx`                               | `metadata.title.default` y `metadata.title.template` |
+| `app/_components/landing/hero.tsx`             | Frase del párrafo de subtítulo                       |
+| `app/_components/landing/how-it-works.tsx`     | Frase del párrafo introductorio                      |
+| `app/_components/landing/marketing-footer.tsx` | Línea de copyright                                   |
+| `app/dashboard/_components/sidebar-nav.tsx`    | Texto del pie del sidebar                            |
 
 Quedan **fuera de alcance**: `package.json`, `README`, y los documentos
 históricos en `docs/superpowers/specs/` y `docs/superpowers/plans/` (son
@@ -82,11 +82,13 @@ La landing conserva sus 6 bloques: Hero → Cómo funciona → Tipos de prueba �
 Reporte en vivo → CTA → Footer. Se integran **5 callouts**.
 
 ### Hero (`hero.tsx`)
+
 Sin callout — ya tiene la insignia "Construido sobre Playwright y Gemini" y la
 línea mono. Solo se aplica el rename en el cuerpo. La insignia y el componente
 `ReportMock` no se tocan.
 
 ### Cómo funciona (`how-it-works.tsx`) — un `<Callout>` por paso
+
 Cada uno de los 3 pasos existentes recibe un `<Callout>` debajo de su cuerpo:
 
 - **Paso 1 · Describe el flujo**: "Cada tipo de prueba mantiene las
@@ -103,6 +105,7 @@ El layout de la grilla de 3 columnas se mantiene; el callout se ubica al final
 de cada celda de paso.
 
 ### Tipos de prueba (`test-types.tsx`) — un `<Callout>` de sección
+
 Debajo de la grilla de 6 tipos:
 
 - "El tipo **Login** no ejecuta los selectores al pie de la letra: una
@@ -111,6 +114,7 @@ Debajo de la grilla de 6 tipos:
   maquetado — un selector exótico no rompe la prueba."
 
 ### Reporte en vivo (`features.tsx`) — un `<Callout>` de sección
+
 Junto al bloque de 3 features:
 
 - "Supabase Realtime solo entrega eventos desde que el canal se suscribe,
@@ -119,6 +123,7 @@ Junto al bloque de 3 features:
   correctitud."
 
 ### CTA (`cta-section.tsx`) y Footer (`marketing-footer.tsx`)
+
 Sin callout. Solo el rename donde aplique.
 
 ## Copy

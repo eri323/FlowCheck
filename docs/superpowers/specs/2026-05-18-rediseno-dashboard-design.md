@@ -56,6 +56,7 @@ tokens no cambia — solo sus valores. Valores de partida (se ajustan a contrast
 WCAG AA durante la implementación):
 
 **Light (`:root`):**
+
 ```
 --accent:         oklch(0.600 0.142 163);
 --accent-hover:   oklch(0.545 0.145 162);
@@ -65,6 +66,7 @@ WCAG AA durante la implementación):
 ```
 
 **Dark (`.dark`):**
+
 ```
 --accent:         oklch(0.740 0.145 164);
 --accent-hover:   oklch(0.800 0.140 166);
@@ -80,7 +82,7 @@ Opcional (polish, no bloqueante): re-tintar el hue de los neutrales de ~67 a
 
 El accent ahora es verde y `success`/"completado" también es verde — es
 **intencional**. El token `--success` (ya en hue ~158) se mantiene; se distingue
-del accent por **componente**, no por hue: los estados viven en *badges*
+del accent por **componente**, no por hue: los estados viven en _badges_
 (píldora con punto + etiqueta mono) y el accent vive en botones llenos y enlaces.
 El prototipo demuestra que esta convención se lee sin ambigüedad.
 

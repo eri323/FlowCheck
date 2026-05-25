@@ -9,8 +9,8 @@ export default function DashboardLoading(): React.JSX.Element {
         <Skeleton className="h-4 w-72 max-w-full" />
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border">
-        <div className="grid grid-cols-2 gap-px bg-border lg:grid-cols-4">
+      <div className="border-border overflow-hidden rounded-lg border">
+        <div className="bg-border grid grid-cols-2 gap-px lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="bg-surface px-4 py-3.5">
               <Skeleton className="h-3.5 w-24" />

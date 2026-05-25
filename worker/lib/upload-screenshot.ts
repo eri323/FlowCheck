@@ -20,10 +20,12 @@ export async function uploadScreenshot(
 ): Promise<string> {
   const path = `${testRunId}/${stepId}.png`;
 
-  const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, png, {
-    contentType: "image/png",
-    upsert: true,
-  });
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, png, {
+      contentType: "image/png",
+      upsert: true,
+    });
 
   if (uploadError) {
     throw new ScreenshotUploadError(

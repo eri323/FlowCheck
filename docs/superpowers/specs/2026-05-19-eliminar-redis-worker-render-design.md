@@ -31,7 +31,7 @@ Vercel (Next.js)  ──POST /run-test──>  Render free tier (worker Express)
 Decisiones tomadas durante el brainstorming:
 
 - Se elimina la funcionalidad de **reintentos**: migración `DROP COLUMN
-  retries`, fuera del stepper del formulario y del schema Zod.
+retries`, fuera del stepper del formulario y del schema Zod.
 - El worker corre con **concurrencia 1** (un solo Chromium a la vez): 512 MB de
   RAM no admiten dos.
 - El worker hace un **barrido de runs huérfanos** al arrancar.
@@ -61,7 +61,7 @@ Decisiones tomadas durante el brainstorming:
 - Si el worker responde error o el fetch expira: la API Route marca el
   `test_run` como `fallido` vía el cliente admin de Supabase, con mensaje
   `"No se pudo contactar al worker (puede estar despertando). Reintenta en un
-  minuto."`.
+minuto."`.
 
 ### En el worker (Render — proceso de larga duración)
 
@@ -85,8 +85,8 @@ Al arrancar `server.ts` (cada cold start es un boot nuevo en Render free tier),
 antes de aceptar tráfico se ejecuta `sweepOrphanRuns()`:
 
 - `UPDATE test_runs SET status = 'fallido', error_message = '...', finished_at
-  = now()` para filas con `status IN ('pendiente','corriendo')` y `created_at <
-  now() - interval '10 minutes'`.
+= now()` para filas con `status IN ('pendiente','corriendo')` y `created_at <
+now() - interval '10 minutes'`.
 - El umbral de 10 min evita barrer un run recién insertado que justamente acaba
   de despertar al worker.
 
@@ -94,7 +94,7 @@ antes de aceptar tráfico se ejecuta `sweepOrphanRuns()`:
 
 El worker es un paquete npm propio bajo `worker/`, autocontenido (Render lo
 construye con `rootDir: worker`). El código de Playwright/Gemini que hoy vive en
-`lib/` **se mueve** dentro de `worker/` — es un *move*, sin cambios de lógica.
+`lib/` **se mueve** dentro de `worker/` — es un _move_, sin cambios de lógica.
 
 ```
 worker/
@@ -153,10 +153,10 @@ export async function launchBrowser(): Promise<Browser> {
 
 ### `server.ts` — contrato HTTP
 
-| Ruta | Método | Auth | Respuesta |
-|------|--------|------|-----------|
-| `/run-test` | POST | `Bearer WORKER_SECRET` | `202` aceptado · `401` secret inválido · `400` body inválido |
-| `/health` | GET | — | `200 { ok: true }` |
+| Ruta        | Método | Auth                   | Respuesta                                                    |
+| ----------- | ------ | ---------------------- | ------------------------------------------------------------ |
+| `/run-test` | POST   | `Bearer WORKER_SECRET` | `202` aceptado · `401` secret inválido · `400` body inválido |
+| `/health`   | GET    | —                      | `200 { ok: true }`                                           |
 
 `POST /run-test` no espera a que termine el test: responde `202` y delega a
 `concurrency.ts`. El worker es un proceso de larga duración, así que el trabajo
@@ -257,10 +257,10 @@ alter table public.test_runs
 
 ## 9. Variables de entorno
 
-| Servicio | Variables |
-|----------|-----------|
+| Servicio   | Variables                                                                                                               |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------- |
 | **Vercel** | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `WORKER_URL`, `WORKER_SECRET` |
-| **Render** | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `WORKER_SECRET` |
+| **Render** | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `WORKER_SECRET`                                          |
 
 - `WORKER_SECRET` va en **ambos** servicios (Vercel lo envía, Render lo valida).
 - Se eliminan `UPSTASH_REDIS_URL` y `UPSTASH_REDIS_TOKEN` de todos lados.
@@ -277,7 +277,7 @@ services:
     plan: free
     rootDir: worker
     buildCommand: npm install
-    startCommand: npm start          # → tsx server.ts
+    startCommand: npm start # → tsx server.ts
     healthCheckPath: /health
     envVars:
       - key: SUPABASE_URL

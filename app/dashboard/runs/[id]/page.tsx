@@ -92,7 +92,7 @@ export default async function TestRunPage({
     <div className="flex flex-col gap-5">
       <Link
         href="/dashboard/runs"
-        className="inline-flex w-fit items-center gap-1.5 text-sm text-muted transition-colors duration-150 hover:text-text"
+        className="text-muted hover:text-text inline-flex w-fit items-center gap-1.5 text-sm transition-colors duration-150"
       >
         <ArrowLeft size={15} />
         Test runs
@@ -102,18 +102,16 @@ export default async function TestRunPage({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="accent">
-                {TEST_TYPE_LABELS[testRun.test_type]}
-              </Badge>
-              <span className="font-mono text-xs text-faint">
+              <Badge tone="accent">{TEST_TYPE_LABELS[testRun.test_type]}</Badge>
+              <span className="text-faint font-mono text-xs">
                 {formatDateTime(testRun.created_at)}
               </span>
             </div>
-            <h1 className="mt-2 truncate font-mono text-lg font-semibold tracking-tight text-text">
+            <h1 className="text-text mt-2 truncate font-mono text-lg font-semibold tracking-tight">
               {testRun.target_url}
             </h1>
             {testRun.prompt ? (
-              <p className="mt-1.5 max-w-2xl text-pretty text-sm text-muted">
+              <p className="text-muted mt-1.5 max-w-2xl text-sm text-pretty">
                 {testRun.prompt}
               </p>
             ) : null}

@@ -27,7 +27,9 @@ describe("isSearchFillSelector", () => {
   });
 
   it("detecta placeholder con términos de búsqueda", () => {
-    expect(isSearchFillSelector('input[placeholder="Buscar productos"]')).toBe(true);
+    expect(isSearchFillSelector('input[placeholder="Buscar productos"]')).toBe(
+      true,
+    );
     expect(isSearchFillSelector('input[placeholder="Search..."]')).toBe(true);
   });
 
@@ -39,7 +41,9 @@ describe("isSearchFillSelector", () => {
 
   it("NO detecta un botón de envío", () => {
     expect(isSearchFillSelector('button[type="submit"]')).toBe(false);
-    expect(isSearchFillSelector("getByRole('button', { name: 'Buscar' })")).toBe(false);
+    expect(
+      isSearchFillSelector("getByRole('button', { name: 'Buscar' })"),
+    ).toBe(false);
   });
 
   it("NO detecta inputs de texto sin relación con búsqueda", () => {
@@ -56,8 +60,12 @@ describe("isSearchSubmitSelector", () => {
   });
 
   it("detecta botones con verbos de búsqueda", () => {
-    expect(isSearchSubmitSelector("getByRole('button', { name: 'Buscar' })")).toBe(true);
-    expect(isSearchSubmitSelector("getByRole('button', { name: /search/i })")).toBe(true);
+    expect(
+      isSearchSubmitSelector("getByRole('button', { name: 'Buscar' })"),
+    ).toBe(true);
+    expect(
+      isSearchSubmitSelector("getByRole('button', { name: /search/i })"),
+    ).toBe(true);
     expect(isSearchSubmitSelector("button.search-btn")).toBe(true);
     expect(isSearchSubmitSelector('button:has-text("Ir")')).toBe(true);
   });
@@ -106,9 +114,15 @@ describe("urlSignalsSearch", () => {
   });
 
   it("detecta un parámetro de búsqueda conocido con valor", () => {
-    expect(urlSignalsSearch("http://x/", "http://x/?q=iphone", "iphone")).toBe(true);
-    expect(urlSignalsSearch("http://x/", "http://x/s?k=iphone", "iphone")).toBe(true);
-    expect(urlSignalsSearch("http://x/", "http://x/?search=tv", "tv")).toBe(true);
+    expect(urlSignalsSearch("http://x/", "http://x/?q=iphone", "iphone")).toBe(
+      true,
+    );
+    expect(urlSignalsSearch("http://x/", "http://x/s?k=iphone", "iphone")).toBe(
+      true,
+    );
+    expect(urlSignalsSearch("http://x/", "http://x/?search=tv", "tv")).toBe(
+      true,
+    );
   });
 
   it("ignora un parámetro de búsqueda vacío", () => {
@@ -116,7 +130,9 @@ describe("urlSignalsSearch", () => {
   });
 
   it("detecta el query reflejado en la ruta", () => {
-    expect(urlSignalsSearch("http://x/", "http://x/search/iphone", "iphone")).toBe(true);
+    expect(
+      urlSignalsSearch("http://x/", "http://x/search/iphone", "iphone"),
+    ).toBe(true);
   });
 
   it("detecta un segmento de ruta de búsqueda aunque no haya query", () => {
@@ -126,11 +142,15 @@ describe("urlSignalsSearch", () => {
 
   it("es falso ante un cambio de URL sin relación con búsqueda", () => {
     expect(urlSignalsSearch("http://x/", "http://x/login", "x")).toBe(false);
-    expect(urlSignalsSearch("http://x/a", "http://x/b?ref=1", "iphone")).toBe(false);
+    expect(urlSignalsSearch("http://x/a", "http://x/b?ref=1", "iphone")).toBe(
+      false,
+    );
   });
 
   it("es falso ante una URL final inválida", () => {
-    expect(urlSignalsSearch("http://x/", "no-es-una-url", "iphone")).toBe(false);
+    expect(urlSignalsSearch("http://x/", "no-es-una-url", "iphone")).toBe(
+      false,
+    );
   });
 });
 

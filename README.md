@@ -1,7 +1,7 @@
 # Plataforma de Testing Automatizado con IA
 
 Pegás una URL, describís un flujo en lenguaje natural ("entrá con
-`admin@demo.com / 1234`, andá a *Mis pedidos* y verificá que aparezcan 3
+`admin@demo.com / 1234`, andá a _Mis pedidos_ y verificá que aparezcan 3
 items"), y el sistema:
 
 1. Llama a Gemini para traducir el prompt a un plan de testing estructurado.
@@ -19,20 +19,20 @@ proyecto de portafolio.
 
 ## Stack
 
-| Capa            | Tecnología                          |
-|-----------------|-------------------------------------|
-| Frontend        | Next.js 16 (App Router) + Tailwind 4 |
-| API             | API Routes de Next.js               |
-| Auth + DB       | Supabase (Postgres, Auth, RLS)      |
-| Tiempo real     | Supabase Realtime (WebSocket)       |
-| Archivos        | Supabase Storage                    |
+| Capa            | Tecnología                                                                    |
+| --------------- | ----------------------------------------------------------------------------- |
+| Frontend        | Next.js 16 (App Router) + Tailwind 4                                          |
+| API             | API Routes de Next.js                                                         |
+| Auth + DB       | Supabase (Postgres, Auth, RLS)                                                |
+| Tiempo real     | Supabase Realtime (WebSocket)                                                 |
+| Archivos        | Supabase Storage                                                              |
 | IA              | `@google/genai` — `gemini-2.5-flash` con `responseMimeType: application/json` |
-| Browser tests   | Playwright (Chromium headless, `@sparticuz/chromium`) |
-| Worker          | Express HTTP (servidor de larga duración) |
-| Validación      | Zod en cada ruta de API             |
-| Tests           | Vitest + mocks manuales de Supabase |
-| Deploy frontend | Vercel                              |
-| Deploy worker   | Render (free tier, `render.yaml`)   |
+| Browser tests   | Playwright (Chromium headless, `@sparticuz/chromium`)                         |
+| Worker          | Express HTTP (servidor de larga duración)                                     |
+| Validación      | Zod en cada ruta de API                                                       |
+| Tests           | Vitest + mocks manuales de Supabase                                           |
+| Deploy frontend | Vercel                                                                        |
+| Deploy worker   | Render (free tier, `render.yaml`)                                             |
 
 ---
 
@@ -141,7 +141,7 @@ Detalles completos en `CLAUDE.md`.
 - Rate limit en `POST /api/test-runs`: 5 runs por minuto por usuario.
   Devuelve `429` con `Retry-After: 60`.
 - El endpoint `POST /run-test` del worker exige `Authorization: Bearer
-  WORKER_SECRET`. Sin el secreto, responde `401`.
+WORKER_SECRET`. Sin el secreto, responde `401`.
 - RLS activado en todas las tablas. El `user_id` se lee de la sesión
   de Supabase, **nunca** del body.
 
@@ -156,6 +156,6 @@ y Render con checklist de verificación post-deploy.
 
 ## Roadmap
 
-Estado de cada fase: ver sección *Roadmap* en `CLAUDE.md`.
+Estado de cada fase: ver sección _Roadmap_ en `CLAUDE.md`.
 Las fases 1–5 están implementadas; la fase 6 (deploy a producción)
 es la que documenta este README.

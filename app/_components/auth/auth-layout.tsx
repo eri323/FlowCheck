@@ -26,7 +26,7 @@ export function AuthLayout({
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-[-8rem] size-[30rem] -translate-x-1/2 rounded-full opacity-[0.12] blur-3xl"
+        className="pointer-events-none absolute top-[-8rem] left-1/2 size-[30rem] -translate-x-1/2 rounded-full opacity-[0.12] blur-3xl"
         style={{
           background:
             "radial-gradient(circle, var(--accent) 0%, transparent 68%)",
@@ -39,11 +39,11 @@ export function AuthLayout({
       </header>
 
       <main className="relative flex flex-1 items-center justify-center px-5 py-10">
-        <div className="w-full max-w-sm animate-rise">{children}</div>
+        <div className="animate-rise w-full max-w-sm">{children}</div>
       </main>
 
       {footer ? (
-        <footer className="relative px-5 pb-8 text-center text-xs text-faint">
+        <footer className="text-faint relative px-5 pb-8 text-center text-xs">
           {footer}
         </footer>
       ) : null}

@@ -14,9 +14,7 @@ function subscribe(callback: () => void): () => void {
 }
 
 function getSnapshot(): Theme {
-  return document.documentElement.classList.contains("dark")
-    ? "dark"
-    : "light";
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
 }
 
 /** The app is dark-first, so the server always assumes dark. */
@@ -29,11 +27,7 @@ export function ThemeToggle({
 }: {
   className?: string;
 }): React.JSX.Element {
-  const theme = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getServerSnapshot,
-  );
+  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   const toggle = useCallback(() => {
     const next: Theme = theme === "dark" ? "light" : "dark";
@@ -54,7 +48,7 @@ export function ThemeToggle({
         theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"
       }
       className={cn(
-        "inline-flex size-9 items-center justify-center rounded-md text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-text",
+        "text-muted hover:bg-surface-2 hover:text-text inline-flex size-9 items-center justify-center rounded-md transition-colors duration-150",
         className,
       )}
     >

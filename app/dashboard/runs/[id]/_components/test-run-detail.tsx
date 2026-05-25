@@ -8,12 +8,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, type TabItem } from "@/components/ui/tabs";
-import {
-  AlertCircle,
-  Close,
-  ImageIcon,
-  Sparkles,
-} from "@/components/ui/icons";
+import { AlertCircle, Close, ImageIcon, Sparkles } from "@/components/ui/icons";
 import { RunStatusBadge, StepStatusBadge } from "@/components/runs/run-status";
 import { StepTimeline } from "@/components/runs/step-timeline";
 
@@ -77,7 +72,9 @@ export function TestRunDetail({
   const [openScreenshot, setOpenScreenshot] = useState<string | null>(null);
   const [tab, setTab] = useState("pasos");
 
-  const caseIdsRef = useRef<Set<string>>(new Set(initialCases.map((c) => c.id)));
+  const caseIdsRef = useRef<Set<string>>(
+    new Set(initialCases.map((c) => c.id)),
+  );
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -93,8 +90,14 @@ export function TestRunDetail({
           filter: `id=eq.${runId}`,
         },
         (payload) => {
-          if (payload.eventType === "UPDATE" || payload.eventType === "INSERT") {
-            setRun((prev) => ({ ...prev, ...(payload.new as Partial<TestRun>) }));
+          if (
+            payload.eventType === "UPDATE" ||
+            payload.eventType === "INSERT"
+          ) {
+            setRun((prev) => ({
+              ...prev,
+              ...(payload.new as Partial<TestRun>),
+            }));
           }
         },
       )
@@ -251,8 +254,7 @@ export function TestRunDetail({
   const totalDurationMs = useMemo(() => {
     if (!run.started_at || !run.finished_at) return null;
     return (
-      new Date(run.finished_at).getTime() -
-      new Date(run.started_at).getTime()
+      new Date(run.finished_at).getTime() - new Date(run.started_at).getTime()
     );
   }, [run.started_at, run.finished_at]);
 
@@ -302,7 +304,7 @@ export function TestRunDetail({
             />
           </div>
           {totalDurationMs !== null ? (
-            <span className="tabular ml-auto font-mono text-xs text-faint">
+            <span className="tabular text-faint ml-auto font-mono text-xs">
               {formatDuration(totalDurationMs)}
             </span>
           ) : null}
@@ -311,10 +313,10 @@ export function TestRunDetail({
         {isActive && steps.length > 0 ? (
           <div className="px-4 pb-4 sm:px-5">
             <div className="flex items-center justify-between gap-3 pb-1.5">
-              <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
+              <span className="text-faint font-mono text-[0.625rem] tracking-widest uppercase">
                 progreso
               </span>
-              <span className="tabular font-mono text-[0.625rem] text-faint">
+              <span className="tabular text-faint font-mono text-[0.625rem]">
                 {counts.passed + counts.failed}/{steps.length} pasos
               </span>
             </div>
@@ -324,10 +326,10 @@ export function TestRunDetail({
               aria-valuemin={0}
               aria-valuemax={100}
               aria-label="Progreso del run"
-              className="h-1.5 overflow-hidden rounded-full bg-neutral-bg"
+              className="bg-neutral-bg h-1.5 overflow-hidden rounded-full"
             >
               <div
-                className="h-full rounded-full bg-accent transition-[width] duration-700 ease-out"
+                className="bg-accent h-full rounded-full transition-[width] duration-700 ease-out"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
@@ -335,8 +337,8 @@ export function TestRunDetail({
         ) : null}
 
         {run.error_message ? (
-          <div className="border-t border-border px-4 py-3 sm:px-5">
-            <p className="flex items-start gap-2 rounded-md bg-danger-bg px-3 py-2 text-sm text-danger-text">
+          <div className="border-border border-t px-4 py-3 sm:px-5">
+            <p className="bg-danger-bg text-danger-text flex items-start gap-2 rounded-md px-3 py-2 text-sm">
               <AlertCircle size={15} className="mt-px shrink-0" />
               <span>{run.error_message}</span>
             </p>
@@ -348,7 +350,7 @@ export function TestRunDetail({
       {isActive ? (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.1fr_1fr]">
           <Card className="overflow-hidden">
-            <header className="border-b border-border bg-surface-2 px-4 py-2.5 font-mono text-xs text-muted">
+            <header className="border-border bg-surface-2 text-muted border-b px-4 py-2.5 font-mono text-xs">
               vista previa · último paso
             </header>
             {latestShot ? (
@@ -356,10 +358,10 @@ export function TestRunDetail({
               <img
                 src={latestShot}
                 alt="Última captura del run en vivo"
-                className="max-h-[22rem] w-full bg-surface-2 object-contain"
+                className="bg-surface-2 max-h-[22rem] w-full object-contain"
               />
             ) : (
-              <div className="flex items-center justify-center gap-2.5 px-6 py-16 text-sm text-muted">
+              <div className="text-muted flex items-center justify-center gap-2.5 px-6 py-16 text-sm">
                 <Spinner size={15} />
                 Esperando la primera captura.
               </div>
@@ -372,7 +374,7 @@ export function TestRunDetail({
       {/* Empty state mientras arranca */}
       {cases.length === 0 ? (
         isActive ? (
-          <Card className="flex items-center justify-center gap-2.5 px-6 py-12 text-sm text-muted">
+          <Card className="text-muted flex items-center justify-center gap-2.5 px-6 py-12 text-sm">
             <Spinner size={15} />
             La IA está generando los casos de prueba.
           </Card>
@@ -397,13 +399,13 @@ export function TestRunDetail({
                 const list = stepsByCase.get(tc.id) ?? [];
                 return (
                   <Card key={tc.id} className="overflow-hidden">
-                    <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-3.5 sm:px-5">
+                    <header className="border-border flex items-start justify-between gap-3 border-b px-4 py-3.5 sm:px-5">
                       <div className="min-w-0">
-                        <h3 className="truncate text-sm font-semibold text-text">
+                        <h3 className="text-text truncate text-sm font-semibold">
                           {tc.name}
                         </h3>
                         {tc.description ? (
-                          <p className="mt-0.5 text-xs text-muted">
+                          <p className="text-muted mt-0.5 text-xs">
                             {tc.description}
                           </p>
                         ) : null}
@@ -411,7 +413,7 @@ export function TestRunDetail({
                       <StepStatusBadge status={tc.status} />
                     </header>
                     {list.length === 0 ? (
-                      <p className="px-4 py-4 text-xs text-faint sm:px-5">
+                      <p className="text-faint px-4 py-4 text-xs sm:px-5">
                         Sin pasos registrados.
                       </p>
                     ) : (
@@ -435,7 +437,7 @@ export function TestRunDetail({
                     key={s.id}
                     type="button"
                     onClick={() => setOpenScreenshot(s.screenshot_url)}
-                    className="overflow-hidden rounded-lg border border-border bg-surface-2"
+                    className="border-border bg-surface-2 overflow-hidden rounded-lg border"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -472,7 +474,7 @@ export function TestRunDetail({
       {/* Lightbox de captura */}
       {openScreenshot ? (
         <div
-          className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center p-4 sm:p-8"
+          className="animate-fade-in fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8"
           role="dialog"
           aria-modal="true"
           aria-label="Captura del paso"
@@ -481,11 +483,11 @@ export function TestRunDetail({
             type="button"
             aria-label="Cerrar captura"
             onClick={() => setOpenScreenshot(null)}
-            className="absolute inset-0 bg-bg/90 backdrop-blur-md"
+            className="bg-bg/90 absolute inset-0 backdrop-blur-md"
           />
-          <figure className="relative flex max-h-full w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-e3">
-            <figcaption className="flex items-center justify-between gap-3 border-b border-border bg-surface-2 px-4 py-2.5">
-              <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted">
+          <figure className="border-border bg-surface shadow-e3 relative flex max-h-full w-full max-w-4xl flex-col overflow-hidden rounded-xl border">
+            <figcaption className="border-border bg-surface-2 flex items-center justify-between gap-3 border-b px-4 py-2.5">
+              <span className="text-muted inline-flex items-center gap-1.5 font-mono text-xs">
                 <ImageIcon size={13} />
                 captura del paso
               </span>
@@ -495,7 +497,7 @@ export function TestRunDetail({
                 aria-label="Cerrar"
                 className={cn(
                   "inline-flex size-7 items-center justify-center rounded-md",
-                  "text-muted transition-colors hover:bg-elevated hover:text-text",
+                  "text-muted hover:bg-elevated hover:text-text transition-colors",
                 )}
               >
                 <Close size={15} />
@@ -505,7 +507,7 @@ export function TestRunDetail({
             <img
               src={openScreenshot}
               alt="Captura de pantalla del paso de la prueba"
-              className="max-h-[80vh] w-full bg-surface-2 object-contain"
+              className="bg-surface-2 max-h-[80vh] w-full object-contain"
             />
           </figure>
         </div>
@@ -535,7 +537,7 @@ function Stat({
       <span className={cn("tabular text-sm font-semibold", STAT_TONE[tone])}>
         {value}
       </span>
-      <span className="text-[0.6875rem] uppercase tracking-[0.05em] text-faint">
+      <span className="text-faint text-[0.6875rem] tracking-[0.05em] uppercase">
         {label}
       </span>
     </span>
@@ -551,21 +553,21 @@ function LogPanel({
 }): React.JSX.Element {
   return (
     <Card className="overflow-hidden">
-      <header className="flex items-center justify-between border-b border-border bg-surface-2 px-4 py-2.5">
-        <span className="font-mono text-xs text-muted">
+      <header className="border-border bg-surface-2 flex items-center justify-between border-b px-4 py-2.5">
+        <span className="text-muted font-mono text-xs">
           {live ? "logs en vivo" : "logs"}
         </span>
-        <span className="font-mono text-[0.6875rem] text-faint">
+        <span className="text-faint font-mono text-[0.6875rem]">
           {logs.length} líneas
         </span>
       </header>
-      <div className="max-h-[22rem] overflow-auto bg-surface px-4 py-3 font-mono text-xs leading-relaxed">
+      <div className="bg-surface max-h-[22rem] overflow-auto px-4 py-3 font-mono text-xs leading-relaxed">
         {logs.length === 0 ? (
           <p className="text-faint">Sin logs todavía.</p>
         ) : (
           logs.map((entry, i) => (
             <div key={i} className="flex gap-2.5">
-              <span className="shrink-0 text-faint">
+              <span className="text-faint shrink-0">
                 {String(i + 1).padStart(3, "0")}
               </span>
               <span

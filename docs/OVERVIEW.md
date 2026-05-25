@@ -5,6 +5,7 @@ proyecto, cómo está construido y por qué cada decisión está donde está.
 Si solo tienes tiempo de leer un archivo, lee este.
 
 > Documentos complementarios:
+>
 > - `README.md` — versión corta para visitantes del repo.
 > - `CLAUDE.md` — instrucciones de agente y convenciones internas (incluye
 >   `AGENTS.md` por referencia).
@@ -31,20 +32,20 @@ cero como proyecto de portafolio.
 
 ## 2. Stack
 
-| Capa            | Tecnología                                          |
-|-----------------|-----------------------------------------------------|
-| Frontend        | Next.js 16 (App Router) + Tailwind 4 + TypeScript strict |
-| API             | API Routes de Next.js (mismo repo, `/app/api/`)     |
-| Auth + DB       | Supabase (Postgres + Row Level Security)            |
-| Tiempo real     | Supabase Realtime (WebSocket)                       |
-| Archivos        | Supabase Storage (bucket `screenshots`)             |
+| Capa            | Tecnología                                                                    |
+| --------------- | ----------------------------------------------------------------------------- |
+| Frontend        | Next.js 16 (App Router) + Tailwind 4 + TypeScript strict                      |
+| API             | API Routes de Next.js (mismo repo, `/app/api/`)                               |
+| Auth + DB       | Supabase (Postgres + Row Level Security)                                      |
+| Tiempo real     | Supabase Realtime (WebSocket)                                                 |
+| Archivos        | Supabase Storage (bucket `screenshots`)                                       |
 | IA              | `@google/genai` — `gemini-2.5-flash` con `responseMimeType: application/json` |
-| Browser tests   | Playwright Chromium (`@sparticuz/chromium`)         |
-| Worker          | Express HTTP — proceso de larga duración            |
-| Validación      | Zod en cada entrada del usuario                     |
-| Tests           | Vitest + mocks manuales (sin DB ni red reales)      |
-| Deploy frontend | Vercel                                              |
-| Deploy worker   | Render free tier (definido en `render.yaml`)        |
+| Browser tests   | Playwright Chromium (`@sparticuz/chromium`)                                   |
+| Worker          | Express HTTP — proceso de larga duración                                      |
+| Validación      | Zod en cada entrada del usuario                                               |
+| Tests           | Vitest + mocks manuales (sin DB ni red reales)                                |
+| Deploy frontend | Vercel                                                                        |
+| Deploy worker   | Render free tier (definido en `render.yaml`)                                  |
 
 Restricciones importantes:
 
@@ -91,13 +92,13 @@ request lo despierta (~30–50 s).
 
 Cinco tablas en Supabase, todas con **Row Level Security activado**:
 
-| Tabla         | Campos clave                                                                                                    | Notas                                                                                  |
-|---------------|-----------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
-| `profiles`    | `id` (= `auth.users.id`), `plan`, `rol`                                                                          | Una fila por usuario; creada por trigger al registrarse.                               |
-| `projects`    | `id`, `user_id`, `name`, `target_url`                                                                            | Agrupador opcional de runs (un usuario tiene N proyectos).                             |
-| `test_runs`   | `id`, `user_id`, `status`, `prompt`, `target_url`, `test_type`, `browser`, `device`, `logs`, `js_error_count`    | Una fila por ejecución. `status ∈ {pendiente, corriendo, exitoso, fallido, cancelado}`. |
-| `test_cases`  | `id`, `test_run_id`, `title`, `status`                                                                           | Generados por Gemini; agrupan pasos relacionados.                                      |
-| `test_steps`  | `id`, `test_case_id`, `action`, `selector`, `value`, `status`, `screenshot_url`, `error_message`                  | Una fila por acción ejecutada por Playwright.                                          |
+| Tabla        | Campos clave                                                                                                  | Notas                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `profiles`   | `id` (= `auth.users.id`), `plan`, `rol`                                                                       | Una fila por usuario; creada por trigger al registrarse.                                |
+| `projects`   | `id`, `user_id`, `name`, `target_url`                                                                         | Agrupador opcional de runs (un usuario tiene N proyectos).                              |
+| `test_runs`  | `id`, `user_id`, `status`, `prompt`, `target_url`, `test_type`, `browser`, `device`, `logs`, `js_error_count` | Una fila por ejecución. `status ∈ {pendiente, corriendo, exitoso, fallido, cancelado}`. |
+| `test_cases` | `id`, `test_run_id`, `title`, `status`                                                                        | Generados por Gemini; agrupan pasos relacionados.                                       |
+| `test_steps` | `id`, `test_case_id`, `action`, `selector`, `value`, `status`, `screenshot_url`, `error_message`              | Una fila por acción ejecutada por Playwright.                                           |
 
 Migraciones (en orden, `supabase/migrations/`):
 
@@ -225,23 +226,23 @@ ai-testing-platform/
 
 ### Lado Next (Vercel) — `.env.local` / Vercel project settings
 
-| Variable                          | Notas                                                            |
-|-----------------------------------|------------------------------------------------------------------|
-| `NEXT_PUBLIC_SUPABASE_URL`        | URL pública del proyecto Supabase.                               |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`   | Clave pública anon.                                              |
-| `SUPABASE_SERVICE_ROLE_KEY`       | Solo en server/API Routes. **Nunca** con prefijo `NEXT_PUBLIC_`. |
-| `WORKER_URL`                      | URL del worker en Render.                                        |
-| `WORKER_SECRET`                   | Mismo valor que en Render. ≥ 32 chars aleatorios.                |
+| Variable                        | Notas                                                            |
+| ------------------------------- | ---------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | URL pública del proyecto Supabase.                               |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clave pública anon.                                              |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Solo en server/API Routes. **Nunca** con prefijo `NEXT_PUBLIC_`. |
+| `WORKER_URL`                    | URL del worker en Render.                                        |
+| `WORKER_SECRET`                 | Mismo valor que en Render. ≥ 32 chars aleatorios.                |
 
 ### Lado worker (Render) — `worker/.env.example` / Render env
 
-| Variable                     | Notas                                            |
-|------------------------------|--------------------------------------------------|
-| `SUPABASE_URL`               | Misma URL que arriba (sin `NEXT_PUBLIC_`).       |
-| `SUPABASE_SERVICE_ROLE_KEY`  | service_role; bypasea RLS, nunca llega al front. |
-| `GEMINI_API_KEY`             | Solo en Render. Nunca en Vercel.                 |
-| `WORKER_SECRET`              | Mismo valor que en Vercel.                       |
-| `PORT`                       | Lo inyecta Render (3001 en local).               |
+| Variable                    | Notas                                            |
+| --------------------------- | ------------------------------------------------ |
+| `SUPABASE_URL`              | Misma URL que arriba (sin `NEXT_PUBLIC_`).       |
+| `SUPABASE_SERVICE_ROLE_KEY` | service_role; bypasea RLS, nunca llega al front. |
+| `GEMINI_API_KEY`            | Solo en Render. Nunca en Vercel.                 |
+| `WORKER_SECRET`             | Mismo valor que en Vercel.                       |
+| `PORT`                      | Lo inyecta Render (3001 en local).               |
 
 ---
 
@@ -427,8 +428,8 @@ Sin el worker corriendo, los runs quedan en `pendiente` y la API Route los
 marca como `fallido` tras el timeout del fetch.
 
 > **Importante**: en Supabase Authentication → URL Configuration debe estar
-> desactivado *Confirm email* (o `http://localhost:3000` en *Site URL* y
-> *Redirect URLs*), si no el login falla justo después del registro.
+> desactivado _Confirm email_ (o `http://localhost:3000` en _Site URL_ y
+> _Redirect URLs_), si no el login falla justo después del registro.
 
 ---
 
@@ -436,9 +437,9 @@ marca como `fallido` tras el timeout del fetch.
 
 Resumen (detalle paso a paso en `docs/DEPLOY.md`):
 
-| Pieza                       | Proveedor | Comando / Config            |
-|-----------------------------|-----------|-----------------------------|
-| Frontend + API Routes       | Vercel    | `next build`, `vercel.json` |
+| Pieza                       | Proveedor | Comando / Config                             |
+| --------------------------- | --------- | -------------------------------------------- |
+| Frontend + API Routes       | Vercel    | `next build`, `vercel.json`                  |
 | Worker Express + Playwright | Render    | `render.yaml` (Node + `@sparticuz/chromium`) |
 | DB + Auth + Storage         | Supabase  | Proyecto remoto, migraciones aplicadas       |
 
@@ -456,16 +457,16 @@ Checklist post-deploy:
 
 ## 15. Estado del roadmap
 
-| Fase | Descripción                            | Estado |
-|------|----------------------------------------|--------|
-| 1    | Base del proyecto (Next + Supabase)    | ✅      |
-| 2    | Integración con Gemini                 | ✅      |
-| 3    | Motor de ejecución con Playwright      | ✅      |
-| 4    | Worker HTTP asíncrono (Express+Render) | ✅      |
-| 5    | Reporte en tiempo real (Realtime+refetch) | ✅   |
-| 6    | Despliegue a producción + README/demo  | ⏳ en curso |
+| Fase | Descripción                               | Estado      |
+| ---- | ----------------------------------------- | ----------- |
+| 1    | Base del proyecto (Next + Supabase)       | ✅          |
+| 2    | Integración con Gemini                    | ✅          |
+| 3    | Motor de ejecución con Playwright         | ✅          |
+| 4    | Worker HTTP asíncrono (Express+Render)    | ✅          |
+| 5    | Reporte en tiempo real (Realtime+refetch) | ✅          |
+| 6    | Despliegue a producción + README/demo     | ⏳ en curso |
 
-Detalle granular: sección *Roadmap* de `CLAUDE.md`.
+Detalle granular: sección _Roadmap_ de `CLAUDE.md`.
 
 ---
 

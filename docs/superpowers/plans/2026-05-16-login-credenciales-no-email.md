@@ -9,6 +9,7 @@
 **Tech Stack:** Next.js 14 (App Router), TypeScript strict, Zod, Playwright (Chromium), Vitest.
 
 **Specs:**
+
 - `docs/superpowers/specs/2026-05-16-login-credenciales-formulario-design.md` (formulario + validación)
 - `docs/superpowers/specs/2026-05-15-login-credenciales-no-email-design.md` (worker adaptativo)
 
@@ -16,21 +17,22 @@
 
 ## File Structure
 
-| Archivo | Responsabilidad | Acción |
-|---|---|---|
-| `lib/validation/test-run.ts` | Schemas Zod de los test-runs | Modificar: `loginIdentifierSchema` nuevo |
-| `tests/lib/validation/test-run.test.ts` | Unit tests del schema | Crear |
-| `app/dashboard/_components/new-test-run-form.tsx` | Formulario de test-run | Modificar: campo de login |
-| `lib/playwright/adaptive-login.ts` | Heurística adaptativa de login | Modificar: detección + funciones nuevas |
-| `tests/lib/adaptive-login.test.ts` | Unit tests de funciones puras | Crear |
-| `lib/playwright/execute-test-run.ts` | Runner de pasos Playwright | Modificar: rama `fill` |
-| `CLAUDE.md` | Doc del proyecto | Modificar: sección "Detección adaptativa" |
+| Archivo                                           | Responsabilidad                | Acción                                    |
+| ------------------------------------------------- | ------------------------------ | ----------------------------------------- |
+| `lib/validation/test-run.ts`                      | Schemas Zod de los test-runs   | Modificar: `loginIdentifierSchema` nuevo  |
+| `tests/lib/validation/test-run.test.ts`           | Unit tests del schema          | Crear                                     |
+| `app/dashboard/_components/new-test-run-form.tsx` | Formulario de test-run         | Modificar: campo de login                 |
+| `lib/playwright/adaptive-login.ts`                | Heurística adaptativa de login | Modificar: detección + funciones nuevas   |
+| `tests/lib/adaptive-login.test.ts`                | Unit tests de funciones puras  | Crear                                     |
+| `lib/playwright/execute-test-run.ts`              | Runner de pasos Playwright     | Modificar: rama `fill`                    |
+| `CLAUDE.md`                                       | Doc del proyecto               | Modificar: sección "Detección adaptativa" |
 
 ---
 
 ## Task 1: Relajar la validación Zod de la credencial de login
 
 **Files:**
+
 - Modify: `lib/validation/test-run.ts`
 - Test: `tests/lib/validation/test-run.test.ts` (crear)
 
@@ -121,7 +123,10 @@ const loginIdentifierSchema = z
   .trim()
   .min(1, "La credencial es obligatoria")
   .max(320, "La credencial es demasiado larga")
-  .refine((v) => !/[\r\n\t]/.test(v), "La credencial no puede tener saltos de línea");
+  .refine(
+    (v) => !/[\r\n\t]/.test(v),
+    "La credencial no puede tener saltos de línea",
+  );
 ```
 
 Y reemplazar el campo `email` dentro de `loginDataSchema`:
@@ -158,6 +163,7 @@ git commit -m "feat: aceptar credenciales no-email en la validación de login"
 ## Task 2: Cambiar el campo de credencial en el formulario
 
 **Files:**
+
 - Modify: `app/dashboard/_components/new-test-run-form.tsx`
 
 No hay infraestructura de tests de componentes (`vitest` corre en `environment: "node"`), así que esta tarea se verifica manualmente.
@@ -229,6 +235,7 @@ git commit -m "feat: permitir credencial no-email en el formulario de login"
 ## Task 3: Ampliar la detección de identificador en adaptive-login
 
 **Files:**
+
 - Modify: `lib/playwright/adaptive-login.ts`
 - Test: `tests/lib/adaptive-login.test.ts` (crear)
 
@@ -252,7 +259,9 @@ describe("isEmailFillSelector", () => {
 
   it("detecta términos largos de identificador", () => {
     expect(isEmailFillSelector('input[name="usuario"]')).toBe(true);
-    expect(isEmailFillSelector('input[placeholder="Número de documento"]')).toBe(true);
+    expect(
+      isEmailFillSelector('input[placeholder="Número de documento"]'),
+    ).toBe(true);
     expect(isEmailFillSelector('input[name="cedula"]')).toBe(true);
   });
 
@@ -366,11 +375,14 @@ const EMAIL_LABEL_REGEX =
 Reemplazar la función `isEmailFillSelector` (líneas ~96-102) por:
 
 ```ts
-export function isEmailFillSelector(selector: string | null | undefined): boolean {
+export function isEmailFillSelector(
+  selector: string | null | undefined,
+): boolean {
   if (!selector) return false;
   if (isPasswordFillSelector(selector)) return false;
   const lower = selector.toLowerCase();
-  if (lower.includes("type=email") || lower.includes('type="email"')) return true;
+  if (lower.includes("type=email") || lower.includes('type="email"'))
+    return true;
   return IDENTIFIER_SELECTOR_REGEX.test(lower);
 }
 ```
@@ -430,6 +442,7 @@ git commit -m "feat: ampliar detección adaptativa a credenciales de documento"
 ## Task 4: Neutralizar y diagnosticar la validación HTML5 nativa
 
 **Files:**
+
 - Modify: `lib/playwright/adaptive-login.ts`
 
 Estas funciones tocan el DOM vía Playwright; no se unit-testean sin navegador (se validan manualmente en la Task 6 del worker). No hay paso de test automatizado en esta tarea.
@@ -470,7 +483,9 @@ export async function fillIdentifierField(
 Antes de `verifyLoginOutcome` (línea ~214), agregar esta función auxiliar privada (NO exportada):
 
 ```ts
-async function detectNativeValidationBlock(page: Page): Promise<string | undefined> {
+async function detectNativeValidationBlock(
+  page: Page,
+): Promise<string | undefined> {
   return page.evaluate(() => {
     const forms = Array.from(document.querySelectorAll("form"));
     for (const form of forms) {
@@ -499,19 +514,19 @@ async function detectNativeValidationBlock(page: Page): Promise<string | undefin
 En `verifyLoginOutcome`, dentro del `while (Date.now() < deadline)`, justo después del bloque `if (currentUrl !== initialUrl) { ... }` y antes de `const errorText = await readVisibleErrorText(page);`, insertar:
 
 ```ts
-    const nativeBlock = await detectNativeValidationBlock(page);
-    if (nativeBlock) {
-      return {
-        success: false,
-        finalUrl: page.url(),
-        initialUrl,
-        reason:
-          `El navegador bloqueó el envío del formulario por validación nativa: ` +
-          `"${nativeBlock}". Si esta app loguea por documento o usuario, ese ` +
-          `campo está marcado como type=email por error.`,
-        errorText: nativeBlock,
-      };
-    }
+const nativeBlock = await detectNativeValidationBlock(page);
+if (nativeBlock) {
+  return {
+    success: false,
+    finalUrl: page.url(),
+    initialUrl,
+    reason:
+      `El navegador bloqueó el envío del formulario por validación nativa: ` +
+      `"${nativeBlock}". Si esta app loguea por documento o usuario, ese ` +
+      `campo está marcado como type=email por error.`,
+    errorText: nativeBlock,
+  };
+}
 ```
 
 Nota: la condición `noValidate === false` dentro de `detectNativeValidationBlock` hace que esta rama quede muda cuando `fillIdentifierField` ya puso `noValidate = true`; actúa como red de seguridad para la ruta literal.
@@ -538,6 +553,7 @@ git commit -m "feat: relajar y diagnosticar la validación HTML5 nativa en login
 ## Task 5: Cablear `fillIdentifierField` en el runner
 
 **Files:**
+
 - Modify: `lib/playwright/execute-test-run.ts`
 
 - [ ] **Step 1: Actualizar el import**
@@ -579,28 +595,28 @@ import {
 En `executeStep`, dentro de `case "fill":`, reemplazar:
 
 ```ts
-        if (isEmailFillSelector(step.selector)) {
-          const field = await findEmailField(page);
-          await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
-          return { selectorOverride: "[adaptive] email/usuario" };
-        }
+if (isEmailFillSelector(step.selector)) {
+  const field = await findEmailField(page);
+  await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
+  return { selectorOverride: "[adaptive] email/usuario" };
+}
 ```
 
 por:
 
 ```ts
-        if (isEmailFillSelector(step.selector)) {
-          const { relaxed } = await fillIdentifierField(
-            page,
-            step.value,
-            STEP_TIMEOUT_MS,
-          );
-          return {
-            selectorOverride: relaxed
-              ? "[adaptive] identificador (validación nativa relajada)"
-              : "[adaptive] email/usuario",
-          };
-        }
+if (isEmailFillSelector(step.selector)) {
+  const { relaxed } = await fillIdentifierField(
+    page,
+    step.value,
+    STEP_TIMEOUT_MS,
+  );
+  return {
+    selectorOverride: relaxed
+      ? "[adaptive] identificador (validación nativa relajada)"
+      : "[adaptive] email/usuario",
+  };
+}
 ```
 
 La vía `isPasswordFillSelector` (con `findPasswordField`) se mantiene sin cambios.
@@ -627,6 +643,7 @@ git commit -m "feat: usar fillIdentifierField en el runner para credenciales de 
 ## Task 6: Actualizar CLAUDE.md
 
 **Files:**
+
 - Modify: `CLAUDE.md`
 
 - [ ] **Step 1: Actualizar el bullet de `findEmailField`**

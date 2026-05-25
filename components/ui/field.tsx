@@ -26,17 +26,17 @@ export function Field({
       <div className="flex items-center justify-between gap-2">
         <label
           htmlFor={htmlFor}
-          className="text-[0.8125rem] font-medium text-text"
+          className="text-text text-[0.8125rem] font-medium"
         >
           {label}
           {required ? (
-            <span className="ml-0.5 text-danger-text" aria-hidden="true">
+            <span className="text-danger-text ml-0.5" aria-hidden="true">
               *
             </span>
           ) : null}
         </label>
         {secure ? (
-          <span className="inline-flex items-center gap-1 text-[0.6875rem] font-medium text-faint">
+          <span className="text-faint inline-flex items-center gap-1 text-[0.6875rem] font-medium">
             <Shield size={11} />
             cifrado
           </span>
@@ -44,9 +44,9 @@ export function Field({
       </div>
       {children}
       {error ? (
-        <p className="text-xs text-danger-text">{error}</p>
+        <p className="text-danger-text text-xs">{error}</p>
       ) : hint ? (
-        <p className="text-xs text-faint">{hint}</p>
+        <p className="text-faint text-xs">{hint}</p>
       ) : null}
     </div>
   );

@@ -19,7 +19,7 @@ export function Tabs({
     <div
       role="tablist"
       className={cn(
-        "inline-flex gap-0.5 rounded-lg border border-border bg-surface-2 p-0.5",
+        "border-border bg-surface-2 inline-flex gap-0.5 rounded-lg border p-0.5",
         className,
       )}
     >
@@ -41,7 +41,7 @@ export function Tabs({
           >
             {item.label}
             {item.count !== undefined ? (
-              <span className="tabular font-mono text-[0.6875rem] text-faint">
+              <span className="tabular text-faint font-mono text-[0.6875rem]">
                 {item.count}
               </span>
             ) : null}

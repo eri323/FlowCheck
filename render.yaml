@@ -8,6 +8,9 @@ services:
     startCommand: npm start
     healthCheckPath: /health
     envVars:
+      # SSRF_ALLOW_PRIVATE_NETWORK se deja SIN definir a propósito: el guard SSRF
+      # del worker (lib/safe-url.ts) debe estar activo en producción. Solo se
+      # activa ("1") en entornos de test/dev que navegan a 127.0.0.1.
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY

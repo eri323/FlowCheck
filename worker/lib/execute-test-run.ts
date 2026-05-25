@@ -7,7 +7,7 @@ import {
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { launchBrowser } from "./chromium-launch";
 import { uploadScreenshot } from "./upload-screenshot";
-import { assertSafeNavigationUrl } from "./safe-url";
+import { assertSafeUrl, installSsrfGuard } from "./safe-url";
 import type { TestType } from "./types";
 import {
   fillIdentifierField,
@@ -25,6 +25,30 @@ import {
   isSearchFillSelector,
   isSearchSubmitSelector,
 } from "./adaptive-search";
+import { clickAdaptive, verifyPageHealthy } from "./adaptive-navegacion";
+import {
+  fillAndSubmitForm,
+  isFormSubmitSelector,
+  parseFields,
+} from "./adaptive-formulario";
+import {
+  findConfirmPasswordField,
+  findNameField,
+  isConfirmPasswordSelector,
+  isNameFillSelector,
+  isRegisterSubmitSelector,
+  registerAndVerify,
+} from "./adaptive-registro";
+import {
+  addToCartStage,
+  confirmOrderAndVerify,
+  fillPaymentStage,
+  goToCheckoutStage,
+  isAddToCartSelector,
+  isCheckoutNavSelector,
+  isConfirmOrderSelector,
+  isPaymentFieldSelector,
+} from "./adaptive-ecommerce";
 
 type StepAction =
   | "goto"
@@ -40,6 +64,17 @@ type LoginRunContext = {
   inVerificationWindow: boolean;
   /** Último valor llenado — usado como query en flujos de búsqueda. */
   searchQuery?: string;
+  /** Pares label:value del formulario (test_data.fields), para el submit. */
+  formFields?: { label: string; value: string }[];
+  /** test_data del registro, para el submit adaptativo. */
+  registroData?: {
+    name: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+  };
+  /** Datos de pago para ecommerce. */
+  ecommerceData?: { email: string; card: string; expiry: string; cvc: string };
 };
 
 type StepResult = { valueOverride?: string; selectorOverride?: string };
@@ -82,7 +117,9 @@ class RunLog {
       .update({ logs: this.entries })
       .eq("id", testRunId);
     if (error) {
-      console.warn(`No se pudo volcar logs del run ${testRunId}: ${error.message}`);
+      console.warn(
+        `No se pudo volcar logs del run ${testRunId}: ${error.message}`,
+      );
     }
   }
 }
@@ -114,7 +151,9 @@ async function loadCasesForRun(
     );
   }
   if (!cases || cases.length === 0) {
-    throw new TestExecutionError("El test_run no tiene test_cases para ejecutar");
+    throw new TestExecutionError(
+      "El test_run no tiene test_cases para ejecutar",
+    );
   }
 
   const caseIds = cases.map((c) => c.id);
@@ -163,14 +202,33 @@ async function executeStep(
     step.action === "expect_url";
 
   if (
-    ctx.testType === "login" &&
+    (ctx.testType === "login" || ctx.testType === "registro") &&
     ctx.inVerificationWindow &&
     ctx.lastOutcome?.success &&
     isExpectAction
   ) {
     return {
       valueOverride: ctx.lastOutcome.finalUrl,
-      selectorOverride: "[adaptive] verificado por comportamiento post-login",
+      selectorOverride:
+        ctx.testType === "registro"
+          ? "[adaptive] verificado por comportamiento post-registro"
+          : "[adaptive] verificado por comportamiento post-login",
+    };
+  }
+
+  // Navegación es un smoke test: su test_data es {} vacío, así que cualquier
+  // expect_text de Gemini es una aserción alucinada, no una expectativa del
+  // usuario. Por eso se reemplaza TODO expect_* por verifyPageHealthy a propósito.
+  if (ctx.testType === "navegacion" && isExpectAction) {
+    const health = await verifyPageHealthy(page);
+    if (!health.healthy) {
+      throw new Error(
+        `Navegación no saludable: ${health.reason} (URL: ${health.finalUrl})`,
+      );
+    }
+    return {
+      valueOverride: health.finalUrl,
+      selectorOverride: "[adaptive] navegación verificada por salud de página",
     };
   }
 
@@ -180,13 +238,18 @@ async function executeStep(
 
   switch (step.action) {
     case "goto": {
-      if (!step.value) throw new Error("La acción 'goto' requiere un value (URL)");
-      assertSafeNavigationUrl(step.value);
-      await page.goto(step.value, { timeout: STEP_TIMEOUT_MS, waitUntil: "load" });
+      if (!step.value)
+        throw new Error("La acción 'goto' requiere un value (URL)");
+      await assertSafeUrl(step.value);
+      await page.goto(step.value, {
+        timeout: STEP_TIMEOUT_MS,
+        waitUntil: "load",
+      });
       return {};
     }
     case "click": {
-      if (!step.selector) throw new Error("La acción 'click' requiere un selector");
+      if (!step.selector)
+        throw new Error("La acción 'click' requiere un selector");
       if (ctx.testType === "login" && isLoginSubmitSelector(step.selector)) {
         const initialUrl = page.url();
         const submit = await findSubmitButton(page);
@@ -204,7 +267,38 @@ async function executeStep(
           selectorOverride: "[adaptive] submit",
         };
       }
-      if (ctx.testType === "busqueda" && isSearchSubmitSelector(step.selector)) {
+      if (
+        ctx.testType === "registro" &&
+        isRegisterSubmitSelector(step.selector)
+      ) {
+        const initialUrl = page.url();
+        const outcome = await registerAndVerify(
+          page,
+          ctx.registroData ?? {
+            name: "",
+            email: "",
+            password: "",
+            confirmPassword: "",
+          },
+          initialUrl,
+          STEP_TIMEOUT_MS,
+        );
+        ctx.lastOutcome = outcome;
+        if (!outcome.success) {
+          throw new Error(
+            `Registro adaptativo falló: ${outcome.reason} (URL final: ${outcome.finalUrl})`,
+          );
+        }
+        ctx.inVerificationWindow = true;
+        return {
+          valueOverride: outcome.finalUrl,
+          selectorOverride: "[adaptive] submit registro",
+        };
+      }
+      if (
+        ctx.testType === "busqueda" &&
+        isSearchSubmitSelector(step.selector)
+      ) {
         const query = ctx.searchQuery ?? "";
         const outcome = await executeSearch(page, query, STEP_TIMEOUT_MS);
         if (!outcome.success) {
@@ -219,17 +313,106 @@ async function executeStep(
             : "[adaptive] submit búsqueda (sin resultados confirmados)",
         };
       }
+      if (ctx.testType === "navegacion") {
+        await clickAdaptive(page, step.selector, STEP_TIMEOUT_MS);
+        return { selectorOverride: "[adaptive] click tolerante" };
+      }
+      if (
+        ctx.testType === "formulario" &&
+        isFormSubmitSelector(step.selector)
+      ) {
+        const outcome = await fillAndSubmitForm(
+          page,
+          ctx.formFields ?? [],
+          STEP_TIMEOUT_MS,
+        );
+        if (!outcome.success) {
+          throw new Error(
+            `Formulario adaptativo falló: ${outcome.reason} (URL: ${outcome.finalUrl})`,
+          );
+        }
+        return {
+          valueOverride: outcome.finalUrl,
+          selectorOverride: "[adaptive] formulario enviado y verificado",
+        };
+      }
+      if (ctx.testType === "ecommerce") {
+        // El orden importa: las regex se solapan ("comprar" matchea varias). Hay
+        // que comprobar confirmar > add-to-cart > checkout para no tratar el botón
+        // final de pago como un add-to-cart.
+        if (isConfirmOrderSelector(step.selector)) {
+          const outcome = await confirmOrderAndVerify(page, STEP_TIMEOUT_MS);
+          if (!outcome.success) {
+            throw new Error(
+              `Confirmación de orden falló: ${outcome.reason} (URL: ${outcome.finalUrl})`,
+            );
+          }
+          return {
+            valueOverride: outcome.finalUrl,
+            selectorOverride: "[adaptive] confirmar orden",
+          };
+        }
+        if (isAddToCartSelector(step.selector)) {
+          const stage = await addToCartStage(page, STEP_TIMEOUT_MS);
+          if (!stage.success) {
+            throw new Error(`Agregar al carrito falló: ${stage.reason}`);
+          }
+          return { selectorOverride: "[adaptive] agregar al carrito" };
+        }
+        if (isCheckoutNavSelector(step.selector)) {
+          const stage = await goToCheckoutStage(page, STEP_TIMEOUT_MS);
+          if (!stage.success) {
+            throw new Error(`Ir a checkout falló: ${stage.reason}`);
+          }
+          return { selectorOverride: "[adaptive] ir a checkout" };
+        }
+      }
       await page.locator(step.selector).click({ timeout: STEP_TIMEOUT_MS });
       return {};
     }
     case "fill": {
-      if (!step.selector) throw new Error("La acción 'fill' requiere un selector");
-      if (step.value === null) throw new Error("La acción 'fill' requiere un value");
+      if (!step.selector)
+        throw new Error("La acción 'fill' requiere un selector");
+      if (step.value === null)
+        throw new Error("La acción 'fill' requiere un value");
       if (ctx.testType === "login") {
         if (isPasswordFillSelector(step.selector)) {
           const field = await findPasswordField(page);
           await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
           return { selectorOverride: "[adaptive] password" };
+        }
+        if (isEmailFillSelector(step.selector)) {
+          const { relaxed } = await fillIdentifierField(
+            page,
+            step.value,
+            STEP_TIMEOUT_MS,
+          );
+          return {
+            selectorOverride: relaxed
+              ? "[adaptive] identificador (validación nativa relajada)"
+              : "[adaptive] email/usuario",
+          };
+        }
+      }
+      if (ctx.testType === "registro") {
+        if (isConfirmPasswordSelector(step.selector)) {
+          const field = await findConfirmPasswordField(page);
+          if (field) {
+            await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
+            return { selectorOverride: "[adaptive] confirmar password" };
+          }
+        }
+        if (isPasswordFillSelector(step.selector)) {
+          const field = await findPasswordField(page);
+          await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
+          return { selectorOverride: "[adaptive] password" };
+        }
+        if (isNameFillSelector(step.selector)) {
+          const field = await findNameField(page);
+          if (field) {
+            await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
+            return { selectorOverride: "[adaptive] nombre" };
+          }
         }
         if (isEmailFillSelector(step.selector)) {
           const { relaxed } = await fillIdentifierField(
@@ -253,7 +436,20 @@ async function executeStep(
           return { selectorOverride: "[adaptive] campo de búsqueda" };
         }
       }
-      await page.locator(step.selector).fill(step.value, { timeout: STEP_TIMEOUT_MS });
+      if (
+        ctx.testType === "ecommerce" &&
+        isPaymentFieldSelector(step.selector)
+      ) {
+        await fillPaymentStage(
+          page,
+          ctx.ecommerceData ?? { email: "", card: "", expiry: "", cvc: "" },
+          STEP_TIMEOUT_MS,
+        );
+        return { selectorOverride: "[adaptive] datos de pago" };
+      }
+      await page
+        .locator(step.selector)
+        .fill(step.value, { timeout: STEP_TIMEOUT_MS });
       return {};
     }
     case "expect_visible": {
@@ -268,10 +464,12 @@ async function executeStep(
     case "expect_text": {
       if (!step.selector)
         throw new Error("La acción 'expect_text' requiere un selector");
-      if (!step.value) throw new Error("La acción 'expect_text' requiere un value");
+      if (!step.value)
+        throw new Error("La acción 'expect_text' requiere un value");
       const locator = page.locator(step.selector).first();
       await locator.waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS });
-      const text = (await locator.textContent({ timeout: STEP_TIMEOUT_MS })) ?? "";
+      const text =
+        (await locator.textContent({ timeout: STEP_TIMEOUT_MS })) ?? "";
       if (!text.toLowerCase().includes(step.value.toLowerCase())) {
         throw new Error(
           `El texto esperado "${step.value}" no aparece en el elemento. Texto actual: "${text.trim().slice(0, 200)}"`,
@@ -291,7 +489,8 @@ async function executeStep(
         }
         return { valueOverride: outcome.finalUrl };
       }
-      if (!step.value) throw new Error("La acción 'expect_url' requiere un value");
+      if (!step.value)
+        throw new Error("La acción 'expect_url' requiere un value");
       const current = page.url();
       if (!current.includes(step.value)) {
         throw new Error(
@@ -316,6 +515,13 @@ async function runCase(
   contextOptions: BrowserContextOptions,
   log: RunLog,
   jsErrors: { count: number },
+  formFieldsRaw: string | undefined,
+  registroData:
+    | { name: string; email: string; password: string; confirmPassword: string }
+    | undefined,
+  ecommerceData:
+    | { email: string; card: string; expiry: string; cvc: string }
+    | undefined,
 ): Promise<"completado" | "fallido"> {
   await supabase
     .from("test_cases")
@@ -323,6 +529,7 @@ async function runCase(
     .eq("id", testCase.id);
 
   const context = await browser.newContext(contextOptions);
+  await installSsrfGuard(context);
   const page = await context.newPage();
 
   // Errores JS de la página: excepciones no capturadas y console.error.
@@ -338,7 +545,13 @@ async function runCase(
   });
 
   log.add("info", `caso "${testCase.name}" — ${testCase.steps.length} pasos`);
-  const loginCtx: LoginRunContext = { testType, inVerificationWindow: false };
+  const loginCtx: LoginRunContext = {
+    testType,
+    inVerificationWindow: false,
+    formFields: formFieldsRaw ? parseFields(formFieldsRaw) : undefined,
+    registroData,
+    ecommerceData,
+  };
   let caseFailed = false;
 
   try {
@@ -367,7 +580,9 @@ async function runCase(
         selectorOverride = result.selectorOverride;
       } catch (error) {
         errorMessage =
-          error instanceof Error ? error.message : "Error desconocido en el paso";
+          error instanceof Error
+            ? error.message
+            : "Error desconocido en el paso";
         if (loginCtx.lastOutcome) {
           valueOverride = loginCtx.lastOutcome.finalUrl;
         }
@@ -384,8 +599,12 @@ async function runCase(
         );
       } catch (error) {
         const msg =
-          error instanceof Error ? error.message : "Error desconocido al guardar screenshot";
-        console.warn(`Screenshot del paso ${step.id} no se pudo guardar: ${msg}`);
+          error instanceof Error
+            ? error.message
+            : "Error desconocido al guardar screenshot";
+        console.warn(
+          `Screenshot del paso ${step.id} no se pudo guardar: ${msg}`,
+        );
       }
 
       const durationMs = Date.now() - startedAt;
@@ -421,16 +640,33 @@ async function runCase(
   }
 
   const caseStatus = caseFailed ? "fallido" : "completado";
-  await supabase.from("test_cases").update({ status: caseStatus }).eq("id", testCase.id);
+  await supabase
+    .from("test_cases")
+    .update({ status: caseStatus })
+    .eq("id", testCase.id);
   return caseStatus;
 }
+
+export type ExecuteTestRunOptions = {
+  testType?: TestType;
+  device?: "desktop" | "mobile";
+  formFieldsRaw?: string;
+  registroData?: {
+    name: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+  };
+  ecommerceData?: { email: string; card: string; expiry: string; cvc: string };
+};
 
 export async function executeTestRun(
   supabase: SupabaseClient,
   testRunId: string,
-  testType?: TestType,
-  device: "desktop" | "mobile" = "desktop",
+  opts: ExecuteTestRunOptions = {},
 ): Promise<"completado" | "fallido"> {
+  const { testType, formFieldsRaw, registroData, ecommerceData } = opts;
+  const device = opts.device ?? "desktop";
   const cases = await loadCasesForRun(supabase, testRunId);
 
   const contextOptions: BrowserContextOptions =
@@ -438,7 +674,10 @@ export async function executeTestRun(
 
   const log = new RunLog();
   const jsErrors = { count: 0 };
-  log.add("info", `ejecución iniciada · device=${device} · ${cases.length} casos`);
+  log.add(
+    "info",
+    `ejecución iniciada · device=${device} · ${cases.length} casos`,
+  );
   await log.flush(supabase, testRunId);
 
   const browser = await launchBrowser();
@@ -456,6 +695,9 @@ export async function executeTestRun(
         contextOptions,
         log,
         jsErrors,
+        formFieldsRaw,
+        registroData,
+        ecommerceData,
       );
       if (result === "fallido") anyFailed = true;
     }

@@ -26,15 +26,15 @@ export function Features(): React.JSX.Element {
   return (
     <section
       id="reporte"
-      className="flex min-h-[calc(100svh-4rem)] flex-col justify-center border-t border-border"
+      className="border-border flex min-h-[calc(100svh-4rem)] flex-col justify-center border-t"
     >
       <div className="mx-auto grid w-full max-w-6xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-16 lg:py-24">
         <Reveal>
           <div className="lg:sticky lg:top-24">
-            <h2 className="text-2xl font-semibold tracking-[-0.02em] text-text sm:text-3xl">
+            <h2 className="text-text text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">
               El reporte se construye mientras la prueba corre
             </h2>
-            <p className="mt-3 text-pretty text-muted">
+            <p className="text-muted mt-3 text-pretty">
               No esperas a que termine para saber qué pasó. La ejecución es
               observable de principio a fin.
             </p>
@@ -46,17 +46,15 @@ export function Features(): React.JSX.Element {
             const Icon = feature.icon;
             return (
               <Reveal key={feature.title} delay={i * 90}>
-                <div
-                  className={cnRow(i)}
-                >
-                  <span className="grid size-10 shrink-0 place-items-center rounded-lg border border-border bg-surface text-accent-text">
+                <div className={cnRow(i)}>
+                  <span className="border-border bg-surface text-accent-text grid size-10 shrink-0 place-items-center rounded-lg border">
                     <Icon size={18} />
                   </span>
                   <div>
-                    <h3 className="text-base font-semibold text-text">
+                    <h3 className="text-text text-base font-semibold">
                       {feature.title}
                     </h3>
-                    <p className="mt-1.5 text-pretty text-sm leading-relaxed text-muted">
+                    <p className="text-muted mt-1.5 text-sm leading-relaxed text-pretty">
                       {feature.body}
                     </p>
                   </div>
@@ -80,10 +78,7 @@ export function Features(): React.JSX.Element {
 }
 
 function cnRow(i: number): string {
-  return [
-    "flex gap-4 py-6 sm:gap-5",
-    i > 0 ? "border-t border-border" : "",
-  ]
+  return ["flex gap-4 py-6 sm:gap-5", i > 0 ? "border-t border-border" : ""]
     .filter(Boolean)
     .join(" ");
 }

@@ -19,9 +19,7 @@ const STEP_STATUS: Record<string, StatusMeta> = {
 };
 
 export function runStatusMeta(status: string): StatusMeta {
-  return (
-    RUN_STATUS[status] ?? { tone: "neutral", label: status, pulse: false }
-  );
+  return RUN_STATUS[status] ?? { tone: "neutral", label: status, pulse: false };
 }
 
 export function stepStatusMeta(status: string): StatusMeta {

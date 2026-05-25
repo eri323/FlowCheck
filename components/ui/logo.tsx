@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 function Mark({ size = 28 }: { size?: number }): React.JSX.Element {
   return (
     <span
-      className="grid shrink-0 place-items-center rounded-md bg-accent text-accent-fg shadow-e1"
+      className="bg-accent text-accent-fg shadow-e1 grid shrink-0 place-items-center rounded-md"
       style={{ width: size, height: size }}
     >
       <svg
@@ -44,7 +44,7 @@ export function Logo({
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <Mark size={size} />
       {showWord ? (
-        <span className="text-[0.975rem] font-semibold tracking-[-0.01em] text-text">
+        <span className="text-text text-[0.975rem] font-semibold tracking-[-0.01em]">
           FlowCheck
         </span>
       ) : null}

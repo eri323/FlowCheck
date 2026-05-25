@@ -34,7 +34,7 @@ export function MarketingNav({
       className={cn(
         "sticky top-0 z-50 transition-colors duration-200",
         scrolled || open
-          ? "border-b border-border bg-bg/85 backdrop-blur-md"
+          ? "border-border bg-bg/85 border-b backdrop-blur-md"
           : "border-b border-transparent",
       )}
     >
@@ -46,7 +46,7 @@ export function MarketingNav({
             <a
               key={link.href}
               href={link.href}
-              className="rounded-md px-3 py-2 text-sm text-muted transition-colors duration-150 hover:text-text"
+              className="text-muted hover:text-text rounded-md px-3 py-2 text-sm transition-colors duration-150"
             >
               {link.label}
             </a>
@@ -58,7 +58,10 @@ export function MarketingNav({
           {authed ? (
             <Link
               href="/dashboard"
-              className={cn(buttonVariants({ size: "sm" }), "hidden sm:inline-flex")}
+              className={cn(
+                buttonVariants({ size: "sm" }),
+                "hidden sm:inline-flex",
+              )}
             >
               Ir al panel
             </Link>
@@ -89,7 +92,7 @@ export function MarketingNav({
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Cerrar menú" : "Abrir menú"}
             aria-expanded={open}
-            className="inline-flex size-9 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-2 hover:text-text md:hidden"
+            className="text-muted hover:bg-surface-2 hover:text-text inline-flex size-9 items-center justify-center rounded-md transition-colors md:hidden"
           >
             {open ? <Close size={18} /> : <Menu size={18} />}
           </button>
@@ -97,20 +100,20 @@ export function MarketingNav({
       </nav>
 
       {open ? (
-        <div className="border-t border-border bg-bg px-5 py-4 md:hidden">
+        <div className="border-border bg-bg border-t px-5 py-4 md:hidden">
           <div className="flex flex-col">
             {LINKS.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
-                className="rounded-md px-2 py-2.5 text-sm text-muted transition-colors hover:text-text"
+                className="text-muted hover:text-text rounded-md px-2 py-2.5 text-sm transition-colors"
               >
                 {link.label}
               </a>
             ))}
           </div>
-          <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
+          <div className="border-border mt-3 flex flex-col gap-2 border-t pt-3">
             {authed ? (
               <Link href="/dashboard" className={buttonVariants()}>
                 Ir al panel

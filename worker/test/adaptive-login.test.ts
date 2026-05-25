@@ -13,7 +13,9 @@ describe("isEmailFillSelector", () => {
 
   it("detecta términos largos de identificador", () => {
     expect(isEmailFillSelector('input[name="usuario"]')).toBe(true);
-    expect(isEmailFillSelector('input[placeholder="Número de documento"]')).toBe(true);
+    expect(
+      isEmailFillSelector('input[placeholder="Número de documento"]'),
+    ).toBe(true);
     expect(isEmailFillSelector('input[name="cedula"]')).toBe(true);
   });
 

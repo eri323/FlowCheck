@@ -24,8 +24,8 @@ credencial sea un email en dos capas:
 1. **Cliente** — `new-test-run-form.tsx`: el campo es
    `<input type="email" required>`. El navegador corre su validación de
    restricciones HTML5, ve que el valor no contiene `@`, bloquea el envío del
-   formulario y muestra el globo nativo *"Incluye una @ en la dirección de
-   correo electrónico"*.
+   formulario y muestra el globo nativo _"Incluye una @ en la dirección de
+   correo electrónico"_.
 2. **Servidor** — `lib/validation/test-run.ts`, `loginDataSchema`:
    `email: z.email("Email inválido").max(320)`. Aunque el cliente se saltara,
    Zod rechaza el valor con `400`.
@@ -65,7 +65,10 @@ const loginIdentifierSchema = z
   .trim()
   .min(1, "La credencial es obligatoria")
   .max(320, "La credencial es demasiado larga")
-  .refine((v) => !/[\r\n\t]/.test(v), "La credencial no puede tener saltos de línea");
+  .refine(
+    (v) => !/[\r\n\t]/.test(v),
+    "La credencial no puede tener saltos de línea",
+  );
 
 const loginDataSchema = z.object({
   email: loginIdentifierSchema,
@@ -99,18 +102,18 @@ En `app/dashboard/_components/new-test-run-form.tsx`, sección
 No se tocan las secciones `registro` ni `ecommerce`: sus campos de email siguen
 siendo `type="email"`.
 
-**Por qué es seguro:** la credencial es un *valor*, no un selector — llega a un
+**Por qué es seguro:** la credencial es un _valor_, no un selector — llega a un
 `.fill()` de Playwright, donde texto arbitrario es inofensivo. La validación
 existe por UX (campo obligatorio, sin basura), no por seguridad. La regla de
 CLAUDE.md sobre validar selectores con Zod no aplica a este valor.
 
 ## Archivos afectados
 
-| Archivo | Cambio |
-|---|---|
-| `lib/validation/test-run.ts` | `loginIdentifierSchema` nuevo; `loginDataSchema.email` lo usa. `registro` / `ecommerce` sin cambios. |
-| `app/dashboard/_components/new-test-run-form.tsx` | Campo de login: `type=text`, label y placeholder. |
-| `tests/api/test-runs.test.ts` | Caso nuevo: login con credencial no-email pasa validación; login con email sigue pasando. |
+| Archivo                                           | Cambio                                                                                               |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `lib/validation/test-run.ts`                      | `loginIdentifierSchema` nuevo; `loginDataSchema.email` lo usa. `registro` / `ecommerce` sin cambios. |
+| `app/dashboard/_components/new-test-run-form.tsx` | Campo de login: `type=text`, label y placeholder.                                                    |
+| `tests/api/test-runs.test.ts`                     | Caso nuevo: login con credencial no-email pasa validación; login con email sigue pasando.            |
 
 ## Plan de pruebas
 
@@ -131,5 +134,5 @@ CLAUDE.md sobre validar selectores con Zod no aplica a este valor.
   longitud. El arbitraje real del login lo hace `verifyLoginOutcome` en el
   worker (juzga por comportamiento).
 - **Confusión entre este cambio y el login de la propia plataforma** →
-  explícitamente fuera de alcance; `loginDataSchema` es el del *formulario de
-  test-run*, no el de `app/login/actions.ts`.
+  explícitamente fuera de alcance; `loginDataSchema` es el del _formulario de
+  test-run_, no el de `app/login/actions.ts`.

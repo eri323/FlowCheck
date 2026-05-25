@@ -2,7 +2,13 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ArrowRight, Plus, Sparkles, Shield, Bolt } from "@/components/ui/icons";
+import {
+  ArrowRight,
+  Plus,
+  Sparkles,
+  Shield,
+  Bolt,
+} from "@/components/ui/icons";
 import { StatTile } from "@/components/ui/stat-tile";
 import { BreakdownBar } from "@/components/ui/breakdown-bar";
 import { TEST_TYPES, TEST_TYPE_LABELS } from "@/lib/validation/test-run";
@@ -73,7 +79,7 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <p className="font-mono text-[0.6875rem] uppercase tracking-[0.16em] text-accent-text">
+        <p className="text-accent-text font-mono text-[0.6875rem] tracking-[0.16em] uppercase">
           Resumen · hoy
         </p>
         <PageHeader
@@ -91,7 +97,7 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-lg border border-border bg-surface">
+        <div className="border-border bg-surface rounded-lg border">
           <EmptyState
             icon={Sparkles}
             title="Aún no hay test runs"
@@ -110,8 +116,8 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
       ) : (
         <>
           {/* Stat tiles */}
-          <div className="overflow-hidden rounded-lg border border-border">
-            <div className="grid grid-cols-2 gap-px bg-border lg:grid-cols-4">
+          <div className="border-border overflow-hidden rounded-lg border">
+            <div className="bg-border grid grid-cols-2 gap-px lg:grid-cols-4">
               <StatTile
                 label="Total de runs"
                 value={stats.total}
@@ -133,12 +139,12 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
             {/* Left: recent runs */}
             <section>
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-sm font-semibold text-text">
+                <h2 className="text-text text-sm font-semibold">
                   Actividad reciente
                 </h2>
                 <Link
                   href="/dashboard/runs"
-                  className="group inline-flex items-center gap-1 text-xs font-medium text-accent-text"
+                  className="group text-accent-text inline-flex items-center gap-1 text-xs font-medium"
                 >
                   Ver todos
                   <ArrowRight
@@ -147,9 +153,9 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
                   />
                 </Link>
               </div>
-              <div className="mt-3 overflow-hidden rounded-lg border border-border bg-surface">
+              <div className="border-border bg-surface mt-3 overflow-hidden rounded-lg border">
                 <RunListHeader />
-                <div className="divide-y divide-border">
+                <div className="divide-border divide-y">
                   {recent.map((run) => (
                     <RunRow key={run.id} run={run} />
                   ))}
@@ -159,10 +165,10 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
 
             {/* Right: breakdown by test type */}
             <section>
-              <h2 className="text-sm font-semibold text-text">
+              <h2 className="text-text text-sm font-semibold">
                 Por tipo de prueba
               </h2>
-              <div className="mt-3 rounded-lg border border-border bg-surface px-5 py-4">
+              <div className="border-border bg-surface mt-3 rounded-lg border px-5 py-4">
                 <div className="flex flex-col gap-4">
                   {breakdown.map((b) => (
                     <BreakdownBar
@@ -175,11 +181,11 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
                   ))}
                 </div>
               </div>
-              <div className="mt-4 rounded-lg border border-dashed border-border bg-surface px-5 py-6 text-center opacity-70">
-                <p className="text-sm font-medium text-muted">
+              <div className="border-border bg-surface mt-4 rounded-lg border border-dashed px-5 py-6 text-center opacity-70">
+                <p className="text-muted text-sm font-medium">
                   Próximas tareas
                 </p>
-                <p className="mt-1 text-xs text-faint">
+                <p className="text-faint mt-1 text-xs">
                   La cola de ejecuciones programadas estará disponible pronto.
                 </p>
               </div>
@@ -189,8 +195,8 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
           {/* Shortcuts */}
           <section>
             <div className="mb-3 flex items-center gap-3">
-              <h2 className="text-sm font-semibold text-text">Atajos</h2>
-              <span className="h-px flex-1 bg-border" />
+              <h2 className="text-text text-sm font-semibold">Atajos</h2>
+              <span className="bg-border h-px flex-1" />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <ShortcutCard
@@ -233,10 +239,10 @@ function ShortcutCard({
   return (
     <Link
       href="/dashboard/runs/new"
-      className="group flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 transition-colors duration-150 hover:bg-surface-2"
+      className="group border-border bg-surface hover:bg-surface-2 flex flex-col gap-3 rounded-lg border p-4 transition-colors duration-150"
     >
       <div className="flex items-center justify-between">
-        <span className="flex size-8 items-center justify-center rounded-lg border border-border bg-accent-subtle text-accent-text">
+        <span className="border-border bg-accent-subtle text-accent-text flex size-8 items-center justify-center rounded-lg border">
           <Icon size={15} />
         </span>
         <ArrowRight
@@ -245,8 +251,8 @@ function ShortcutCard({
         />
       </div>
       <div>
-        <p className="text-sm font-semibold text-text">{title}</p>
-        <p className="mt-1 text-xs leading-relaxed text-muted">{description}</p>
+        <p className="text-text text-sm font-semibold">{title}</p>
+        <p className="text-muted mt-1 text-xs leading-relaxed">{description}</p>
       </div>
     </Link>
   );

@@ -3,10 +3,8 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import {
-  credentialsSchema,
-  type AuthFormState,
-} from "@/lib/validation/auth";
+import { getSiteUrl } from "@/lib/site-url";
+import { credentialsSchema, type AuthFormState } from "@/lib/validation/auth";
 
 export async function signupAction(
   _prev: AuthFormState | undefined,
@@ -24,7 +22,7 @@ export async function signupAction(
     };
   }
 
-  const origin = (await headers()).get("origin") ?? "http://localhost:3000";
+  const origin = getSiteUrl((await headers()).get("origin"));
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signUp({
     ...parsed.data,

@@ -17,9 +17,11 @@
 ## File Structure
 
 **Crear:**
+
 - `components/ui/callout.tsx` — componente `<Callout>`: aside con etiqueta y cuerpo, para detalles técnicos.
 
 **Modificar (rebranding, Tarea 2):**
+
 - `components/ui/logo.tsx` — wordmark y `aria-label`.
 - `app/layout.tsx` — `metadata.title`.
 - `app/_components/landing/hero.tsx` — frase del cuerpo.
@@ -27,6 +29,7 @@
 - `app/dashboard/_components/sidebar-nav.tsx` — pie del sidebar.
 
 **Modificar (callouts + rebranding, Tareas 3-5):**
+
 - `app/_components/landing/how-it-works.tsx` — rename + 3 callouts (reescritura completa, Tarea 3).
 - `app/_components/landing/test-types.tsx` — 1 callout de sección (Tarea 4).
 - `app/_components/landing/features.tsx` — 1 callout de sección (Tarea 5).
@@ -36,6 +39,7 @@
 ## Task 1: Componente `<Callout>`
 
 **Files:**
+
 - Create: `components/ui/callout.tsx`
 
 - [ ] **Step 1: Crear el componente**
@@ -58,14 +62,14 @@ export function Callout({
   return (
     <aside
       className={cn(
-        "rounded-lg border border-border bg-accent-subtle px-3.5 py-3",
+        "border-border bg-accent-subtle rounded-lg border px-3.5 py-3",
         className,
       )}
     >
-      <span className="text-[0.625rem] font-semibold uppercase tracking-[0.09em] text-accent-text">
+      <span className="text-accent-text text-[0.625rem] font-semibold tracking-[0.09em] uppercase">
         {label}
       </span>
-      <p className="mt-1 text-pretty text-sm leading-relaxed text-muted">
+      <p className="text-muted mt-1 text-sm leading-relaxed text-pretty">
         {children}
       </p>
     </aside>
@@ -92,6 +96,7 @@ git commit -m "feat(ui): componente Callout para detalles tecnicos" -m "Co-Autho
 Renombra 5 archivos. El sexto archivo afectado (`how-it-works.tsx`) se renombra en la Tarea 3 como parte de su reescritura completa. La marca gráfica del logo (función `Mark` en `logo.tsx`) **no se toca**.
 
 **Files:**
+
 - Modify: `components/ui/logo.tsx`
 - Modify: `app/layout.tsx`
 - Modify: `app/_components/landing/hero.tsx`
@@ -101,19 +106,25 @@ Renombra 5 archivos. El sexto archivo afectado (`how-it-works.tsx`) se renombra 
 - [ ] **Step 1: Editar `components/ui/logo.tsx`**
 
 Cambio 1 — el wordmark. Reemplazar:
+
 ```tsx
-          Probe
+Probe;
 ```
+
 por:
+
 ```tsx
-          FlowCheck
+FlowCheck;
 ```
 
 Cambio 2 — el `aria-label`. Reemplazar:
+
 ```tsx
       aria-label="Probe — inicio"
 ```
+
 por:
+
 ```tsx
       aria-label="FlowCheck — inicio"
 ```
@@ -121,11 +132,14 @@ por:
 - [ ] **Step 2: Editar `app/layout.tsx`**
 
 Reemplazar el bloque `title`:
+
 ```tsx
     default: "Probe — Testing automatizado con IA",
     template: "%s · Probe",
 ```
+
 por:
+
 ```tsx
     default: "FlowCheck — Testing automatizado con IA",
     template: "%s · FlowCheck",
@@ -134,10 +148,13 @@ por:
 - [ ] **Step 3: Editar `app/_components/landing/hero.tsx`**
 
 Reemplazar:
+
 ```tsx
 en una frase. Probe
 ```
+
 por:
+
 ```tsx
 en una frase. FlowCheck
 ```
@@ -145,10 +162,13 @@ en una frase. FlowCheck
 - [ ] **Step 4: Editar `app/_components/landing/marketing-footer.tsx`**
 
 Reemplazar:
+
 ```tsx
             © 2026 Probe. Proyecto de demostración técnica.
 ```
+
 por:
+
 ```tsx
             © 2026 FlowCheck. Proyecto de demostración técnica.
 ```
@@ -156,10 +176,13 @@ por:
 - [ ] **Step 5: Editar `app/dashboard/_components/sidebar-nav.tsx`**
 
 Reemplazar:
+
 ```tsx
           Probe · entorno de demostración
 ```
+
 por:
+
 ```tsx
           FlowCheck · entorno de demostración
 ```
@@ -186,6 +209,7 @@ git commit -m "refactor: renombra el proyecto de Probe a FlowCheck" -m "Co-Autho
 Reescritura completa de `how-it-works.tsx`: incluye el rename `Probe → FlowCheck` (línea del párrafo introductorio) y añade un `<Callout>` debajo de cada uno de los 3 pasos.
 
 **Files:**
+
 - Modify: `app/_components/landing/how-it-works.tsx`
 
 - [ ] **Step 1: Reemplazar el contenido completo de `app/_components/landing/how-it-works.tsx`**
@@ -209,7 +233,7 @@ const STEPS: Step[] = [
     callout: (
       <>
         Gemini responde con{" "}
-        <code className="rounded bg-surface-2 px-1 py-0.5 font-mono text-[0.8em] text-accent-text">
+        <code className="bg-surface-2 text-accent-text rounded px-1 py-0.5 font-mono text-[0.8em]">
           responseMimeType: application/json
         </code>
         ; el JSON se valida contra un contrato de tipos estricto antes de
@@ -227,17 +251,16 @@ const STEPS: Step[] = [
 
 export function HowItWorks(): React.JSX.Element {
   return (
-    <section id="como-funciona" className="border-t border-border">
+    <section id="como-funciona" className="border-border border-t">
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
         <Reveal>
           <div className="max-w-2xl">
-            <h2 className="text-2xl font-semibold tracking-[-0.02em] text-text sm:text-3xl">
+            <h2 className="text-text text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">
               De la idea al reporte en tres pasos
             </h2>
-            <p className="mt-3 text-pretty text-muted">
-              Sin escribir selectores ni mantener scripts frágiles. Tú
-              describes el comportamiento esperado, FlowCheck se encarga del
-              resto.
+            <p className="text-muted mt-3 text-pretty">
+              Sin escribir selectores ni mantener scripts frágiles. Tú describes
+              el comportamiento esperado, FlowCheck se encarga del resto.
             </p>
           </div>
         </Reveal>
@@ -245,14 +268,14 @@ export function HowItWorks(): React.JSX.Element {
         <div className="mt-12 grid gap-8 lg:grid-cols-3 lg:gap-10">
           {STEPS.map((step, i) => (
             <Reveal key={step.title} delay={i * 90}>
-              <div className="border-t-2 border-border pt-5">
-                <span className="font-mono text-sm font-medium text-accent-text">
+              <div className="border-border border-t-2 pt-5">
+                <span className="text-accent-text font-mono text-sm font-medium">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <h3 className="mt-3 text-base font-semibold text-text">
+                <h3 className="text-text mt-3 text-base font-semibold">
                   {step.title}
                 </h3>
-                <p className="mt-2 text-pretty text-sm leading-relaxed text-muted">
+                <p className="text-muted mt-2 text-sm leading-relaxed text-pretty">
                   {step.body}
                 </p>
                 <Callout className="mt-4">{step.callout}</Callout>
@@ -288,15 +311,19 @@ git commit -m "feat(landing): callouts tecnicos en la seccion Como funciona" -m 
 Añade un `<Callout>` de sección bajo la grilla de 6 tipos en `test-types.tsx`.
 
 **Files:**
+
 - Modify: `app/_components/landing/test-types.tsx`
 
 - [ ] **Step 1: Añadir el import**
 
 En `app/_components/landing/test-types.tsx`, reemplazar:
+
 ```tsx
 import { Reveal } from "@/components/ui/reveal";
 ```
+
 por:
+
 ```tsx
 import { Reveal } from "@/components/ui/reveal";
 import { Callout } from "@/components/ui/callout";
@@ -305,6 +332,7 @@ import { Callout } from "@/components/ui/callout";
 - [ ] **Step 2: Insertar el callout tras la grilla**
 
 Reemplazar el final del componente:
+
 ```tsx
         </Reveal>
       </div>
@@ -312,7 +340,9 @@ Reemplazar el final del componente:
   );
 }
 ```
+
 por:
+
 ```tsx
         </Reveal>
 
@@ -351,15 +381,19 @@ git commit -m "feat(landing): callout de login adaptativo en Tipos de prueba" -m
 Añade un `<Callout>` de sección al final de la columna de features en `features.tsx`.
 
 **Files:**
+
 - Modify: `app/_components/landing/features.tsx`
 
 - [ ] **Step 1: Añadir el import**
 
 En `app/_components/landing/features.tsx`, reemplazar:
+
 ```tsx
 import { Reveal } from "@/components/ui/reveal";
 ```
+
 por:
+
 ```tsx
 import { Reveal } from "@/components/ui/reveal";
 import { Callout } from "@/components/ui/callout";
@@ -368,13 +402,16 @@ import { Callout } from "@/components/ui/callout";
 - [ ] **Step 2: Insertar el callout tras la lista de features**
 
 Reemplazar:
+
 ```tsx
           })}
         </div>
       </div>
     </section>
 ```
+
 por:
+
 ```tsx
           })}
 
@@ -435,6 +472,7 @@ Expected: compila sin errores.
 
 Run: `npm run dev` y abrir `http://localhost:3000`.
 Verificar:
+
 - El logo y los textos muestran "FlowCheck" en la landing, el footer y el sidebar del dashboard.
 - Los 5 callouts ("Bajo el capó") aparecen: 3 en Cómo funciona, 1 en Tipos de prueba, 1 en Reporte en vivo.
 - Los callouts son legibles en tema claro y oscuro (toggle del nav).

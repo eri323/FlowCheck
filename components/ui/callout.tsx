@@ -13,14 +13,14 @@ export function Callout({
   return (
     <aside
       className={cn(
-        "rounded-lg border border-border bg-accent-subtle px-3.5 py-3",
+        "border-border bg-accent-subtle rounded-lg border px-3.5 py-3",
         className,
       )}
     >
-      <span className="text-[0.625rem] font-semibold uppercase tracking-[0.09em] text-accent-text">
+      <span className="text-accent-text text-[0.625rem] font-semibold tracking-[0.09em] uppercase">
         {label}
       </span>
-      <p className="mt-1 text-pretty text-sm leading-relaxed text-muted">
+      <p className="text-muted mt-1 text-sm leading-relaxed text-pretty">
         {children}
       </p>
     </aside>
