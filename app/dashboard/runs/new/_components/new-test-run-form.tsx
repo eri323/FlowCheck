@@ -213,7 +213,7 @@ export function NewTestRunForm(): React.JSX.Element {
     >
       {/* ────────────── FORM (left) ────────────── */}
       <Card className="lg:col-span-8">
-        <div className="divide-y divide-border">
+        <div className="divide-border divide-y">
           {/* 01 — URL + Tipo combinados en una sección densa */}
           <Section
             step="01"
@@ -228,7 +228,7 @@ export function NewTestRunForm(): React.JSX.Element {
               <div className="relative">
                 <Globe
                   size={15}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint"
+                  className="text-faint pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
                 />
                 <Input
                   id="target_url"
@@ -246,10 +246,10 @@ export function NewTestRunForm(): React.JSX.Element {
 
             <div className="mt-4">
               <div className="mb-2 flex items-baseline justify-between">
-                <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
+                <span className="text-faint font-mono text-[0.625rem] tracking-widest uppercase">
                   Tipo de prueba
                 </span>
-                <span className="text-xs text-muted">
+                <span className="text-muted text-xs">
                   {TYPE_META[testType].hint}
                 </span>
               </div>
@@ -274,7 +274,7 @@ export function NewTestRunForm(): React.JSX.Element {
             description={DYNAMIC_DESCRIPTION[testType]}
             badge={
               isSecure ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-success-bg px-2 py-0.5 text-[0.6875rem] font-medium text-success-text">
+                <span className="bg-success-bg text-success-text inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.6875rem] font-medium">
                   <Shield size={11} />
                   cifrados
                 </span>
@@ -403,7 +403,7 @@ export function NewTestRunForm(): React.JSX.Element {
             ) : null}
 
             {testType === "navegacion" ? (
-              <p className="rounded-md border border-dashed border-border bg-surface-2 px-3 py-2.5 text-sm text-muted">
+              <p className="border-border bg-surface-2 text-muted rounded-md border border-dashed px-3 py-2.5 text-sm">
                 Sin campos extra. La IA inferirá los pasos desde tu instrucción
                 adicional. Si no la das, ejecuta un smoke test del inicio.
               </p>
@@ -488,7 +488,7 @@ export function NewTestRunForm(): React.JSX.Element {
             ) : null}
 
             {testDataError ? (
-              <p className="mt-3 text-xs text-danger-text">{testDataError}</p>
+              <p className="text-danger-text mt-3 text-xs">{testDataError}</p>
             ) : null}
           </Section>
 
@@ -525,7 +525,7 @@ export function NewTestRunForm(): React.JSX.Element {
                       onClick={() =>
                         setExtraPrompt((p) => (p ? p + " " : "") + suggestion)
                       }
-                      className="inline-flex items-center rounded-full border border-border bg-surface-2 px-2 py-0.5 text-[0.6875rem] text-muted transition-colors duration-150 hover:border-border-strong hover:text-text"
+                      className="border-border bg-surface-2 text-muted hover:border-border-strong hover:text-text inline-flex items-center rounded-full border px-2 py-0.5 text-[0.6875rem] transition-colors duration-150"
                     >
                       + {suggestion}
                     </button>
@@ -536,18 +536,18 @@ export function NewTestRunForm(): React.JSX.Element {
               {/* Runner */}
               <div className="space-y-3 lg:col-span-2">
                 <div className="flex flex-col gap-1.5">
-                  <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
+                  <span className="text-faint font-mono text-[0.625rem] tracking-widest uppercase">
                     Navegador
                   </span>
                   <div className="flex flex-wrap gap-1.5">
-                    <span className="inline-flex items-center rounded-md border border-accent-subtle bg-accent-subtle px-2.5 py-1.5 text-xs font-medium text-accent-text">
+                    <span className="border-accent-subtle bg-accent-subtle text-accent-text inline-flex items-center rounded-md border px-2.5 py-1.5 text-xs font-medium">
                       Chromium
                     </span>
                     {["Firefox", "WebKit"].map((b) => (
                       <span
                         key={b}
                         title="Próximamente"
-                        className="inline-flex cursor-not-allowed items-center rounded-md border border-border bg-surface-2 px-2.5 py-1.5 text-xs text-faint opacity-60"
+                        className="border-border bg-surface-2 text-faint inline-flex cursor-not-allowed items-center rounded-md border px-2.5 py-1.5 text-xs opacity-60"
                       >
                         {b}
                       </span>
@@ -556,10 +556,10 @@ export function NewTestRunForm(): React.JSX.Element {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
+                  <span className="text-faint font-mono text-[0.625rem] tracking-widest uppercase">
                     Dispositivo
                   </span>
-                  <div className="flex gap-0.5 rounded-md border border-border bg-surface-2 p-0.5">
+                  <div className="border-border bg-surface-2 flex gap-0.5 rounded-md border p-0.5">
                     {(["desktop", "mobile"] as const).map((d) => (
                       <button
                         key={d}
@@ -567,8 +567,8 @@ export function NewTestRunForm(): React.JSX.Element {
                         onClick={() => setDevice(d)}
                         className={
                           device === d
-                            ? "flex-1 rounded bg-elevated px-2 py-1 text-xs font-medium text-text shadow-e1"
-                            : "flex-1 rounded px-2 py-1 text-xs text-muted transition-colors hover:text-text"
+                            ? "bg-elevated text-text shadow-e1 flex-1 rounded px-2 py-1 text-xs font-medium"
+                            : "text-muted hover:text-text flex-1 rounded px-2 py-1 text-xs transition-colors"
                         }
                       >
                         {d === "desktop" ? "Desktop" : "Mobile"}
@@ -578,17 +578,17 @@ export function NewTestRunForm(): React.JSX.Element {
                 </div>
 
                 <div
-                  className="flex items-center justify-between rounded-md border border-border bg-surface-2 px-3 py-2"
+                  className="border-border bg-surface-2 flex items-center justify-between rounded-md border px-3 py-2"
                   title="El worker corre en un servidor sin pantalla: siempre headless."
                 >
-                  <span className="inline-flex items-center gap-2 text-xs text-muted">
+                  <span className="text-muted inline-flex items-center gap-2 text-xs">
                     <Eye size={14} />
                     Modo headless
                   </span>
-                  <span className="inline-flex items-center gap-1.5 text-[0.6875rem] text-faint">
+                  <span className="text-faint inline-flex items-center gap-1.5 text-[0.6875rem]">
                     fijo
-                    <span className="relative h-3.5 w-6 rounded-full bg-accent">
-                      <span className="absolute right-0.5 top-0.5 size-2.5 rounded-full bg-white" />
+                    <span className="bg-accent relative h-3.5 w-6 rounded-full">
+                      <span className="absolute top-0.5 right-0.5 size-2.5 rounded-full bg-white" />
                     </span>
                   </span>
                 </div>
@@ -601,81 +601,82 @@ export function NewTestRunForm(): React.JSX.Element {
       {/* ────────────── RESUMEN (right, sticky) ────────────── */}
       <aside className="lg:col-span-4">
         <Card className="overflow-hidden lg:sticky lg:top-6">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div className="border-border flex items-center justify-between border-b px-4 py-3">
             <div className="flex items-baseline gap-2">
-              <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
+              <span className="text-faint font-mono text-[0.625rem] tracking-widest uppercase">
                 Resumen
               </span>
-              <h2 className="text-sm font-semibold text-text">del run</h2>
+              <h2 className="text-text text-sm font-semibold">del run</h2>
             </div>
-            <span className="inline-flex items-center gap-1.5 text-[0.6875rem] text-faint">
+            <span className="text-faint inline-flex items-center gap-1.5 text-[0.6875rem]">
               <span className="relative flex size-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
-                <span className="relative inline-flex size-1.5 rounded-full bg-accent" />
+                <span className="bg-accent absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" />
+                <span className="bg-accent relative inline-flex size-1.5 rounded-full" />
               </span>
               en vivo
             </span>
           </div>
 
-          <dl className="divide-y divide-border text-sm">
+          <dl className="divide-border divide-y text-sm">
             <SummaryRow label="URL">
               {urlHost ? (
-                <span className="block max-w-full truncate font-mono text-xs text-text">
+                <span className="text-text block max-w-full truncate font-mono text-xs">
                   {urlHost}
                 </span>
               ) : (
-                <span className="font-mono text-xs text-faint">
-                  —
-                </span>
+                <span className="text-faint font-mono text-xs">—</span>
               )}
             </SummaryRow>
 
             <SummaryRow label="Tipo">
-              <span className="inline-flex items-center gap-1.5 text-xs text-text">
+              <span className="text-text inline-flex items-center gap-1.5 text-xs">
                 <TypeIcon size={13} className="text-accent-text" />
                 {TEST_TYPE_LABELS[testType]}
               </span>
             </SummaryRow>
 
             <SummaryRow label="Dispositivo">
-              <span className="text-xs text-text">
+              <span className="text-text text-xs">
                 {device === "desktop" ? "Desktop" : "Mobile"}
-                <span className="ml-1.5 text-faint">· Chromium</span>
+                <span className="text-faint ml-1.5">· Chromium</span>
               </span>
             </SummaryRow>
 
             <SummaryRow label="Pasos est.">
-              <span className="font-mono text-xs tabular-nums text-text">
+              <span className="text-text font-mono text-xs tabular-nums">
                 {TYPE_META[testType].steps}
               </span>
             </SummaryRow>
 
             <SummaryRow label="Duración est.">
-              <span className="font-mono text-xs tabular-nums text-text">
+              <span className="text-text font-mono text-xs tabular-nums">
                 {TYPE_META[testType].duration}
               </span>
             </SummaryRow>
           </dl>
 
           {isSecure ? (
-            <div className="border-t border-border bg-surface-2 px-4 py-2.5">
-              <p className="flex items-start gap-2 text-[0.6875rem] text-muted">
-                <Shield size={11} className="mt-0.5 shrink-0 text-success-text" />
+            <div className="border-border bg-surface-2 border-t px-4 py-2.5">
+              <p className="text-muted flex items-start gap-2 text-[0.6875rem]">
+                <Shield
+                  size={11}
+                  className="text-success-text mt-0.5 shrink-0"
+                />
                 Las credenciales viajan cifradas y no se persisten en logs.
               </p>
             </div>
           ) : null}
 
           {serverMessage ? (
-            <div className="border-t border-border px-4 py-3">
-              <p className="flex items-start gap-2 rounded-md bg-danger-bg px-3 py-2 text-xs text-danger-text">
+            <div className="border-border border-t px-4 py-3">
+              <p className="bg-danger-bg text-danger-text flex items-start gap-2 rounded-md px-3 py-2 text-xs">
                 <AlertCircle size={13} className="mt-px shrink-0" />
                 <span>{serverMessage}</span>
               </p>
             </div>
           ) : null}
 
-          <div className="space-y-2 border-t border-border bg-surface-2 px-4 py-4">
+          <div className="border-border bg-surface-2 space-y-2 border-t px-4 py-4">
             <Button
               type="submit"
               loading={isPending}
@@ -689,7 +690,7 @@ export function NewTestRunForm(): React.JSX.Element {
                 aria-disabled="true"
                 tabIndex={-1}
                 title="Próximamente"
-                className="cursor-not-allowed rounded-md border border-border bg-surface px-2.5 py-1.5 text-[0.6875rem] text-faint opacity-60"
+                className="border-border bg-surface text-faint cursor-not-allowed rounded-md border px-2.5 py-1.5 text-[0.6875rem] opacity-60"
               >
                 Guardar plantilla
               </button>
@@ -698,12 +699,12 @@ export function NewTestRunForm(): React.JSX.Element {
                 aria-disabled="true"
                 tabIndex={-1}
                 title="Próximamente"
-                className="cursor-not-allowed rounded-md border border-border bg-surface px-2.5 py-1.5 text-[0.6875rem] text-faint opacity-60"
+                className="border-border bg-surface text-faint cursor-not-allowed rounded-md border px-2.5 py-1.5 text-[0.6875rem] opacity-60"
               >
                 Programar
               </button>
             </div>
-            <p className="pt-1 text-[0.6875rem] leading-relaxed text-faint">
+            <p className="text-faint pt-1 text-[0.6875rem] leading-relaxed">
               La IA generará el plan y el worker lo ejecutará en un navegador
               real. Verás el avance paso a paso en vivo.
             </p>
@@ -764,12 +765,12 @@ function Section({
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
             {step ? (
-              <span className="font-mono text-[0.625rem] tabular-nums tracking-wider text-faint">
+              <span className="text-faint font-mono text-[0.625rem] tracking-wider tabular-nums">
                 {step}
               </span>
             ) : null}
-            <h2 className="text-sm font-semibold text-text">{title}</h2>
-            <span className="hidden truncate text-xs text-muted sm:inline">
+            <h2 className="text-text text-sm font-semibold">{title}</h2>
+            <span className="text-muted hidden truncate text-xs sm:inline">
               · {description}
             </span>
           </div>
@@ -790,10 +791,10 @@ function SummaryRow({
 }): React.JSX.Element {
   return (
     <div className="flex items-center justify-between gap-3 px-4 py-2.5">
-      <dt className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
+      <dt className="text-faint font-mono text-[0.625rem] tracking-widest uppercase">
         {label}
       </dt>
-      <dd className="min-w-0 max-w-[60%] text-right">{children}</dd>
+      <dd className="max-w-[60%] min-w-0 text-right">{children}</dd>
     </div>
   );
 }

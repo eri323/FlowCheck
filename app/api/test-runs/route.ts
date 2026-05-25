@@ -111,7 +111,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     try {
       await triggerWorkerRun(testRunId);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Error desconocido";
+      const message =
+        error instanceof Error ? error.message : "Error desconocido";
       const admin = createSupabaseAdminClient();
       await admin
         .from("test_runs")

@@ -24,7 +24,7 @@ Cada tipo adaptativo trae además un test de **"trampa de falso positivo"** que
 prueba justamente que NO da verde cuando el flujo no sucede.
 
 Los pasos resueltos por heurística aparecen en el reporte con el prefijo
-`[adaptive]` en la columna *selector*, y la URL/dato real queda en *value*.
+`[adaptive]` en la columna _selector_, y la URL/dato real queda en _value_.
 
 ## Sobre los tiempos
 
@@ -37,14 +37,14 @@ ejecución.
 
 ## Resumen de los 6 tipos
 
-| Tipo | Módulo | Demo de referencia | Criterio de verificación por comportamiento |
-|------|--------|--------------------|---------------------------------------------|
-| Login | `adaptive-login.ts` | saucedemo.com | URL cambió / desapareció el password / mensaje de error → fallo veraz |
-| Registro | `adaptive-registro.ts` | demo.realworld.io (Conduit) | URL cambió / mensaje de éxito / form desapareció; "email en uso" → fallo |
-| Búsqueda | `adaptive-search.ts` | en.wikipedia.org | señal fuerte de URL / DELTA de resultados nuevos / transición SPA |
-| Navegación | `adaptive-navegacion.ts` | the-internet.herokuapp.com | página sana: cargó, con contenido, no es página de error |
-| Formulario | `adaptive-formulario.ts` | httpbin.org/forms/post | URL cambió / mensaje de éxito / form desapareció |
-| E-commerce | `adaptive-ecommerce.ts` | demoblaze.com | **solo** si se detecta la confirmación de la orden |
+| Tipo       | Módulo                   | Demo de referencia          | Criterio de verificación por comportamiento                              |
+| ---------- | ------------------------ | --------------------------- | ------------------------------------------------------------------------ |
+| Login      | `adaptive-login.ts`      | saucedemo.com               | URL cambió / desapareció el password / mensaje de error → fallo veraz    |
+| Registro   | `adaptive-registro.ts`   | demo.realworld.io (Conduit) | URL cambió / mensaje de éxito / form desapareció; "email en uso" → fallo |
+| Búsqueda   | `adaptive-search.ts`     | en.wikipedia.org            | señal fuerte de URL / DELTA de resultados nuevos / transición SPA        |
+| Navegación | `adaptive-navegacion.ts` | the-internet.herokuapp.com  | página sana: cargó, con contenido, no es página de error                 |
+| Formulario | `adaptive-formulario.ts` | httpbin.org/forms/post      | URL cambió / mensaje de éxito / form desapareció                         |
+| E-commerce | `adaptive-ecommerce.ts`  | demoblaze.com               | **solo** si se detecta la confirmación de la orden                       |
 
 Todos comparten helpers en `adaptive-common.ts` y marcan sus pasos con
 `[adaptive]`. Cada uno tiene tests puros + de integración (Chromium real contra
@@ -65,7 +65,7 @@ fixtures locales), incluyendo su **trampa de falso positivo**.
 - `verifyPageHealthy` declara la página sana si: cargó (`domcontentloaded`),
   tiene `<title>`, renderizó contenido de texto suficiente y **no** parece un
   documento de error (`looksLikeErrorPage` detecta 404/500/"not found"… cuando
-  además hay poco contenido, para no marcar una home que solo *menciona* la
+  además hay poco contenido, para no marcar una home que solo _menciona_ la
   palabra "error").
 - Los clicks usan `clickAdaptive`: intenta el selector literal y, si falla, cae a
   buscar el enlace/botón por su **nombre accesible** (`getByRole`) y luego por
@@ -79,7 +79,7 @@ fixtures locales), incluyendo su **trampa de falso positivo**.
 - **URL de ejemplo:** `https://the-internet.herokuapp.com/`
 - **Datos:** ninguno (solo la URL; opcionalmente una instrucción libre de
   navegación, p. ej. "entra a Form Authentication").
-- **Qué pasa:** el usuario elige *Navegación*, pega la URL y lanza el run. El
+- **Qué pasa:** el usuario elige _Navegación_, pega la URL y lanza el run. El
   sistema genera un plan corto (goto + verificación de salud), abre Chromium,
   carga la página, sigue la instrucción si la hay y verifica que todo renderizó.
 - **Tiempo típico:** ~8–20 s (generación ~2–5 s + ejecución de pocos pasos).
@@ -124,13 +124,13 @@ fixtures locales), incluyendo su **trampa de falso positivo**.
   Preferred delivery time: 18:00
   Delivery instructions: Tocar el timbre
   ```
-- **Qué pasa:** el usuario elige *Formulario*, pega la URL y lista los campos. El
+- **Qué pasa:** el usuario elige _Formulario_, pega la URL y lista los campos. El
   sistema resuelve cada campo por su etiqueta, lo llena, hace click en
   "Submit order" y verifica que la página de eco del POST se cargó.
 - **Tiempo típico:** ~10–25 s (generación ~2–6 s + un paso por campo + submit).
 - **Respuesta esperada:** run **completado** en verde; el paso de envío aparece
   como `[adaptive] formulario enviado y verificado` y la URL real (`/post`, con
-  el eco JSON de los datos) queda en *value*. Si algún campo no existiera o el
+  el eco JSON de los datos) queda en _value_. Si algún campo no existiera o el
   envío no produjera ninguna señal, el run saldría **fallido** con el
   diagnóstico.
 
@@ -165,14 +165,14 @@ fixtures locales), incluyendo su **trampa de falso positivo**.
   para la heurística.
 - **Datos:** nombre/usuario, email (conviene uno único por corrida), contraseña
   (y confirmación si la app la pide).
-- **Qué pasa:** el usuario elige *Registro*, pega la URL y sus datos. El sistema
+- **Qué pasa:** el usuario elige _Registro_, pega la URL y sus datos. El sistema
   llena nombre, email y contraseña (omite "confirmar" si no existe), envía y
   verifica que la cuenta quedó creada (redirección al feed).
 - **Tiempo típico:** ~12–30 s (generación ~3–6 s + llenado de campos + submit +
   ventana de verificación).
 - **Respuesta esperada:** run **completado** en verde con los pasos
   `[adaptive] nombre` / `[adaptive] email/usuario` / `[adaptive] password` /
-  `[adaptive] submit registro` y la URL real post-registro en *value*. Si el
+  `[adaptive] submit registro` y la URL real post-registro en _value_. Si el
   email ya estuviera registrado, el run saldría **fallido** indicando el motivo.
 
 > **Nota de verificación:** durante esta verificación, el instance público de
@@ -230,7 +230,7 @@ E-commerce es el tipo **menos generalizable**: cada tienda es distinta.
   carrito y checkout de **tarjeta inline** (no iframe), el caso que la macro
   cubre. (Confirmado en vivo que la tienda y su flujo carrito→checkout cargan.)
 - **Datos:** email del comprador, número de tarjeta, vencimiento (MM/AA), CVC.
-- **Qué pasa:** el usuario elige *E-commerce*, pega la URL. El sistema agrega un
+- **Qué pasa:** el usuario elige _E-commerce_, pega la URL. El sistema agrega un
   producto al carrito, va a checkout, llena los datos de pago detectados y pulsa
   comprar; verifica la confirmación de la orden.
 - **Tiempo típico:** ~20–45 s (generación ~3–6 s + varias etapas de navegación y
@@ -239,7 +239,7 @@ E-commerce es el tipo **menos generalizable**: cada tienda es distinta.
   requeridos estén dentro del modelo de datos, run **completado** en verde con
   los pasos `[adaptive] agregar al carrito` / `[adaptive] ir a checkout` /
   `[adaptive] datos de pago` / `[adaptive] confirmar orden` y la confirmación en
-  *value*. Si la tienda exige un dato fuera del modelo o usa pago en iframe, el
+  _value_. Si la tienda exige un dato fuera del modelo o usa pago en iframe, el
   run sale **fallido** con el diagnóstico — nunca un falso verde.
 
 ---
@@ -265,12 +265,12 @@ E-commerce es el tipo **menos generalizable**: cada tienda es distinta.
 - **URL de ejemplo:** `https://www.saucedemo.com/` (usuario `standard_user`,
   contraseña `secret_sauce`).
 - **Datos:** identificador (email/usuario/documento) y contraseña.
-- **Qué pasa:** el usuario elige *Login*, pega la URL y las credenciales. El
+- **Qué pasa:** el usuario elige _Login_, pega la URL y las credenciales. El
   sistema localiza los campos, los llena, envía y verifica que entró.
 - **Tiempo típico:** ~10–25 s (generación ~2–6 s + llenado + verificación).
 - **Respuesta esperada:** run **completado** en verde con
   `[adaptive] email/usuario` / `[adaptive] password` / `[adaptive] submit` y la
-  URL real post-login en *value*. Con credenciales inválidas, run **fallido** con
+  URL real post-login en _value_. Con credenciales inválidas, run **fallido** con
   el mensaje de error real de la app (no un timeout genérico).
 
 ---
@@ -288,7 +288,7 @@ E-commerce es el tipo **menos generalizable**: cada tienda es distinta.
   nodos de resultado **nuevos** (DELTA) respecto al baseline, **o** hay una
   transición de SPA.
 - **Por qué DELTA y no presencia:** muchos sitios ya tienen nodos
-  `item`/`product` en nav/footer antes de buscar; exigir nodos *nuevos* evita el
+  `item`/`product` en nav/footer antes de buscar; exigir nodos _nuevos_ evita el
   falso positivo de "casi cualquier búsqueda pasa verde". `resultsFound`
   distingue además los resultados reales del estado de cero resultados.
 
@@ -297,12 +297,12 @@ E-commerce es el tipo **menos generalizable**: cada tienda es distinta.
 - **URL de ejemplo:** `https://en.wikipedia.org/wiki/Main_Page` (buscador con el
   query reflejado en la página de resultados).
 - **Datos:** término de búsqueda y, opcionalmente, un resultado esperado.
-- **Qué pasa:** el usuario elige *Búsqueda*, pega la URL y el término. El sistema
+- **Qué pasa:** el usuario elige _Búsqueda_, pega la URL y el término. El sistema
   escribe en el buscador, envía y verifica que realmente aparecieron resultados.
 - **Tiempo típico:** ~10–25 s (generación ~2–6 s + envío + polling de
   resultados, hasta ~10 s).
 - **Respuesta esperada:** run **completado** en verde con
   `[adaptive] campo de búsqueda` / `[adaptive] submit búsqueda (con resultados)`
-  y la URL real de resultados en *value*. Si la búsqueda no produce ninguna
+  y la URL real de resultados en _value_. Si la búsqueda no produce ninguna
   señal (envío que no dispara, o cero resultados sin confirmar), el run sale
   **fallido** con el diagnóstico.

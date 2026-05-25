@@ -17,9 +17,39 @@ import {
   type LoginOutcome,
 } from "./adaptive-login";
 
-const NAME_TOKENS = ["fullname", "full-name", "name", "nombre", "firstname", "first-name", "given-name"];
-const CONFIRM_TOKENS = ["confirm", "confirmation", "confirmar", "repeat", "repetir", "again", "verificar", "_2", "retype"];
-const REGISTER_VERBS = ["registrar", "registrarme", "regístrate", "registrate", "crear cuenta", "crear", "sign up", "signup", "register", "unirse", "create account"];
+const NAME_TOKENS = [
+  "fullname",
+  "full-name",
+  "name",
+  "nombre",
+  "firstname",
+  "first-name",
+  "given-name",
+];
+const CONFIRM_TOKENS = [
+  "confirm",
+  "confirmation",
+  "confirmar",
+  "repeat",
+  "repetir",
+  "again",
+  "verificar",
+  "_2",
+  "retype",
+];
+const REGISTER_VERBS = [
+  "registrar",
+  "registrarme",
+  "regístrate",
+  "registrate",
+  "crear cuenta",
+  "crear",
+  "sign up",
+  "signup",
+  "register",
+  "unirse",
+  "create account",
+];
 
 const NAME_REGEX = new RegExp(`(${NAME_TOKENS.join("|")})`, "i");
 const CONFIRM_REGEX = new RegExp(`(${CONFIRM_TOKENS.join("|")})`, "i");
@@ -28,10 +58,15 @@ const REGISTER_REGEX = new RegExp(`(${REGISTER_VERBS.join("|")})`, "i");
 export function isNameFillSelector(selector?: string | null): boolean {
   if (!selector) return false;
   const lower = selector.toLowerCase();
-  if (lower.includes("password") || lower.includes("type=email") || lower.includes('type="email"')) {
+  if (
+    lower.includes("password") ||
+    lower.includes("type=email") ||
+    lower.includes('type="email"')
+  ) {
     return false;
   }
-  if (lower.includes("type=password") || lower.includes('type="password"')) return false;
+  if (lower.includes("type=password") || lower.includes('type="password"'))
+    return false;
   return NAME_REGEX.test(lower);
 }
 
@@ -39,14 +74,17 @@ export function isConfirmPasswordSelector(selector?: string | null): boolean {
   if (!selector) return false;
   const lower = selector.toLowerCase();
   const isPasswordLike =
-    lower.includes("password") || lower.includes("contrase") || lower.includes("clave");
+    lower.includes("password") ||
+    lower.includes("contrase") ||
+    lower.includes("clave");
   return isPasswordLike && CONFIRM_REGEX.test(lower);
 }
 
 export function isRegisterSubmitSelector(selector?: string | null): boolean {
   if (!selector) return false;
   const lower = selector.toLowerCase();
-  if (lower.includes("type=submit") || lower.includes('type="submit"')) return true;
+  if (lower.includes("type=submit") || lower.includes('type="submit"'))
+    return true;
   return REGISTER_REGEX.test(lower);
 }
 
@@ -60,13 +98,17 @@ export async function findNameField(page: Page): Promise<Locator | null> {
     page.locator('input[name*="nombre" i]'),
     page.locator('input[name="name" i]'),
     page.locator('input[name*="firstname" i]'),
-    page.locator('input[id*="name" i]:not([type="email"]):not([type="password"])'),
+    page.locator(
+      'input[id*="name" i]:not([type="email"]):not([type="password"])',
+    ),
     page.getByLabel(NAME_LABEL_REGEX),
     page.getByPlaceholder(NAME_LABEL_REGEX),
   ]);
 }
 
-export async function findConfirmPasswordField(page: Page): Promise<Locator | null> {
+export async function findConfirmPasswordField(
+  page: Page,
+): Promise<Locator | null> {
   // Estrategia primaria: si hay 2+ inputs password, el segundo es "confirmar".
   const passwords = page.locator('input[type="password"]');
   const count = await passwords.count().catch(() => 0);
@@ -87,11 +129,17 @@ export async function findConfirmPasswordField(page: Page): Promise<Locator | nu
 export type RegisterOutcome = LoginOutcome;
 
 const OUTCOME_TIMEOUT_DEFAULT_MS = 15_000;
-const DUP_EMAIL_REGEX = /(ya (está|esta) (en uso|registrad)|already (taken|registered|in use)|email exists|usuario existente)/i;
+const DUP_EMAIL_REGEX =
+  /(ya (está|esta) (en uso|registrad)|already (taken|registered|in use)|email exists|usuario existente)/i;
 
 export async function registerAndVerify(
   page: Page,
-  data: { name: string; email: string; password: string; confirmPassword: string },
+  data: {
+    name: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+  },
   initialUrl: string,
   timeoutMs: number,
 ): Promise<RegisterOutcome> {
@@ -114,7 +162,8 @@ export async function registerAndVerify(
   await passwordField.fill(data.password, { timeout: timeoutMs });
 
   const confirmField = await findConfirmPasswordField(page);
-  if (confirmField) await confirmField.fill(data.confirmPassword).catch(() => {});
+  if (confirmField)
+    await confirmField.fill(data.confirmPassword).catch(() => {});
 
   const submit = await findGenericSubmit(page, REGISTER_VERBS);
   await submit.click({ timeout: timeoutMs });

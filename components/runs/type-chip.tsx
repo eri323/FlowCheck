@@ -28,10 +28,7 @@ export function TypeChip({
           : "border-border bg-surface text-muted hover:border-border-strong hover:text-text",
       )}
     >
-      <Icon
-        size={16}
-        className={active ? "text-accent-text" : "text-faint"}
-      />
+      <Icon size={16} className={active ? "text-accent-text" : "text-faint"} />
       <span className="font-medium">{label}</span>
     </button>
   );

@@ -35,24 +35,29 @@ export function Topbar({
   const crumbs = crumbsFor(usePathname());
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-bg/85 px-4 backdrop-blur-md sm:px-6">
+    <header className="border-border bg-bg/85 sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b px-4 backdrop-blur-md sm:px-6">
       <div className="flex items-center gap-2 lg:hidden">
         <button
           type="button"
           onClick={onMenuClick}
           aria-label="Abrir navegación"
-          className="inline-flex size-9 items-center justify-center rounded-md text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-text"
+          className="text-muted hover:bg-surface-2 hover:text-text inline-flex size-9 items-center justify-center rounded-md transition-colors duration-150"
         >
           <Menu size={18} />
         </button>
         <Logo />
       </div>
 
-      <nav aria-label="Ruta" className="hidden items-center gap-2 text-sm lg:flex">
+      <nav
+        aria-label="Ruta"
+        className="hidden items-center gap-2 text-sm lg:flex"
+      >
         {crumbs.map((c, i) => (
           <span key={i} className="flex items-center gap-2">
             {i > 0 ? <span className="text-faint">/</span> : null}
-            <span className={i === crumbs.length - 1 ? "text-text" : "text-muted"}>
+            <span
+              className={i === crumbs.length - 1 ? "text-text" : "text-muted"}
+            >
               {c}
             </span>
           </span>
@@ -67,7 +72,7 @@ export function Topbar({
           aria-label="Notificaciones (próximamente)"
           tabIndex={-1}
           title="Próximamente"
-          className="inline-flex size-9 cursor-not-allowed items-center justify-center rounded-md text-faint opacity-60"
+          className="text-faint inline-flex size-9 cursor-not-allowed items-center justify-center rounded-md opacity-60"
         >
           <Bell size={16} />
         </button>

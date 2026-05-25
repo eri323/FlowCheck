@@ -38,7 +38,7 @@ export default async function RunsPage(): Promise<React.JSX.Element> {
       </PageHeader>
 
       {runs.length === 0 ? (
-        <div className="rounded-lg border border-border bg-surface">
+        <div className="border-border bg-surface rounded-lg border">
           <EmptyState
             icon={Runs}
             title="Todavía no has lanzado ningún run"

@@ -47,8 +47,7 @@ export function formatRunDuration(
   finishedAt: string | null,
 ): string | null {
   if (!startedAt || !finishedAt) return null;
-  const ms =
-    new Date(finishedAt).getTime() - new Date(startedAt).getTime();
+  const ms = new Date(finishedAt).getTime() - new Date(startedAt).getTime();
   if (Number.isNaN(ms) || ms < 0) return null;
   return formatDuration(ms);
 }

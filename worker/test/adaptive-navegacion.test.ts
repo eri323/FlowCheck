@@ -10,11 +10,14 @@ describe("looksLikeErrorPage", () => {
   });
 
   it("no marca una página real con mucho contenido aunque mencione 'error'", () => {
-    const body = "Bienvenido. ".repeat(80) + "Reporta cualquier error al soporte.";
+    const body =
+      "Bienvenido. ".repeat(80) + "Reporta cualquier error al soporte.";
     expect(looksLikeErrorPage("Inicio", body)).toBe(false);
   });
 
   it("no marca una home normal", () => {
-    expect(looksLikeErrorPage("Mi Tienda", "Productos ".repeat(50))).toBe(false);
+    expect(looksLikeErrorPage("Mi Tienda", "Productos ".repeat(50))).toBe(
+      false,
+    );
   });
 });

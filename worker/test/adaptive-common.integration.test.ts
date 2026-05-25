@@ -1,7 +1,15 @@
 // worker/test/adaptive-common.integration.test.ts
 import http from "node:http";
 import type { AddressInfo } from "node:net";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 import { chromium, type Browser, type Page } from "playwright-core";
 import {
   findGenericSubmit,
@@ -18,13 +26,19 @@ const server = http.createServer((req, res) => {
   res.setHeader("content-type", "text/html; charset=utf-8");
   switch (url.pathname) {
     case "/form":
-      res.end(html(`<form><input name="x"><button type="submit">Guardar</button></form>`));
+      res.end(
+        html(
+          `<form><input name="x"><button type="submit">Guardar</button></form>`,
+        ),
+      );
       return;
     case "/error":
       res.end(html(`<div role="alert">Credenciales inválidas</div>`));
       return;
     case "/hidden":
-      res.end(html(`<button type="submit" style="display:none">Enviar</button>`));
+      res.end(
+        html(`<button type="submit" style="display:none">Enviar</button>`),
+      );
       return;
     default:
       res.statusCode = 404;

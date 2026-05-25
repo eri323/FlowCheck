@@ -4,16 +4,12 @@ import { Reveal } from "@/components/ui/reveal";
 import { buttonVariants } from "@/components/ui/button";
 import { ArrowRight } from "@/components/ui/icons";
 
-export function CtaSection({
-  authed,
-}: {
-  authed: boolean;
-}): React.JSX.Element {
+export function CtaSection({ authed }: { authed: boolean }): React.JSX.Element {
   return (
-    <section className="flex min-h-[calc(100svh-4rem)] flex-col justify-center border-t border-border">
+    <section className="border-border flex min-h-[calc(100svh-4rem)] flex-col justify-center border-t">
       <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
         <Reveal>
-          <div className="relative overflow-hidden rounded-2xl border border-border bg-accent-subtle px-6 py-14 text-center sm:px-12 sm:py-16">
+          <div className="border-border bg-accent-subtle relative overflow-hidden rounded-2xl border px-6 py-14 text-center sm:px-12 sm:py-16">
             <div
               aria-hidden="true"
               className="pointer-events-none absolute -bottom-24 left-1/2 size-[26rem] -translate-x-1/2 rounded-full opacity-20 blur-3xl"
@@ -23,10 +19,10 @@ export function CtaSection({
               }}
             />
             <div className="relative">
-              <h2 className="text-2xl font-semibold tracking-[-0.02em] text-text sm:text-[2rem]">
+              <h2 className="text-text text-2xl font-semibold tracking-[-0.02em] sm:text-[2rem]">
                 Lanza tu primer test run hoy
               </h2>
-              <p className="mx-auto mt-3 max-w-md text-pretty text-muted">
+              <p className="text-muted mx-auto mt-3 max-w-md text-pretty">
                 Crea una cuenta y deja que la IA escriba la prueba. El primer
                 reporte tarda menos de un minuto.
               </p>

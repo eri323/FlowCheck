@@ -28,7 +28,9 @@ describe("detectores de ecommerce", () => {
   it("isPaymentFieldSelector", () => {
     expect(isPaymentFieldSelector('input[name="card"]')).toBe(true);
     expect(isPaymentFieldSelector('input[name="cvc"]')).toBe(true);
-    expect(isPaymentFieldSelector('[placeholder="Número de tarjeta"]')).toBe(true);
+    expect(isPaymentFieldSelector('[placeholder="Número de tarjeta"]')).toBe(
+      true,
+    );
     expect(isPaymentFieldSelector('input[name="city"]')).toBe(false);
   });
 });

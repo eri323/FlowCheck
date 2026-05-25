@@ -1,4 +1,5 @@
 @AGENTS.md
+
 # Plataforma de Testing Automatizado con IA — CLAUDE.md
 
 ## Qué es este proyecto
@@ -28,18 +29,18 @@ Vercel (los jobs duran 30–60s).
 
 ## Stack
 
-| Capa           | Tecnología              |
-|----------------|-------------------------|
-| Frontend       | Next.js 16, Tailwind v4 |
-| Auth + DB      | Supabase                |
-| Tiempo real    | Supabase Realtime       |
-| Archivos       | Supabase Storage        |
-| IA             | @google/genai (Gemini)  |
-| Tests browser  | Playwright (Chromium)   |
-| Worker         | Express HTTP            |
-| Deploy front   | Vercel                  |
-| Deploy worker  | Render (free, render.yaml) |
-| Lenguaje       | TypeScript en todo      |
+| Capa          | Tecnología                 |
+| ------------- | -------------------------- |
+| Frontend      | Next.js 16, Tailwind v4    |
+| Auth + DB     | Supabase                   |
+| Tiempo real   | Supabase Realtime          |
+| Archivos      | Supabase Storage           |
+| IA            | @google/genai (Gemini)     |
+| Tests browser | Playwright (Chromium)      |
+| Worker        | Express HTTP               |
+| Deploy front  | Vercel                     |
+| Deploy worker | Render (free, render.yaml) |
+| Lenguaje      | TypeScript en todo         |
 
 ---
 
@@ -652,6 +653,7 @@ debe haber añadido las tres tablas a la publication `supabase_realtime`.
 ## Roadmap del proyecto
 
 ### Fase 1 — Base del proyecto
+
 Configuración inicial del entorno, autenticación y estructura de la base de datos.
 El objetivo de esta fase es tener el proyecto corriendo localmente con login funcional
 y la estructura de tablas lista en Supabase.
@@ -664,6 +666,7 @@ y la estructura de tablas lista en Supabase.
 - [x] Configurar ESLint, Prettier y TypeScript en modo strict
 
 ### Fase 2 — Integración con IA
+
 Conectar el formulario del usuario con la API de Gemini.
 El objetivo es que el sistema reciba un prompt en lenguaje natural y devuelva
 un JSON válido con los casos de prueba estructurados.
@@ -677,6 +680,7 @@ un JSON válido con los casos de prueba estructurados.
 - [x] Manejar errores: respuesta malformada, timeout, límite de tokens, rate limit (429)
 
 ### Fase 3 — Motor de ejecución con Playwright
+
 Ejecutar los casos de prueba generados por la IA en un browser real.
 El objetivo es que cada paso del JSON se ejecute, se capture su resultado
 y se suba el screenshot a Supabase Storage.
@@ -690,6 +694,7 @@ y se suba el screenshot a Supabase Storage.
 - [x] Implementar timeout por job (máximo 120s) para evitar procesos colgados
 
 ### Fase 4 — Worker HTTP asíncrono
+
 Desacoplar la ejecución de Playwright del ciclo request-response de Vercel.
 La API Route inserta el `test_run` y delega vía HTTP a un worker Express en
 Render; el frontend recibe `201` al instante y suscribe al run por Realtime.
@@ -702,6 +707,7 @@ Render; el frontend recibe `201` al instante y suscribe al run por Realtime.
 - [x] Registrar logs de cada job (inicio, fin, error) en la tabla test_runs
 
 ### Fase 5 — Reporte en tiempo real
+
 Mostrar el progreso y resultado de la ejecución en el dashboard sin recargar la página.
 El objetivo es que el usuario vea cada paso completarse en vivo mientras Playwright trabaja.
 
@@ -713,6 +719,7 @@ El objetivo es que el usuario vea cada paso completarse en vivo mientras Playwri
 - [x] Crear vista de historial: todos los test_runs del usuario ordenados por fecha
 
 ### Fase 6 — Despliegue y producción
+
 Llevar el proyecto a producción con los dos servicios desplegados y funcionando.
 El objetivo es tener una URL pública funcional lista para el portafolio.
 
@@ -772,13 +779,13 @@ El objetivo es tener una URL pública funcional lista para el portafolio.
      su cuenta tras `route.continue()`, así que queda un TOCTOU residual de un
      request; es la mitigación estándar sin pinning de IP en el socket, y se
      acepta para este modelo de amenaza).
-  El núcleo de clasificación de IP/host está **duplicado** en
-  `worker/lib/safe-url.ts` y `lib/validation/safe-host.ts` porque Render
-  despliega el worker con `rootDir: worker` (no puede importar fuera de
-  `worker/`); ambas copias son puras (sin node builtins, seguras para el bundle
-  del cliente) y tienen tests. El flag `SSRF_ALLOW_PRIVATE_NETWORK=1` desactiva
-  el guard y **solo** debe usarse en test/dev (los integration tests lo setean
-  para navegar a `127.0.0.1`); en Render se deja sin definir.
+     El núcleo de clasificación de IP/host está **duplicado** en
+     `worker/lib/safe-url.ts` y `lib/validation/safe-host.ts` porque Render
+     despliega el worker con `rootDir: worker` (no puede importar fuera de
+     `worker/`); ambas copias son puras (sin node builtins, seguras para el bundle
+     del cliente) y tienen tests. El flag `SSRF_ALLOW_PRIVATE_NETWORK=1` desactiva
+     el guard y **solo** debe usarse en test/dev (los integration tests lo setean
+     para navegar a `127.0.0.1`); en Render se deja sin definir.
 
 ### Ejecución de Playwright en el servidor
 

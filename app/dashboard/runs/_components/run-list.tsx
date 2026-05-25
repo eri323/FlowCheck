@@ -51,7 +51,7 @@ export function RunListHeader(): React.JSX.Element {
   return (
     <div
       className={cn(
-        "grid items-center gap-3 border-b border-border bg-surface-2 px-4 py-2 text-[0.6875rem] font-semibold uppercase tracking-[0.07em] text-faint",
+        "border-border bg-surface-2 text-faint grid items-center gap-3 border-b px-4 py-2 text-[0.6875rem] font-semibold tracking-[0.07em] uppercase",
         COLS,
       )}
     >
@@ -69,7 +69,7 @@ export function RunRow({ run }: { run: RunListItem }): React.JSX.Element {
     <Link
       href={`/dashboard/runs/${run.id}`}
       className={cn(
-        "group grid items-center gap-3 px-4 py-3.5 transition-colors duration-150 hover:bg-surface-2",
+        "group hover:bg-surface-2 grid items-center gap-3 px-4 py-3.5 transition-colors duration-150",
         COLS,
       )}
     >
@@ -77,29 +77,29 @@ export function RunRow({ run }: { run: RunListItem }): React.JSX.Element {
         <RunStatusBadge status={run.status} />
       </div>
       <div className="hidden sm:block">
-        <span className="text-xs text-muted">
+        <span className="text-muted text-xs">
           {TEST_TYPE_LABELS[run.test_type]}
         </span>
       </div>
       <div className="flex min-w-0 items-center gap-2">
         <div className="min-w-0 flex-1">
-          <p className="truncate font-mono text-[0.8125rem] font-medium text-text">
+          <p className="text-text truncate font-mono text-[0.8125rem] font-medium">
             {run.target_url}
           </p>
           {run.prompt ? (
-            <p className="mt-0.5 truncate text-xs text-faint">{run.prompt}</p>
+            <p className="text-faint mt-0.5 truncate text-xs">{run.prompt}</p>
           ) : null}
         </div>
         <ChevronRight
           size={14}
-          className="ml-auto shrink-0 text-faint opacity-0 transition-opacity duration-150 group-hover:opacity-60"
+          className="text-faint ml-auto shrink-0 opacity-0 transition-opacity duration-150 group-hover:opacity-60"
         />
       </div>
       <div className="hidden md:block">
-        <span className="text-xs text-faint">{run.createdLabel}</span>
+        <span className="text-faint text-xs">{run.createdLabel}</span>
       </div>
       <div className="hidden text-right lg:block">
-        <span className="tabular font-mono text-xs text-faint">
+        <span className="tabular text-faint font-mono text-xs">
           {run.durationLabel ?? "—"}
         </span>
       </div>
@@ -113,9 +113,9 @@ export function RunListSkeleton({
   rows?: number;
 }): React.JSX.Element {
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-surface">
+    <div className="border-border bg-surface overflow-hidden rounded-lg border">
       <RunListHeader />
-      <div className="divide-y divide-border">
+      <div className="divide-border divide-y">
         {Array.from({ length: rows }).map((_, i) => (
           <div
             key={i}

@@ -1,7 +1,15 @@
 // worker/test/adaptive-navegacion.integration.test.ts
 import http from "node:http";
 import type { AddressInfo } from "node:net";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { clickAdaptive, verifyPageHealthy } from "../lib/adaptive-navegacion";
 
@@ -14,18 +22,30 @@ const server = http.createServer((req, res) => {
   res.setHeader("content-type", "text/html; charset=utf-8");
   switch (url.pathname) {
     case "/home":
-      res.end(html(`<main><h1>Inicio</h1><p>${"Contenido real ".repeat(40)}</p>
-        <a href="/about">Acerca de</a></main>`, "Mi Sitio"));
+      res.end(
+        html(
+          `<main><h1>Inicio</h1><p>${"Contenido real ".repeat(40)}</p>
+        <a href="/about">Acerca de</a></main>`,
+          "Mi Sitio",
+        ),
+      );
       return;
     case "/about":
-      res.end(html(`<h1>Acerca de</h1><p>${"Info ".repeat(40)}</p>`, "Acerca de"));
+      res.end(
+        html(`<h1>Acerca de</h1><p>${"Info ".repeat(40)}</p>`, "Acerca de"),
+      );
       return;
     case "/name-trap":
       // El name "Acerca de" no existe en ningún elemento, pero su valor
       // coincide como substring con el texto visible del enlace "Acerca de".
       // Tras eliminar el fallback por name, NO debe hacer click en ese enlace.
-      res.end(html(`<main><h1>Trampa</h1><p>${"Contenido real ".repeat(40)}</p>
-        <a href="/about">Acerca de</a></main>`, "Trampa"));
+      res.end(
+        html(
+          `<main><h1>Trampa</h1><p>${"Contenido real ".repeat(40)}</p>
+        <a href="/about">Acerca de</a></main>`,
+          "Trampa",
+        ),
+      );
       return;
     case "/missing":
       res.statusCode = 404;
@@ -83,7 +103,7 @@ describe("clickAdaptive (browser)", () => {
   it("cae al texto cuando el selector literal no existe", async () => {
     await activePage.goto(`${base}/home`);
     // selector inválido para esta página, pero el texto 'Acerca de' existe
-    await clickAdaptive(activePage, 'text=Acerca de', 5_000);
+    await clickAdaptive(activePage, "text=Acerca de", 5_000);
     await activePage.waitForLoadState("domcontentloaded");
     expect(activePage.url()).toContain("/about");
   }, 20_000);
@@ -94,7 +114,9 @@ describe("clickAdaptive (browser)", () => {
     // El name "Acerca de" no existe como atributo en la página, pero su valor
     // coincide como substring con el texto del enlace real. Sin el fallback por
     // name, clickAdaptive debe lanzar en vez de clickear el elemento equivocado.
-    await expect(clickAdaptive(activePage, 'a[name="Acerca de"]', 2_000)).rejects.toThrow();
+    await expect(
+      clickAdaptive(activePage, 'a[name="Acerca de"]', 2_000),
+    ).rejects.toThrow();
     expect(activePage.url()).toBe(urlBefore);
   }, 20_000);
 });

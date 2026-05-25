@@ -1,6 +1,10 @@
 // worker/test/adaptive-formulario.test.ts
 import { describe, expect, it } from "vitest";
-import { asBoolean, isFormSubmitSelector, parseFields } from "../lib/adaptive-formulario";
+import {
+  asBoolean,
+  isFormSubmitSelector,
+  parseFields,
+} from "../lib/adaptive-formulario";
 
 describe("parseFields", () => {
   it("parsea pares 'label: value' por línea", () => {
@@ -37,7 +41,7 @@ describe("asBoolean", () => {
 describe("isFormSubmitSelector", () => {
   it("detecta selectores de submit", () => {
     expect(isFormSubmitSelector('button[type="submit"]')).toBe(true);
-    expect(isFormSubmitSelector('text=Enviar')).toBe(true);
+    expect(isFormSubmitSelector("text=Enviar")).toBe(true);
     expect(isFormSubmitSelector('role=button[name="Guardar"]')).toBe(true);
   });
   it("no marca un input de texto", () => {

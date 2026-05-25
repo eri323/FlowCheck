@@ -27,6 +27,7 @@
 ### Task 1: Núcleo puro de clasificación IP/host (worker)
 
 **Files:**
+
 - Modify: `worker/lib/safe-url.ts`
 - Test: `worker/test/safe-url.test.ts` (create)
 
@@ -138,7 +139,7 @@ export function ipv4ToInt(ip: string): number | null {
 function inV4Range(ip: number, base: string, bits: number): boolean {
   const baseInt = ipv4ToInt(base)!;
   const mask = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0;
-  return ((ip & mask) >>> 0) === ((baseInt & mask) >>> 0);
+  return (ip & mask) >>> 0 === (baseInt & mask) >>> 0;
 }
 
 const BLOCKED_V4: Array<[string, number]> = [
@@ -195,16 +196,26 @@ function ipv6Groups(ip: string): number[] | null {
 function isBlockedIpv6(g: number[]): boolean {
   if (g.every((x) => x === 0)) return true; // ::
   if (
-    g[0] === 0 && g[1] === 0 && g[2] === 0 && g[3] === 0 &&
-    g[4] === 0 && g[5] === 0 && g[6] === 0 && g[7] === 1
+    g[0] === 0 &&
+    g[1] === 0 &&
+    g[2] === 0 &&
+    g[3] === 0 &&
+    g[4] === 0 &&
+    g[5] === 0 &&
+    g[6] === 0 &&
+    g[7] === 1
   ) {
     return true; // ::1
   }
   if (
-    g[0] === 0 && g[1] === 0 && g[2] === 0 && g[3] === 0 &&
-    g[4] === 0 && g[5] === 0xffff
+    g[0] === 0 &&
+    g[1] === 0 &&
+    g[2] === 0 &&
+    g[3] === 0 &&
+    g[4] === 0 &&
+    g[5] === 0xffff
   ) {
-    return isBlockedIpv4((((g[6]! << 16) | g[7]!) >>> 0)); // ::ffff:a.b.c.d
+    return isBlockedIpv4(((g[6]! << 16) | g[7]!) >>> 0); // ::ffff:a.b.c.d
   }
   if ((g[0]! & 0xfe00) === 0xfc00) return true; // fc00::/7 ULA
   if ((g[0]! & 0xffc0) === 0xfe80) return true; // fe80::/10 link-local
@@ -291,6 +302,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 2: Guard async con resolución DNS (`assertSafeUrl`)
 
 **Files:**
+
 - Modify: `worker/lib/safe-url.ts`
 - Test: `worker/test/safe-url.test.ts`
 
@@ -318,7 +330,9 @@ describe("assertSafeUrl", () => {
 
   it("rechaza IPs literales internas", async () => {
     await expect(assertSafeUrl("http://127.0.0.1")).rejects.toThrow();
-    await expect(assertSafeUrl("http://169.254.169.254/latest/meta-data/")).rejects.toThrow();
+    await expect(
+      assertSafeUrl("http://169.254.169.254/latest/meta-data/"),
+    ).rejects.toThrow();
     await expect(assertSafeUrl("http://[::1]:3000")).rejects.toThrow();
   });
 
@@ -410,6 +424,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 3: Interceptor de requests + cableado en el executor
 
 **Files:**
+
 - Modify: `worker/lib/safe-url.ts` (añadir `installSsrfGuard`)
 - Modify: `worker/lib/execute-test-run.ts:10` (import), `:236` (`goto`), `:501` (contexto)
 - Test: `worker/test/safe-url.integration.test.ts` (create)
@@ -421,7 +436,15 @@ Crear `worker/test/safe-url.integration.test.ts`:
 ```ts
 import http from "node:http";
 import type { AddressInfo } from "node:net";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 import { chromium, type Browser, type BrowserContext } from "playwright-core";
 import { installSsrfGuard } from "../lib/safe-url";
 
@@ -530,21 +553,24 @@ export async function installSsrfGuard(context: BrowserContext): Promise<void> {
 Ahora cablear en `worker/lib/execute-test-run.ts`:
 
 Línea 10 — cambiar el import:
+
 ```ts
 import { assertSafeUrl, installSsrfGuard } from "./safe-url";
 ```
 
 Líneas 235-236 (acción `goto`) — usar el guard async:
+
 ```ts
-      if (!step.value) throw new Error("La acción 'goto' requiere un value (URL)");
-      await assertSafeUrl(step.value);
+if (!step.value) throw new Error("La acción 'goto' requiere un value (URL)");
+await assertSafeUrl(step.value);
 ```
 
 Líneas ~501-502 (creación de contexto) — instalar el interceptor antes de abrir la página:
+
 ```ts
-  const context = await browser.newContext(contextOptions);
-  await installSsrfGuard(context);
-  const page = await context.newPage();
+const context = await browser.newContext(contextOptions);
+await installSsrfGuard(context);
+const page = await context.newPage();
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -570,6 +596,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 4: Capa Zod en la app (filtro literal de UX)
 
 **Files:**
+
 - Create: `lib/validation/safe-host.ts`
 - Modify: `lib/validation/test-run.ts:3-18` (`httpUrlSchema`)
 - Test: `tests/lib/validation/test-run.test.ts`
@@ -642,7 +669,7 @@ export function ipv4ToInt(ip: string): number | null {
 function inV4Range(ip: number, base: string, bits: number): boolean {
   const baseInt = ipv4ToInt(base)!;
   const mask = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0;
-  return ((ip & mask) >>> 0) === ((baseInt & mask) >>> 0);
+  return (ip & mask) >>> 0 === (baseInt & mask) >>> 0;
 }
 
 const BLOCKED_V4: Array<[string, number]> = [
@@ -697,16 +724,26 @@ function ipv6Groups(ip: string): number[] | null {
 function isBlockedIpv6(g: number[]): boolean {
   if (g.every((x) => x === 0)) return true;
   if (
-    g[0] === 0 && g[1] === 0 && g[2] === 0 && g[3] === 0 &&
-    g[4] === 0 && g[5] === 0 && g[6] === 0 && g[7] === 1
+    g[0] === 0 &&
+    g[1] === 0 &&
+    g[2] === 0 &&
+    g[3] === 0 &&
+    g[4] === 0 &&
+    g[5] === 0 &&
+    g[6] === 0 &&
+    g[7] === 1
   ) {
     return true;
   }
   if (
-    g[0] === 0 && g[1] === 0 && g[2] === 0 && g[3] === 0 &&
-    g[4] === 0 && g[5] === 0xffff
+    g[0] === 0 &&
+    g[1] === 0 &&
+    g[2] === 0 &&
+    g[3] === 0 &&
+    g[4] === 0 &&
+    g[5] === 0xffff
   ) {
-    return isBlockedIpv4((((g[6]! << 16) | g[7]!) >>> 0));
+    return isBlockedIpv4(((g[6]! << 16) | g[7]!) >>> 0);
   }
   if ((g[0]! & 0xfe00) === 0xfc00) return true;
   if ((g[0]! & 0xffc0) === 0xfe80) return true;
@@ -775,7 +812,10 @@ const httpUrlSchema = z
         return false;
       }
     },
-    { message: "La URL debe usar http/https y no apuntar a una dirección interna" },
+    {
+      message:
+        "La URL debe usar http/https y no apuntar a una dirección interna",
+    },
   );
 ```
 
@@ -798,6 +838,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 ### Task 5: Documentación (CLAUDE.md + render.yaml)
 
 **Files:**
+
 - Modify: `render.yaml`
 - Modify: `CLAUDE.md`
 
@@ -806,12 +847,12 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 En `render.yaml`, dentro de `envVars`, añadir un comentario (NO una variable) justo después de la línea `envVars:` para dejar explícito que el guard va activo en prod:
 
 ```yaml
-    envVars:
-      # SSRF_ALLOW_PRIVATE_NETWORK se deja SIN definir a propósito: el guard SSRF
-      # del worker (lib/safe-url.ts) debe estar activo en producción. Solo se
-      # activa ("1") en entornos de test/dev que navegan a 127.0.0.1.
-      - key: SUPABASE_URL
-        sync: false
+envVars:
+  # SSRF_ALLOW_PRIVATE_NETWORK se deja SIN definir a propósito: el guard SSRF
+  # del worker (lib/safe-url.ts) debe estar activo en producción. Solo se
+  # activa ("1") en entornos de test/dev que navegan a 127.0.0.1.
+  - key: SUPABASE_URL
+    sync: false
 ```
 
 - [ ] **Step 2: Documentar el guard en CLAUDE.md**
@@ -832,12 +873,12 @@ En `CLAUDE.md`, en la sección `## Lo que NO se debe hacer — Reglas de segurid
   3. **Worker interceptor** — `installSsrfGuard` registra `context.route("**/*")`
      y valida **cada request** (la frontera real: cubre redirects, DNS rebinding
      y sub-recursos). Aplicado al crear el contexto en `execute-test-run.ts`.
-  El núcleo de clasificación de IP/host está **duplicado** en
-  `worker/lib/safe-url.ts` y `lib/validation/safe-host.ts` porque Render
-  despliega el worker con `rootDir: worker` (no puede importar fuera de
-  `worker/`); ambas copias tienen tests. El flag `SSRF_ALLOW_PRIVATE_NETWORK=1`
-  desactiva el guard y **solo** debe usarse en test/dev (los integration tests lo
-  setean para navegar a `127.0.0.1`); en Render se deja sin definir.
+     El núcleo de clasificación de IP/host está **duplicado** en
+     `worker/lib/safe-url.ts` y `lib/validation/safe-host.ts` porque Render
+     despliega el worker con `rootDir: worker` (no puede importar fuera de
+     `worker/`); ambas copias tienen tests. El flag `SSRF_ALLOW_PRIVATE_NETWORK=1`
+     desactiva el guard y **solo** debe usarse en test/dev (los integration tests lo
+     setean para navegar a `127.0.0.1`); en Render se deja sin definir.
 ```
 
 - [ ] **Step 3: Commit**
@@ -868,6 +909,7 @@ Expected: sin errores.
 - [ ] **Step 3: Suite completa de la app + typecheck + lint**
 
 Desde la raíz:
+
 - `npm test` → PASS (incluye `tests/lib/validation/test-run.test.ts`).
 - `npm run typecheck` → sin errores.
 - `npm run lint` → sin errores nuevos.

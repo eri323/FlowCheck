@@ -88,13 +88,22 @@ Extrae lo ya duplicado entre login y search, para consumo de los módulos nuevos
 
 ```ts
 export const VISIBILITY_PROBE_TIMEOUT_MS: number;
-export async function pickFirstVisible(candidates: Locator[], label: string): Promise<Locator>;
-export async function pickFirstVisibleOrNull(candidates: Locator[]): Promise<Locator | null>;
+export async function pickFirstVisible(
+  candidates: Locator[],
+  label: string,
+): Promise<Locator>;
+export async function pickFirstVisibleOrNull(
+  candidates: Locator[],
+): Promise<Locator | null>;
 
 // Detección de error/éxito por comportamiento, reutilizable.
 export const ERROR_SELECTORS: string[];
-export async function readVisibleErrorText(page: Page): Promise<string | undefined>;
-export async function detectNativeValidationBlock(page: Page): Promise<string | undefined>;
+export async function readVisibleErrorText(
+  page: Page,
+): Promise<string | undefined>;
+export async function detectNativeValidationBlock(
+  page: Page,
+): Promise<string | undefined>;
 
 // Texto que delata éxito genérico (gracias / éxito / enviado / creado / ...).
 export const SUCCESS_TEXT_REGEX: RegExp;
@@ -102,7 +111,10 @@ export async function isSuccessTextVisible(page: Page): Promise<boolean>;
 
 // Submit genérico con verbos ampliables.
 export const SUBMIT_VERBS: string[]; // enviar, submit, guardar, continuar, aceptar, confirmar, ...
-export async function findGenericSubmit(page: Page, extraVerbs?: string[]): Promise<Locator>;
+export async function findGenericSubmit(
+  page: Page,
+  extraVerbs?: string[],
+): Promise<Locator>;
 ```
 
 `adaptive-login.ts` y `adaptive-search.ts` **no se modifican** en esta tanda
@@ -143,7 +155,11 @@ export function looksLikeErrorPage(title: string, bodyText: string): boolean;
 export async function verifyPageHealthy(page: Page): Promise<PageHealth>;
 // Click tolerante: intenta el selector literal; si falla, cae a buscar un
 // enlace/botón por el texto contenido en el selector.
-export async function clickAdaptive(page: Page, selector: string, timeoutMs: number): Promise<void>;
+export async function clickAdaptive(
+  page: Page,
+  selector: string,
+  timeoutMs: number,
+): Promise<void>;
 ```
 
 Cableado en `execute-test-run.ts`, solo `testType === "navegacion"`:
@@ -182,10 +198,17 @@ export function isFormSubmitSelector(selector?: string | null): boolean;
 // Pura: ¿el valor representa un booleano para checkbox/radio? (sí/no/true/false/x).
 export function asBoolean(value: string): boolean | null;
 
-export type FormOutcome = { success: boolean; finalUrl: string; reason: string };
+export type FormOutcome = {
+  success: boolean;
+  finalUrl: string;
+  reason: string;
+};
 
 // DOM: resuelve el control de un campo por label/placeholder/name/id/aria.
-export async function resolveField(page: Page, label: string): Promise<Locator | null>;
+export async function resolveField(
+  page: Page,
+  label: string,
+): Promise<Locator | null>;
 // DOM: llena el control según su tag/type (text, textarea, select, checkbox,
 // radio, date, number).
 export async function fillField(control: Locator, value: string): Promise<void>;
@@ -231,16 +254,23 @@ los campos propios del registro. Tolera que falten campos (p. ej. apps sin
 ```ts
 export function isNameFillSelector(selector?: string | null): boolean;
 export function isConfirmPasswordSelector(selector?: string | null): boolean; // confirm/repeat/repetir/again/verificar
-export function isRegisterSubmitSelector(selector?: string | null): boolean;  // registrar/crear cuenta/sign up/...
+export function isRegisterSubmitSelector(selector?: string | null): boolean; // registrar/crear cuenta/sign up/...
 
 export async function findNameField(page: Page): Promise<Locator | null>;
 // 2+ inputs password → el segundo es "confirmar"; si no, por tokens. Puede no existir.
-export async function findConfirmPasswordField(page: Page): Promise<Locator | null>;
+export async function findConfirmPasswordField(
+  page: Page,
+): Promise<Locator | null>;
 
 export type RegisterOutcome = LoginOutcome; // mismo contrato de comportamiento
 export async function registerAndVerify(
   page: Page,
-  data: { name: string; email: string; password: string; confirmPassword: string },
+  data: {
+    name: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+  },
   initialUrl: string,
   timeoutMs: number,
 ): Promise<RegisterOutcome>;
@@ -280,21 +310,38 @@ final, no negociable, es **detectar la confirmación de la orden**.
 
 ```ts
 // Detectores puros de intención de paso:
-export function isAddToCartSelector(s?: string | null): boolean;   // add to cart/agregar al carrito/añadir/comprar/buy
+export function isAddToCartSelector(s?: string | null): boolean; // add to cart/agregar al carrito/añadir/comprar/buy
 export function isCheckoutNavSelector(s?: string | null): boolean; // checkout/carrito/cart/realizar pedido/finalizar
-export function isConfirmOrderSelector(s?: string | null): boolean;// purchase/place order/pagar/confirmar compra
-export function isPaymentFieldSelector(s?: string | null): boolean;// card/tarjeta/cvc/cvv/expiry/vencimiento
+export function isConfirmOrderSelector(s?: string | null): boolean; // purchase/place order/pagar/confirmar compra
+export function isPaymentFieldSelector(s?: string | null): boolean; // card/tarjeta/cvc/cvv/expiry/vencimiento
 // Pura: parte "MM/AA" en {month, year} para apps con campos separados.
 export function splitExpiry(expiry: string): { month: string; year: string };
 
 export type StageOutcome = { success: boolean; reason: string };
-export type OrderOutcome = { success: boolean; finalUrl: string; reason: string };
+export type OrderOutcome = {
+  success: boolean;
+  finalUrl: string;
+  reason: string;
+};
 
 export async function findAddToCart(page: Page): Promise<Locator | null>;
-export async function addToCartStage(page: Page, timeoutMs: number): Promise<StageOutcome>; // maneja dialog/alert
-export async function goToCheckoutStage(page: Page, timeoutMs: number): Promise<StageOutcome>;
-export async function fillPaymentStage(page: Page, data: EcommerceData, timeoutMs: number): Promise<StageOutcome>;
-export async function confirmOrderAndVerify(page: Page, timeoutMs: number): Promise<OrderOutcome>;
+export async function addToCartStage(
+  page: Page,
+  timeoutMs: number,
+): Promise<StageOutcome>; // maneja dialog/alert
+export async function goToCheckoutStage(
+  page: Page,
+  timeoutMs: number,
+): Promise<StageOutcome>;
+export async function fillPaymentStage(
+  page: Page,
+  data: EcommerceData,
+  timeoutMs: number,
+): Promise<StageOutcome>;
+export async function confirmOrderAndVerify(
+  page: Page,
+  timeoutMs: number,
+): Promise<OrderOutcome>;
 ```
 
 Cableado en `execute-test-run.ts`, solo `testType === "ecommerce"`, por
@@ -329,7 +376,7 @@ accesibles inline").
 - Consolidar `FLUJOS-DE-PRUEBA.md` (raíz, español): una sección por tipo con
   **(a)** cómo funciona técnicamente y **(b)** walkthrough de UX — "el usuario
   pega `<URL demo>`, llena `<estos campos>`, en `~X s` obtiene `<este
-  resultado>`". Los tiempos se **miden** en la verificación en vivo, no se
+resultado>`". Los tiempos se **miden** en la verificación en vivo, no se
   inventan.
 - Verificación en vivo con Playwright MCP de los 6 tipos contra sus demos,
   capturando tiempos reales (generación Gemini + ejecución por paso + total).
@@ -343,19 +390,19 @@ accesibles inline").
 
 ## Archivos afectados
 
-| Archivo | Cambio | Fase |
-|---|---|---|
-| `worker/lib/adaptive-common.ts` | **Nuevo.** Helpers compartidos. | 1 |
-| `worker/lib/adaptive-navegacion.ts` | **Nuevo.** Smoke por comportamiento + click tolerante. | 1 |
-| `worker/lib/adaptive-formulario.ts` | **Nuevo.** Resolución/llenado/verificación de formularios. | 2 |
-| `worker/lib/adaptive-registro.ts` | **Nuevo.** Registro adaptativo. | 3 |
-| `worker/lib/adaptive-ecommerce.ts` | **Nuevo.** Macro de compra multi-etapa. | 4 |
-| `worker/lib/execute-test-run.ts` | Ramas por `testType` para los 4 tipos nuevos. | 1–4 |
-| `worker/lib/gemini.ts` | Afinado opcional de objetivos por tipo. | 5 |
-| `worker/test/adaptive-*.test.ts` | **Nuevos.** Unit de funciones puras. | 1–4 |
-| `worker/test/adaptive-*.integration.test.ts` | **Nuevos.** Integración Chromium real. | 1–4 |
-| `FLUJOS-DE-PRUEBA.md` | **Nuevo.** Documento técnico + UX. | 1–5 |
-| `CLAUDE.md` | Secciones de detección adaptativa nuevas. | 5 |
+| Archivo                                      | Cambio                                                     | Fase |
+| -------------------------------------------- | ---------------------------------------------------------- | ---- |
+| `worker/lib/adaptive-common.ts`              | **Nuevo.** Helpers compartidos.                            | 1    |
+| `worker/lib/adaptive-navegacion.ts`          | **Nuevo.** Smoke por comportamiento + click tolerante.     | 1    |
+| `worker/lib/adaptive-formulario.ts`          | **Nuevo.** Resolución/llenado/verificación de formularios. | 2    |
+| `worker/lib/adaptive-registro.ts`            | **Nuevo.** Registro adaptativo.                            | 3    |
+| `worker/lib/adaptive-ecommerce.ts`           | **Nuevo.** Macro de compra multi-etapa.                    | 4    |
+| `worker/lib/execute-test-run.ts`             | Ramas por `testType` para los 4 tipos nuevos.              | 1–4  |
+| `worker/lib/gemini.ts`                       | Afinado opcional de objetivos por tipo.                    | 5    |
+| `worker/test/adaptive-*.test.ts`             | **Nuevos.** Unit de funciones puras.                       | 1–4  |
+| `worker/test/adaptive-*.integration.test.ts` | **Nuevos.** Integración Chromium real.                     | 1–4  |
+| `FLUJOS-DE-PRUEBA.md`                        | **Nuevo.** Documento técnico + UX.                         | 1–5  |
+| `CLAUDE.md`                                  | Secciones de detección adaptativa nuevas.                  | 5    |
 
 ## Plan de pruebas
 

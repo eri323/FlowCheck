@@ -10,7 +10,7 @@ export default function NewRunPage(): React.JSX.Element {
     <div className="flex flex-col gap-6">
       <Link
         href="/dashboard/runs"
-        className="inline-flex w-fit items-center gap-1.5 text-sm text-muted transition-colors duration-150 hover:text-text"
+        className="text-muted hover:text-text inline-flex w-fit items-center gap-1.5 text-sm transition-colors duration-150"
       >
         <ArrowLeft size={15} />
         Test runs

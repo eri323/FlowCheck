@@ -22,10 +22,16 @@ type TestRunRow = {
 const GENERATION_TIMEOUT_MS = 90_000;
 const EXECUTION_TIMEOUT_MS = 120_000;
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string,
+): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
-      reject(new TestPlanGenerationError(`${label} excedió el timeout de ${ms}ms`));
+      reject(
+        new TestPlanGenerationError(`${label} excedió el timeout de ${ms}ms`),
+      );
     }, ms);
     promise
       .then((value) => {
@@ -63,15 +69,19 @@ async function persistTestPlan(
       );
     }
 
-    const stepsRows = testCase.steps.map((step: TestStepDraft, position: number) => ({
-      test_case_id: insertedCase.id,
-      position,
-      action: step.action,
-      selector: step.selector ?? null,
-      value: step.value ?? null,
-    }));
+    const stepsRows = testCase.steps.map(
+      (step: TestStepDraft, position: number) => ({
+        test_case_id: insertedCase.id,
+        position,
+        action: step.action,
+        selector: step.selector ?? null,
+        value: step.value ?? null,
+      }),
+    );
 
-    const { error: stepsError } = await supabase.from("test_steps").insert(stepsRows);
+    const { error: stepsError } = await supabase
+      .from("test_steps")
+      .insert(stepsRows);
     if (stepsError) {
       throw new Error(
         `No se pudieron guardar los test_steps del caso ${i}: ${stepsError.message}`,
@@ -114,7 +124,9 @@ function buildGeneratorInput(testRun: TestRunRow): GenerateTestPlanInput {
         testType: "busqueda",
         testData: {
           query: String(data.query ?? ""),
-          expectedResult: data.expectedResult ? String(data.expectedResult) : undefined,
+          expectedResult: data.expectedResult
+            ? String(data.expectedResult)
+            : undefined,
         },
       };
     case "navegacion":
@@ -163,7 +175,9 @@ async function collectStepCounts(
   return counts;
 }
 
-export async function processTestRun(testRunId: string): Promise<ProcessTestRunResult> {
+export async function processTestRun(
+  testRunId: string,
+): Promise<ProcessTestRunResult> {
   const supabase = createSupabaseAdminClient();
 
   const { data: rawTestRun, error: fetchError } = await supabase
@@ -194,7 +208,9 @@ export async function processTestRun(testRunId: string): Promise<ProcessTestRunR
     .eq("id", testRunId);
 
   if (lockError) {
-    throw new Error(`No se pudo marcar el test_run como corriendo: ${lockError.message}`);
+    throw new Error(
+      `No se pudo marcar el test_run como corriendo: ${lockError.message}`,
+    );
   }
 
   try {
@@ -221,7 +237,9 @@ export async function processTestRun(testRunId: string): Promise<ProcessTestRunR
                 name: String(testRun.test_data.name ?? ""),
                 email: String(testRun.test_data.email ?? ""),
                 password: String(testRun.test_data.password ?? ""),
-                confirmPassword: String(testRun.test_data.confirmPassword ?? ""),
+                confirmPassword: String(
+                  testRun.test_data.confirmPassword ?? "",
+                ),
               }
             : undefined,
         ecommerceData:
@@ -250,7 +268,9 @@ export async function processTestRun(testRunId: string): Promise<ProcessTestRunR
     return { status: finalStatus, stepCounts };
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Error desconocido al procesar el test_run";
+      error instanceof Error
+        ? error.message
+        : "Error desconocido al procesar el test_run";
 
     await supabase
       .from("test_runs")

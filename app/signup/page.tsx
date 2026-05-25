@@ -25,18 +25,18 @@ export default function SignupPage(): React.JSX.Element {
           ¿Ya tienes cuenta?{" "}
           <Link
             href="/login"
-            className="font-medium text-accent-text hover:underline"
+            className="text-accent-text font-medium hover:underline"
           >
             Iniciar sesión
           </Link>
         </>
       }
     >
-      <div className="rounded-xl border border-border bg-surface p-6 shadow-e2 sm:p-7">
-        <h1 className="text-xl font-semibold tracking-[-0.01em] text-text">
+      <div className="border-border bg-surface shadow-e2 rounded-xl border p-6 sm:p-7">
+        <h1 className="text-text text-xl font-semibold tracking-[-0.01em]">
           Crear cuenta
         </h1>
-        <p className="mt-1 text-sm text-muted">
+        <p className="text-muted mt-1 text-sm">
           Empieza a generar pruebas con IA en minutos.
         </p>
 
@@ -74,7 +74,7 @@ export default function SignupPage(): React.JSX.Element {
           </Field>
 
           {state?.message ? (
-            <p className="flex items-start gap-2 rounded-md bg-danger-bg px-3 py-2 text-sm text-danger-text">
+            <p className="bg-danger-bg text-danger-text flex items-start gap-2 rounded-md px-3 py-2 text-sm">
               <AlertCircle size={15} className="mt-px shrink-0" />
               <span>{state.message}</span>
             </p>

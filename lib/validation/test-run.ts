@@ -16,7 +16,10 @@ const httpUrlSchema = z
         return false;
       }
     },
-    { message: "La URL debe usar http/https y no apuntar a una dirección interna" },
+    {
+      message:
+        "La URL debe usar http/https y no apuntar a una dirección interna",
+    },
   );
 
 const extraPromptSchema = z
@@ -36,7 +39,10 @@ const loginIdentifierSchema = z
   .trim()
   .min(1, "La credencial es obligatoria")
   .max(320, "La credencial es demasiado larga")
-  .refine((v) => !/[\r\n\t]/.test(v), "La credencial no puede tener saltos de línea");
+  .refine(
+    (v) => !/[\r\n\t]/.test(v),
+    "La credencial no puede tener saltos de línea",
+  );
 
 const loginDataSchema = z.object({
   email: loginIdentifierSchema,
@@ -48,7 +54,10 @@ const registroDataSchema = z
   .object({
     name: z.string().trim().min(1, "El nombre es obligatorio").max(200),
     email: z.email("Email inválido").max(320),
-    password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres").max(200),
+    password: z
+      .string()
+      .min(8, "La contraseña debe tener al menos 8 caracteres")
+      .max(200),
     confirmPassword: z.string().min(1, "Confirma la contraseña").max(200),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -58,7 +67,11 @@ const registroDataSchema = z
 export type RegistroData = z.infer<typeof registroDataSchema>;
 
 const busquedaDataSchema = z.object({
-  query: z.string().trim().min(1, "El término de búsqueda es obligatorio").max(500),
+  query: z
+    .string()
+    .trim()
+    .min(1, "El término de búsqueda es obligatorio")
+    .max(500),
   expectedResult: z
     .string()
     .trim()
@@ -109,12 +122,36 @@ const baseFields = {
 };
 
 export const createTestRunSchema = z.discriminatedUnion("test_type", [
-  z.object({ test_type: z.literal("login"), test_data: loginDataSchema, ...baseFields }),
-  z.object({ test_type: z.literal("registro"), test_data: registroDataSchema, ...baseFields }),
-  z.object({ test_type: z.literal("busqueda"), test_data: busquedaDataSchema, ...baseFields }),
-  z.object({ test_type: z.literal("navegacion"), test_data: navegacionDataSchema, ...baseFields }),
-  z.object({ test_type: z.literal("formulario"), test_data: formularioDataSchema, ...baseFields }),
-  z.object({ test_type: z.literal("ecommerce"), test_data: ecommerceDataSchema, ...baseFields }),
+  z.object({
+    test_type: z.literal("login"),
+    test_data: loginDataSchema,
+    ...baseFields,
+  }),
+  z.object({
+    test_type: z.literal("registro"),
+    test_data: registroDataSchema,
+    ...baseFields,
+  }),
+  z.object({
+    test_type: z.literal("busqueda"),
+    test_data: busquedaDataSchema,
+    ...baseFields,
+  }),
+  z.object({
+    test_type: z.literal("navegacion"),
+    test_data: navegacionDataSchema,
+    ...baseFields,
+  }),
+  z.object({
+    test_type: z.literal("formulario"),
+    test_data: formularioDataSchema,
+    ...baseFields,
+  }),
+  z.object({
+    test_type: z.literal("ecommerce"),
+    test_data: ecommerceDataSchema,
+    ...baseFields,
+  }),
 ]);
 
 export type CreateTestRunInput = z.infer<typeof createTestRunSchema>;

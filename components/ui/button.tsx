@@ -23,9 +23,10 @@ const sizes: Record<Size, string> = {
   icon: "size-9",
 };
 
-export function buttonVariants(
-  { variant = "primary", size = "md" }: { variant?: Variant; size?: Size } = {},
-): string {
+export function buttonVariants({
+  variant = "primary",
+  size = "md",
+}: { variant?: Variant; size?: Size } = {}): string {
   return cn(base, variants[variant], sizes[size]);
 }
 

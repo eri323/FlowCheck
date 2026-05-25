@@ -75,11 +75,7 @@ export function RunsTable({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-          <Tabs
-            items={statusTabs}
-            value={status}
-            onValueChange={setStatus}
-          />
+          <Tabs items={statusTabs} value={status} onValueChange={setStatus} />
           <div className="flex gap-2.5 sm:ml-auto">
             <Select
               value={type}
@@ -99,7 +95,7 @@ export function RunsTable({
               aria-disabled="true"
               tabIndex={-1}
               title="Próximamente"
-              className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs text-faint opacity-60"
+              className="border-border bg-surface text-faint inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs opacity-60"
             >
               <Filter size={13} />
               Más filtros
@@ -109,7 +105,7 @@ export function RunsTable({
               aria-disabled="true"
               tabIndex={-1}
               title="Próximamente"
-              className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs text-faint opacity-60"
+              className="border-border bg-surface text-faint inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs opacity-60"
             >
               <Download size={13} />
               Export
@@ -119,7 +115,7 @@ export function RunsTable({
         <div className="relative sm:max-w-xs">
           <Search
             size={15}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint"
+            className="text-faint pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
           />
           <Input
             value={query}
@@ -132,10 +128,10 @@ export function RunsTable({
       </div>
 
       <div>
-        <div className="overflow-hidden rounded-lg border border-border bg-surface">
+        <div className="border-border bg-surface overflow-hidden rounded-lg border">
           <RunListHeader />
           {filtered.length > 0 ? (
-            <div className="divide-y divide-border">
+            <div className="divide-border divide-y">
               {filtered.map((run) => (
                 <RunRow key={run.id} run={run} />
               ))}
@@ -153,7 +149,7 @@ export function RunsTable({
             />
           )}
         </div>
-        <p className="mt-2.5 px-1 text-xs text-faint">
+        <p className="text-faint mt-2.5 px-1 text-xs">
           {filtered.length} {filtered.length === 1 ? "run" : "runs"}
           {hasFilters ? ` de ${runs.length}` : ""}
         </p>

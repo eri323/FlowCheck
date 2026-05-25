@@ -49,7 +49,8 @@ const KNOWN_SEARCH_PARAMS = [
 ];
 
 // Segmentos de ruta típicos de una página de resultados.
-const SEARCH_PATH_REGEX = /\/(search|buscar|busqueda|b[uú]squeda|results?|resultados?)\b/i;
+const SEARCH_PATH_REGEX =
+  /\/(search|buscar|busqueda|b[uú]squeda|results?|resultados?)\b/i;
 
 // Texto que delata un estado de "cero resultados". `\bno` evita que un "no
 // results" embebido en otra palabra (p. ej. "Tecno results") dispare el match.
@@ -272,7 +273,12 @@ async function isEmptyStateVisible(page: Page): Promise<boolean> {
   const count = await locator.count().catch(() => 0);
   const probeLimit = Math.min(count, 5);
   for (let i = 0; i < probeLimit; i++) {
-    if (await locator.nth(i).isVisible().catch(() => false)) {
+    if (
+      await locator
+        .nth(i)
+        .isVisible()
+        .catch(() => false)
+    ) {
       return true;
     }
   }

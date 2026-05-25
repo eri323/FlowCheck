@@ -53,13 +53,13 @@ cambian, para no romper consumidores fuera del dashboard (landing/login/signup).
 Migración nueva `supabase/migrations/0005_runner_config.sql`. Añade a
 `test_runs`:
 
-| Columna | Tipo | Propósito |
-|---|---|---|
-| `browser` | `text not null default 'chromium'` | Selector de navegador. La columna admite los 3 valores a futuro; este ciclo solo se usa `chromium`. |
-| `device` | `text not null default 'desktop'` | `desktop` o `mobile` — emulación Playwright. |
-| `retries` | `smallint not null default 1` | Reintentos configurables, rango 0–5. |
-| `js_error_count` | `integer not null default 0` | Métrica de errores JS de consola capturados. |
-| `logs` | `jsonb not null default '[]'::jsonb` | Stream estructurado de logs: array de `{ ts, level, msg }` con `level ∈ {info, ok, warn, err}`. |
+| Columna          | Tipo                                 | Propósito                                                                                           |
+| ---------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `browser`        | `text not null default 'chromium'`   | Selector de navegador. La columna admite los 3 valores a futuro; este ciclo solo se usa `chromium`. |
+| `device`         | `text not null default 'desktop'`    | `desktop` o `mobile` — emulación Playwright.                                                        |
+| `retries`        | `smallint not null default 1`        | Reintentos configurables, rango 0–5.                                                                |
+| `js_error_count` | `integer not null default 0`         | Métrica de errores JS de consola capturados.                                                        |
+| `logs`           | `jsonb not null default '[]'::jsonb` | Stream estructurado de logs: array de `{ ts, level, msg }` con `level ∈ {info, ok, warn, err}`.     |
 
 - No se crean políticas RLS nuevas: las columnas heredan las de `test_runs`.
 - `test_runs` ya pertenece a la publication `supabase_realtime` (migración
@@ -75,6 +75,7 @@ Estado actual: `sidebar-nav.tsx` tiene `Logo`, botón "Nuevo test run" y 2 ítem
 breadcrumbs, `ThemeToggle` y `UserMenu`.
 
 Cambios:
+
 - **Sidebar**: añadir ítem "En vivo" (enlaza al run activo más reciente; si no
   hay ninguno, deshabilitado). Añadir sección "Cuenta" con ítems "API &
   webhooks" y "Configuración", ambos deshabilitados ("próximamente"). Añadir
@@ -86,10 +87,12 @@ Cambios:
 ## Sección 3 — Pantallas (delta)
 
 ### Resumen (`app/dashboard/page.tsx`)
+
 Estado actual: 4 `StatTile` con valores reales, tabla de recientes, breakdown
 por tipo, atajos.
 
 Cambios:
+
 - Encabezado: añadir eyebrow y saludo con la parte local del email
   ("Buenas tardes, {local}") — `profiles` no tiene nombre.
 - `StatTile`: añadir sparkline. Los datos de la sparkline son **reales**: se
@@ -98,10 +101,12 @@ Cambios:
 - Añadir tarjeta "Próximas tareas / cola": estado vacío deshabilitado (Nivel C).
 
 ### Lista de runs (`app/dashboard/runs/page.tsx` + `_components`)
+
 Estado actual: `RunsTable` con `Tabs` por estado, `Select` por tipo, búsqueda;
 las filas se renderizan como grid de `RunRow` (no `<table>`).
 
 Cambios:
+
 - Reestructurar la lista como tabla con columnas: Estado, Tipo, Flujo (URL +
   instrucción), Pasos (conteo real de `test_steps`), Duración, Creado. La
   columna "Disparado" del prototipo (actor CI) se **omite**: aquí siempre es el
@@ -114,10 +119,12 @@ Cambios:
   ciclo basta con el conteo en la consulta del listado.
 
 ### Nuevo run (`new-test-run-form.tsx`)
+
 Estado actual: `FormSection`s numeradas (URL, Tipo, Datos por tipo, Instrucción),
 grid de `TypeChip`, campos dinámicos de los 6 tipos.
 
 Cambios:
+
 - Añadir badges de detección de URL ("https", "react·vite", "200 OK") como
   elementos estáticos/decorativos bajo el campo URL (Nivel C).
 - Añadir sección **"Configuración del runner"**:
@@ -132,12 +139,14 @@ Cambios:
 - Los campos dinámicos de los 6 tipos no cambian funcionalmente.
 
 ### Detalle / En vivo (`app/dashboard/runs/[id]` + `_components`)
+
 Estado actual: `test-run-detail.tsx` renderiza una `Card` por `test_case` con
 `StepTimeline`, barra de progreso en vivo, lightbox de screenshot, y toda la
 lógica de Realtime + `refetch()` de reconciliación.
 
 Cambios — se conserva **intacta** la lógica de Realtime, `refetch()`,
 `caseIdsRef`, el intervalo de 3s y el lightbox. Solo cambia la presentación:
+
 - Header del run: añadir badge de tipo y bloques de métricas (Pasos OK,
   duración, errores JS desde `run.js_error_count`).
 - **Modo en vivo** (`status` ∈ `pendiente`/`corriendo`): layout de dos columnas
@@ -159,7 +168,9 @@ Cambios — se conserva **intacta** la lógica de Realtime, `refetch()`,
 ## Sección 4 — Worker y API
 
 ### `lib/validation/test-run.ts`
+
 Añadir a `baseFields`:
+
 - `browser`: este ciclo Zod solo acepta `"chromium"` (Firefox/WebKit están
   deshabilitados en la UI). La columna de DB admite los 3 para forward-compat.
 - `device`: enum `"desktop"` | `"mobile"`, default `"desktop"`.
@@ -168,15 +179,18 @@ Añadir a `baseFields`:
 Toda entrada sigue validándose con Zod antes de tocar la DB.
 
 ### `app/api/test-runs/route.ts`
+
 - Persistir `browser`, `device`, `retries` en el `insert` de `test_runs`.
 - Pasarlos al payload del job de BullMQ.
 - Sin cambios en el rate limit ni en la lectura del usuario desde la sesión.
 
 ### `lib/queue/test-run-queue.ts`
+
 - El `attempts` del job se toma de `retries` (más 1, ya que `attempts` cuenta el
   intento inicial) en lugar de la constante fija.
 
 ### `lib/playwright/execute-test-run.ts`
+
 - `device` → emulación Playwright: viewport/userAgent desktop por defecto, o un
   preset móvil (tipo Pixel 5) cuando `device === "mobile"`.
 - **Captura de logs**: construir un array estructurado `{ ts, level, msg }`
@@ -191,24 +205,25 @@ Toda entrada sigue validándose con Zod antes de tocar la DB.
   toca.
 
 ### Tests
+
 Cada cambio de API mantiene su test en `/tests/api/` (Vitest + mocks manuales de
 Supabase y BullMQ). Se actualiza el test de `POST /api/test-runs` para cubrir los
 campos nuevos `browser`/`device`/`retries`.
 
 ## Sección 5 — Elementos deshabilitados (Nivel C, visibles pero inertes)
 
-| Elemento | Tratamiento |
-|---|---|
-| Sidebar "API & webhooks", "Configuración" | Ítems visibles, deshabilitados, marca "próximamente" |
-| Medidor "Uso del mes" | Placeholder estático |
-| Topbar `⌘K`, campana | Decorativos / sin acción |
-| Badges de detección de URL | Estáticos |
-| Firefox / WebKit | Chips deshabilitados |
-| "Guardar como plantilla", "Ejecución programada" | Botones deshabilitados |
-| "Más filtros", "Export" en lista | Botones deshabilitados |
-| Pestaña "Network" en detalle | Pestaña deshabilitada |
-| "Próximas tareas / cola" en Resumen | Estado vacío deshabilitado |
-| Columna "Disparado" (actor CI) | Omitida (no se inventan datos) |
+| Elemento                                         | Tratamiento                                          |
+| ------------------------------------------------ | ---------------------------------------------------- |
+| Sidebar "API & webhooks", "Configuración"        | Ítems visibles, deshabilitados, marca "próximamente" |
+| Medidor "Uso del mes"                            | Placeholder estático                                 |
+| Topbar `⌘K`, campana                             | Decorativos / sin acción                             |
+| Badges de detección de URL                       | Estáticos                                            |
+| Firefox / WebKit                                 | Chips deshabilitados                                 |
+| "Guardar como plantilla", "Ejecución programada" | Botones deshabilitados                               |
+| "Más filtros", "Export" en lista                 | Botones deshabilitados                               |
+| Pestaña "Network" en detalle                     | Pestaña deshabilitada                                |
+| "Próximas tareas / cola" en Resumen              | Estado vacío deshabilitado                           |
+| Columna "Disparado" (actor CI)                   | Omitida (no se inventan datos)                       |
 
 ## Componentes nuevos y reutilizados
 

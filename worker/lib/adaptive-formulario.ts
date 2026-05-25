@@ -27,7 +27,16 @@ export function parseFields(raw: string): FieldPair[] {
   return out;
 }
 
-const TRUE_TOKENS = new Set(["sí", "si", "true", "x", "yes", "on", "1", "checked"]);
+const TRUE_TOKENS = new Set([
+  "sí",
+  "si",
+  "true",
+  "x",
+  "yes",
+  "on",
+  "1",
+  "checked",
+]);
 const FALSE_TOKENS = new Set(["no", "false", "off", "0", "unchecked"]);
 
 export function asBoolean(value: string): boolean | null {
@@ -42,8 +51,10 @@ const SUBMIT_TOKEN_REGEX = new RegExp(`(${SUBMIT_VERBS.join("|")})`, "i");
 export function isFormSubmitSelector(selector?: string | null): boolean {
   if (!selector) return false;
   const lower = selector.toLowerCase();
-  if (lower.includes("type=submit") || lower.includes('type="submit"')) return true;
-  if (lower.includes("type=text") || lower.includes('type="text"')) return false;
+  if (lower.includes("type=submit") || lower.includes('type="submit"'))
+    return true;
+  if (lower.includes("type=text") || lower.includes('type="text"'))
+    return false;
   if (lower.startsWith("input[name")) return false;
   return SUBMIT_TOKEN_REGEX.test(lower);
 }
@@ -70,12 +81,19 @@ export async function resolveField(
     page.getByLabel(new RegExp(regexEscaped, "i")),
     page.getByPlaceholder(new RegExp(regexEscaped, "i")),
     page.locator(`[aria-label*="${cssEscaped}" i]`),
-    page.locator(`input[name*="${s}" i], textarea[name*="${s}" i], select[name*="${s}" i]`),
-    page.locator(`input[id*="${s}" i], textarea[id*="${s}" i], select[id*="${s}" i]`),
+    page.locator(
+      `input[name*="${s}" i], textarea[name*="${s}" i], select[name*="${s}" i]`,
+    ),
+    page.locator(
+      `input[id*="${s}" i], textarea[id*="${s}" i], select[id*="${s}" i]`,
+    ),
   ]);
 }
 
-export async function fillField(control: Locator, value: string): Promise<void> {
+export async function fillField(
+  control: Locator,
+  value: string,
+): Promise<void> {
   const tag = (await control.evaluate((el) => el.tagName.toLowerCase())).trim();
   if (tag === "select") {
     await control.selectOption({ label: value }).catch(async () => {
@@ -96,7 +114,11 @@ export async function fillField(control: Locator, value: string): Promise<void> 
 const FORM_POLL_INTERVAL_MS = 300;
 const FORM_RESULTS_TIMEOUT_MS = 8_000;
 
-export type FormOutcome = { success: boolean; finalUrl: string; reason: string };
+export type FormOutcome = {
+  success: boolean;
+  finalUrl: string;
+  reason: string;
+};
 
 export async function fillAndSubmitForm(
   page: Page,
@@ -120,7 +142,8 @@ export async function fillAndSubmitForm(
     return {
       success: false,
       finalUrl: page.url(),
-      reason: "No se pudo resolver ningún campo del formulario por su etiqueta.",
+      reason:
+        "No se pudo resolver ningún campo del formulario por su etiqueta.",
     };
   }
 
@@ -140,7 +163,8 @@ export async function fillAndSubmitForm(
     .waitForLoadState("domcontentloaded", { timeout: SETTLE_TIMEOUT_MS })
     .catch(() => {});
 
-  const deadline = Date.now() + (opts.resultsTimeoutMs ?? FORM_RESULTS_TIMEOUT_MS);
+  const deadline =
+    Date.now() + (opts.resultsTimeoutMs ?? FORM_RESULTS_TIMEOUT_MS);
   while (Date.now() < deadline) {
     // Fallo inmediato si hay error visible o bloqueo de validación nativa.
     const errorText = await readVisibleErrorText(page);
@@ -161,7 +185,11 @@ export async function fillAndSubmitForm(
     }
     // Éxito por comportamiento: URL cambió, mensaje de éxito, o form desapareció.
     if (page.url() !== initialUrl) {
-      return { success: true, finalUrl: page.url(), reason: "La URL cambió tras enviar." };
+      return {
+        success: true,
+        finalUrl: page.url(),
+        reason: "La URL cambió tras enviar.",
+      };
     }
     if (await isSuccessTextVisible(page)) {
       return {
@@ -170,7 +198,11 @@ export async function fillAndSubmitForm(
         reason: "Apareció un mensaje de éxito tras enviar.",
       };
     }
-    const formGone = (await page.locator("form").count().catch(() => 0)) === 0;
+    const formGone =
+      (await page
+        .locator("form")
+        .count()
+        .catch(() => 0)) === 0;
     if (formGone) {
       return {
         success: true,

@@ -17,7 +17,7 @@ const STEPS: Step[] = [
     callout: (
       <>
         Gemini responde con{" "}
-        <code className="rounded bg-surface-2 px-1 py-0.5 font-mono text-[0.8em] text-accent-text">
+        <code className="bg-surface-2 text-accent-text rounded px-1 py-0.5 font-mono text-[0.8em]">
           responseMimeType: application/json
         </code>
         ; el JSON se valida contra un contrato de tipos estricto antes de
@@ -37,18 +37,17 @@ export function HowItWorks(): React.JSX.Element {
   return (
     <section
       id="como-funciona"
-      className="flex min-h-[calc(100svh-4rem)] flex-col justify-center border-t border-border"
+      className="border-border flex min-h-[calc(100svh-4rem)] flex-col justify-center border-t"
     >
       <div className="mx-auto w-full max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
         <Reveal>
           <div className="max-w-2xl">
-            <h2 className="text-2xl font-semibold tracking-[-0.02em] text-text sm:text-3xl">
+            <h2 className="text-text text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">
               De la idea al reporte en tres pasos
             </h2>
-            <p className="mt-3 text-pretty text-muted">
-              Sin escribir selectores ni mantener scripts frágiles. Tú
-              describes el comportamiento esperado, FlowCheck se encarga del
-              resto.
+            <p className="text-muted mt-3 text-pretty">
+              Sin escribir selectores ni mantener scripts frágiles. Tú describes
+              el comportamiento esperado, FlowCheck se encarga del resto.
             </p>
           </div>
         </Reveal>
@@ -56,14 +55,14 @@ export function HowItWorks(): React.JSX.Element {
         <div className="mt-12 grid gap-8 lg:grid-cols-3 lg:gap-10">
           {STEPS.map((step, i) => (
             <Reveal key={step.title} delay={i * 90}>
-              <div className="border-t-2 border-border pt-5">
-                <span className="font-mono text-sm font-medium text-accent-text">
+              <div className="border-border border-t-2 pt-5">
+                <span className="text-accent-text font-mono text-sm font-medium">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <h3 className="mt-3 text-base font-semibold text-text">
+                <h3 className="text-text mt-3 text-base font-semibold">
                   {step.title}
                 </h3>
-                <p className="mt-2 text-pretty text-sm leading-relaxed text-muted">
+                <p className="text-muted mt-2 text-sm leading-relaxed text-pretty">
                   {step.body}
                 </p>
                 <Callout className="mt-4">{step.callout}</Callout>

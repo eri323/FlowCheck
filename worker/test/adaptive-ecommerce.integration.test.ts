@@ -1,7 +1,15 @@
 // worker/test/adaptive-ecommerce.integration.test.ts
 import http from "node:http";
 import type { AddressInfo } from "node:net";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 import { chromium, type Browser, type Page } from "playwright-core";
 import {
   addToCartStage,
@@ -92,11 +100,18 @@ describe("flujo ecommerce (browser)", () => {
     expect((await addToCartStage(activePage, 5_000)).success).toBe(true);
     expect((await goToCheckoutStage(activePage, 5_000)).success).toBe(true);
     expect(
-      (await fillPaymentStage(
-        activePage,
-        { email: "a@x.com", card: "4111111111111111", expiry: "09/27", cvc: "123" },
-        5_000,
-      )).success,
+      (
+        await fillPaymentStage(
+          activePage,
+          {
+            email: "a@x.com",
+            card: "4111111111111111",
+            expiry: "09/27",
+            cvc: "123",
+          },
+          5_000,
+        )
+      ).success,
     ).toBe(true);
 
     const order = await confirmOrderAndVerify(activePage, 5_000);
@@ -107,14 +122,18 @@ describe("flujo ecommerce (browser)", () => {
     await activePage.goto(`${base}/idcheckout`);
 
     expect(
-      (await fillPaymentStage(
-        activePage,
-        { email: "", card: "4111111111111111", expiry: "09/27", cvc: "123" },
-        5_000,
-      )).success,
+      (
+        await fillPaymentStage(
+          activePage,
+          { email: "", card: "4111111111111111", expiry: "09/27", cvc: "123" },
+          5_000,
+        )
+      ).success,
     ).toBe(true);
 
-    expect(await activePage.locator("#card").inputValue()).toBe("4111111111111111");
+    expect(await activePage.locator("#card").inputValue()).toBe(
+      "4111111111111111",
+    );
     expect(await activePage.locator("#month").inputValue()).toBe("09");
     expect(await activePage.locator("#year").inputValue()).toBe("27");
   }, 40_000);

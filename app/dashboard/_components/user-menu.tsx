@@ -35,9 +35,9 @@ export function UserMenu({ email }: { email: string }): React.JSX.Element {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Menú de cuenta"
-        className="flex items-center gap-1 rounded-md p-1 pr-1.5 transition-colors duration-150 hover:bg-surface-2"
+        className="hover:bg-surface-2 flex items-center gap-1 rounded-md p-1 pr-1.5 transition-colors duration-150"
       >
-        <span className="grid size-7 place-items-center rounded-full bg-accent-subtle text-xs font-semibold text-accent-text">
+        <span className="bg-accent-subtle text-accent-text grid size-7 place-items-center rounded-full text-xs font-semibold">
           {initial}
         </span>
         <ChevronDown size={14} className="text-faint" />
@@ -46,18 +46,18 @@ export function UserMenu({ email }: { email: string }): React.JSX.Element {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+6px)] w-60 animate-fade-in rounded-lg border border-border bg-elevated p-1.5 shadow-e3"
+          className="animate-fade-in border-border bg-elevated shadow-e3 absolute top-[calc(100%+6px)] right-0 w-60 rounded-lg border p-1.5"
         >
           <div className="px-2.5 py-2">
-            <p className="text-xs text-faint">Conectado como</p>
-            <p className="truncate text-sm font-medium text-text">{email}</p>
+            <p className="text-faint text-xs">Conectado como</p>
+            <p className="text-text truncate text-sm font-medium">{email}</p>
           </div>
-          <div className="my-1 h-px bg-border" />
+          <div className="bg-border my-1 h-px" />
           <form action="/auth/logout" method="post">
             <button
               type="submit"
               role="menuitem"
-              className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-sm text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-text"
+              className="text-muted hover:bg-surface-2 hover:text-text flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-sm transition-colors duration-150"
             >
               <Logout size={15} />
               Cerrar sesión

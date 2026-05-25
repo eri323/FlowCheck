@@ -21,9 +21,15 @@ describe("isNameFillSelector", () => {
 
 describe("isConfirmPasswordSelector", () => {
   it("detecta confirmación de contraseña", () => {
-    expect(isConfirmPasswordSelector('input[name="confirmPassword"]')).toBe(true);
-    expect(isConfirmPasswordSelector('input[name="password_confirmation"]')).toBe(true);
-    expect(isConfirmPasswordSelector('[placeholder="Repetir contraseña"]')).toBe(true);
+    expect(isConfirmPasswordSelector('input[name="confirmPassword"]')).toBe(
+      true,
+    );
+    expect(
+      isConfirmPasswordSelector('input[name="password_confirmation"]'),
+    ).toBe(true);
+    expect(
+      isConfirmPasswordSelector('[placeholder="Repetir contraseña"]'),
+    ).toBe(true);
   });
   it("no marca la contraseña principal", () => {
     expect(isConfirmPasswordSelector('input[name="password"]')).toBe(false);
@@ -32,7 +38,7 @@ describe("isConfirmPasswordSelector", () => {
 
 describe("isRegisterSubmitSelector", () => {
   it("detecta verbos de registro", () => {
-    expect(isRegisterSubmitSelector('text=Crear cuenta')).toBe(true);
+    expect(isRegisterSubmitSelector("text=Crear cuenta")).toBe(true);
     expect(isRegisterSubmitSelector('role=button[name="Sign up"]')).toBe(true);
     expect(isRegisterSubmitSelector('button[type="submit"]')).toBe(true);
   });

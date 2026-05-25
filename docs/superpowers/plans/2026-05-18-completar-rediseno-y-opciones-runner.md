@@ -11,6 +11,7 @@
 **Spec:** `docs/superpowers/specs/2026-05-18-completar-rediseno-y-opciones-runner-design.md`
 
 **Convenciones del proyecto (obligatorias en cada tarea):**
+
 - TypeScript strict, prohibido `any`, solo exports nombrados.
 - Rutas de API validan con Zod antes de tocar la DB.
 - Queries de Supabase manejan `{ data, error }` explícitamente.
@@ -24,6 +25,7 @@
 ### Task 1: Migración `0005_runner_config.sql`
 
 **Files:**
+
 - Create: `supabase/migrations/0005_runner_config.sql`
 
 - [ ] **Step 1: Crear el archivo de migración**
@@ -73,6 +75,7 @@ git commit -m "feat(db): columnas de configuración de runner en test_runs"
 ### Task 2: Extender el schema Zod con los campos de runner
 
 **Files:**
+
 - Modify: `lib/validation/test-run.ts` (bloque `baseFields`, líneas 100-104)
 - Test: `tests/lib/validation/test-run.test.ts`
 
@@ -168,6 +171,7 @@ git commit -m "feat(validation): campos browser/device/retries en createTestRunS
 ### Task 3: Persistir los campos de runner en la API y pasarlos a la cola
 
 **Files:**
+
 - Modify: `lib/queue/test-run-queue.ts:27-30` (`enqueueTestRun`)
 - Modify: `app/api/test-runs/route.ts:78-103` (insert + enqueue)
 - Test: `tests/api/test-runs.test.ts`
@@ -205,24 +209,25 @@ function makeSupabaseMock(opts: SupabaseMockOptions): SupabaseMock {
 Cambia `builder.insert` para capturar el payload:
 
 ```typescript
-      builder.insert = vi.fn((payload: Record<string, unknown>) => {
-        mode = "insert";
-        inserts.push(payload);
-        return builder;
-      });
+builder.insert = vi.fn((payload: Record<string, unknown>) => {
+  mode = "insert";
+  inserts.push(payload);
+  return builder;
+});
 ```
 
 Y el `return` final de `makeSupabaseMock`:
 
 ```typescript
-  return { client, updates, inserts };
+return { client, updates, inserts };
 ```
 
 Luego añade este test dentro del `describe("POST /api/test-runs")`:
 
 ```typescript
 it("persiste los campos de runner y deriva attempts de retries", async () => {
-  const { POST, createSupabaseServerClient, enqueueTestRun } = await loadRoute();
+  const { POST, createSupabaseServerClient, enqueueTestRun } =
+    await loadRoute();
   const { client, inserts } = makeSupabaseMock({
     user: { id: "u1" },
     recentCount: 0,
@@ -261,31 +266,31 @@ Expected: FAIL — el nuevo test falla (la ruta aún no inserta los campos ni pa
 En `app/api/test-runs/route.ts`, reemplaza el bloque del insert (líneas 78-90):
 
 ```typescript
-  const { data: testRun, error: insertError } = await supabase
-    .from("test_runs")
-    .insert({
-      user_id: user.id,
-      project_id: input.project_id ?? null,
-      target_url: input.target_url,
-      test_type: input.test_type,
-      test_data: input.test_data,
-      prompt: input.prompt ?? null,
-      browser: input.browser,
-      device: input.device,
-      retries: input.retries,
-      status: "pendiente",
-    })
-    .select("id")
-    .single();
+const { data: testRun, error: insertError } = await supabase
+  .from("test_runs")
+  .insert({
+    user_id: user.id,
+    project_id: input.project_id ?? null,
+    target_url: input.target_url,
+    test_type: input.test_type,
+    test_data: input.test_data,
+    prompt: input.prompt ?? null,
+    browser: input.browser,
+    device: input.device,
+    retries: input.retries,
+    status: "pendiente",
+  })
+  .select("id")
+  .single();
 ```
 
 Y reemplaza la llamada a `enqueueTestRun` (línea 103):
 
 ```typescript
-    await enqueueTestRun(
-      { testRunId: testRun.id, userId: user.id },
-      input.retries + 1,
-    );
+await enqueueTestRun(
+  { testRunId: testRun.id, userId: user.id },
+  input.retries + 1,
+);
 ```
 
 - [ ] **Step 5: Correr los tests para verificar que pasan**
@@ -309,6 +314,7 @@ git commit -m "feat(api): persiste config de runner y deriva attempts de retries
 ### Task 4: Pasar `device` al ejecutor desde el worker
 
 **Files:**
+
 - Modify: `worker/process-test-run.ts:11-19` (tipo `TestRunRow`), `:170` (select), `:207-211` (llamada a `executeTestRun`)
 
 - [ ] **Step 1: Añadir `device` al tipo y al select**
@@ -341,11 +347,11 @@ Reemplaza el select de `processTestRun` (línea 170):
 En `worker/process-test-run.ts`, reemplaza la llamada a `executeTestRun` (líneas 207-211):
 
 ```typescript
-    const finalStatus = await withTimeout(
-      executeTestRun(supabase, testRunId, testRun.test_type, testRun.device),
-      EXECUTION_TIMEOUT_MS,
-      "Ejecución del plan con Playwright",
-    );
+const finalStatus = await withTimeout(
+  executeTestRun(supabase, testRunId, testRun.test_type, testRun.device),
+  EXECUTION_TIMEOUT_MS,
+  "Ejecución del plan con Playwright",
+);
 ```
 
 - [ ] **Step 3: Verificar typecheck**
@@ -363,6 +369,7 @@ git commit -m "feat(worker): lee device del test_run y lo pasa al ejecutor"
 ### Task 5: Emulación de dispositivo en el ejecutor de Playwright
 
 **Files:**
+
 - Modify: `lib/playwright/execute-test-run.ts` (imports, firma de `runCase`, firma de `executeTestRun`)
 
 - [ ] **Step 1: Importar `devices` de Playwright**
@@ -455,6 +462,7 @@ git commit -m "feat(worker): emulación de dispositivo móvil en el ejecutor"
 ### Task 6: Captura de logs y de errores JS en el ejecutor
 
 **Files:**
+
 - Modify: `lib/playwright/execute-test-run.ts` (helper de logs, listeners en `runCase`, escritura en `executeTestRun`)
 
 - [ ] **Step 1: Añadir el tipo y el acumulador de logs**
@@ -483,7 +491,9 @@ class RunLog {
       .update({ logs: this.entries })
       .eq("id", testRunId);
     if (error) {
-      console.warn(`No se pudo volcar logs del run ${testRunId}: ${error.message}`);
+      console.warn(
+        `No se pudo volcar logs del run ${testRunId}: ${error.message}`,
+      );
     }
   }
 }
@@ -532,14 +542,14 @@ async function runCase(
 En `lib/playwright/execute-test-run.ts`, dentro de `runCase`, justo después del `await supabase.from("test_steps").update(update).eq("id", step.id);` (línea ~326), añade el registro del paso y el volcado:
 
 ```typescript
-      await supabase.from("test_steps").update(update).eq("id", step.id);
+await supabase.from("test_steps").update(update).eq("id", step.id);
 
-      log.add(
-        errorMessage ? "err" : "ok",
-        `paso ${step.position + 1} · ${step.action} · ${stepStatus}` +
-          (errorMessage ? ` — ${errorMessage}` : ` · ${durationMs}ms`),
-      );
-      await log.flush(supabase, testRunId);
+log.add(
+  errorMessage ? "err" : "ok",
+  `paso ${step.position + 1} · ${step.action} · ${stepStatus}` +
+    (errorMessage ? ` — ${errorMessage}` : ` · ${durationMs}ms`),
+);
+await log.flush(supabase, testRunId);
 ```
 
 - [ ] **Step 4: Crear el log y el contador en `executeTestRun` y persistir el conteo**
@@ -560,7 +570,10 @@ export async function executeTestRun(
 
   const log = new RunLog();
   const jsErrors = { count: 0 };
-  log.add("info", `ejecución iniciada · device=${device} · ${cases.length} casos`);
+  log.add(
+    "info",
+    `ejecución iniciada · device=${device} · ${cases.length} casos`,
+  );
   await log.flush(supabase, testRunId);
 
   const browser = await chromium.launch({ headless: true });
@@ -620,6 +633,7 @@ git commit -m "feat(worker): captura stream de logs y conteo de errores JS"
 ### Task 7: Componente `Sparkline`
 
 **Files:**
+
 - Create: `components/ui/sparkline.tsx`
 
 - [ ] **Step 1: Crear el componente**
@@ -699,6 +713,7 @@ git commit -m "feat(ui): componente Sparkline"
 ### Task 8: Componente `Kbd` e iconos nuevos
 
 **Files:**
+
 - Create: `components/ui/kbd.tsx`
 - Modify: `components/ui/icons.tsx` (añadir `Bell`, `Bolt` ya existe, `Refresh`)
 
@@ -718,8 +733,8 @@ export function Kbd({
   return (
     <kbd
       className={cn(
-        "inline-flex items-center gap-1 rounded border border-border border-b-2 bg-surface-2 px-1.5 py-0.5",
-        "font-mono text-[0.6875rem] text-faint",
+        "border-border bg-surface-2 inline-flex items-center gap-1 rounded border border-b-2 px-1.5 py-0.5",
+        "text-faint font-mono text-[0.6875rem]",
         className,
       )}
     >
@@ -770,6 +785,7 @@ git commit -m "feat(ui): componente Kbd e iconos Bell/Refresh"
 ### Task 9: Delta del sidebar
 
 **Files:**
+
 - Modify: `app/dashboard/_components/sidebar-nav.tsx`
 
 Estado actual: `Logo`, botón "Nuevo test run", sección "Panel" con 2 ítems, pie con texto. Objetivo: añadir ítem "En vivo" con punto de pulso, contadores por ítem, sección "Cuenta" con 2 ítems deshabilitados, y un medidor de uso placeholder.
@@ -849,7 +865,7 @@ export function SidebarNav({
       </Link>
 
       <nav className="mt-5 flex flex-col gap-0.5">
-        <p className="px-2 pb-1.5 pt-3.5 font-mono text-[0.625rem] uppercase tracking-[0.14em] text-muted">
+        <p className="text-muted px-2 pt-3.5 pb-1.5 font-mono text-[0.625rem] tracking-[0.14em] uppercase">
           Panel
         </p>
         {PANEL.map((item) => {
@@ -865,8 +881,8 @@ export function SidebarNav({
               className={cn(
                 "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors duration-150",
                 active
-                  ? "border border-border bg-surface-2 font-medium text-text"
-                  : "border border-transparent text-muted hover:bg-surface hover:text-text",
+                  ? "border-border bg-surface-2 text-text border font-medium"
+                  : "text-muted hover:bg-surface hover:text-text border border-transparent",
               )}
             >
               <Icon
@@ -884,7 +900,7 @@ export function SidebarNav({
                   )}
                 >
                   {item.live ? (
-                    <span className="size-1.5 animate-pulse-dot rounded-full bg-accent" />
+                    <span className="animate-pulse-dot bg-accent size-1.5 rounded-full" />
                   ) : null}
                   {count}
                 </span>
@@ -893,7 +909,7 @@ export function SidebarNav({
           );
         })}
 
-        <p className="px-2 pb-1.5 pt-4 font-mono text-[0.625rem] uppercase tracking-[0.14em] text-muted">
+        <p className="text-muted px-2 pt-4 pb-1.5 font-mono text-[0.625rem] tracking-[0.14em] uppercase">
           Cuenta
         </p>
         {CUENTA.map((item) => {
@@ -903,11 +919,11 @@ export function SidebarNav({
               key={item.label}
               aria-disabled="true"
               title="Próximamente"
-              className="flex cursor-not-allowed items-center gap-2.5 rounded-md border border-transparent px-2.5 py-2 text-sm text-faint opacity-60"
+              className="text-faint flex cursor-not-allowed items-center gap-2.5 rounded-md border border-transparent px-2.5 py-2 text-sm opacity-60"
             >
               <Icon size={16} className="text-faint" />
               <span className="flex-1">{item.label}</span>
-              <span className="rounded-full border border-border bg-surface-2 px-1.5 font-mono text-[0.5625rem] uppercase tracking-wide text-faint">
+              <span className="border-border bg-surface-2 text-faint rounded-full border px-1.5 font-mono text-[0.5625rem] tracking-wide uppercase">
                 pronto
               </span>
             </span>
@@ -916,14 +932,14 @@ export function SidebarNav({
       </nav>
 
       <div className="mt-auto flex flex-col gap-1.5 px-2.5 pt-4">
-        <div className="flex items-center justify-between font-mono text-[0.625rem] text-faint">
+        <div className="text-faint flex items-center justify-between font-mono text-[0.625rem]">
           <span>Uso del mes</span>
           <span className="text-muted">— / —</span>
         </div>
-        <div className="h-1 overflow-hidden rounded-full bg-surface-2">
-          <div className="h-full w-0 rounded-full bg-accent" />
+        <div className="bg-surface-2 h-1 overflow-hidden rounded-full">
+          <div className="bg-accent h-full w-0 rounded-full" />
         </div>
-        <p className="font-mono text-[0.625rem] text-faint">
+        <p className="text-faint font-mono text-[0.625rem]">
           Probe · entorno de demostración
         </p>
       </div>
@@ -971,6 +987,7 @@ git commit -m "feat(dashboard): sidebar con 'En vivo', sección Cuenta y medidor
 ### Task 10: Delta del topbar
 
 **Files:**
+
 - Modify: `app/dashboard/_components/topbar.tsx`
 
 - [ ] **Step 1: Añadir `⌘K` decorativo y campana deshabilitada**
@@ -987,19 +1004,19 @@ import { Kbd } from "@/components/ui/kbd";
 Bloque de acciones (reemplaza el `<div className="flex items-center gap-1">…</div>`):
 
 ```tsx
-      <div className="flex items-center gap-1.5">
-        <Kbd className="hidden sm:inline-flex">⌘ K</Kbd>
-        <button
-          type="button"
-          aria-disabled="true"
-          title="Próximamente"
-          className="inline-flex size-9 cursor-not-allowed items-center justify-center rounded-md text-faint opacity-60"
-        >
-          <Bell size={16} />
-        </button>
-        <ThemeToggle />
-        <UserMenu email={userEmail} />
-      </div>
+<div className="flex items-center gap-1.5">
+  <Kbd className="hidden sm:inline-flex">⌘ K</Kbd>
+  <button
+    type="button"
+    aria-disabled="true"
+    title="Próximamente"
+    className="text-faint inline-flex size-9 cursor-not-allowed items-center justify-center rounded-md opacity-60"
+  >
+    <Bell size={16} />
+  </button>
+  <ThemeToggle />
+  <UserMenu email={userEmail} />
+</div>
 ```
 
 - [ ] **Step 2: Verificar typecheck, lint y build**
@@ -1021,6 +1038,7 @@ git commit -m "feat(dashboard): topbar con atajo ⌘K y campana"
 ### Task 11: Resumen — saludo, sparklines y tarjeta de cola
 
 **Files:**
+
 - Modify: `app/dashboard/page.tsx`
 - Modify: `components/ui/stat-tile.tsx`
 
@@ -1055,23 +1073,23 @@ export function StatTile({
   trend?: number[];
 }): React.JSX.Element {
   return (
-    <div className="relative flex flex-col gap-2 overflow-hidden bg-surface px-4 py-4">
+    <div className="bg-surface relative flex flex-col gap-2 overflow-hidden px-4 py-4">
       <div className="flex items-center gap-1.5">
         <span className={cn("size-1.5 rounded-full", DOT[tone])} />
-        <span className="font-mono text-[0.6875rem] uppercase tracking-[0.1em] text-muted">
+        <span className="text-muted font-mono text-[0.6875rem] tracking-[0.1em] uppercase">
           {label}
         </span>
       </div>
-      <p className="tabular text-[1.75rem] font-semibold leading-none tracking-tight text-text">
+      <p className="tabular text-text text-[1.75rem] leading-none font-semibold tracking-tight">
         {value}
         {unit ? (
-          <span className="ml-1 text-sm font-medium text-faint">{unit}</span>
+          <span className="text-faint ml-1 text-sm font-medium">{unit}</span>
         ) : null}
       </p>
       {trend && trend.length >= 2 ? (
         <Sparkline
           data={trend}
-          className="pointer-events-none absolute bottom-0 right-0 h-2/3 w-1/2 opacity-60"
+          className="pointer-events-none absolute right-0 bottom-0 h-2/3 w-1/2 opacity-60"
         />
       ) : null}
     </div>
@@ -1084,24 +1102,24 @@ export function StatTile({
 En `app/dashboard/page.tsx`, después de la línea que define `recent` (línea 39), añade el cálculo de tendencias y el saludo. Inserta:
 
 ```tsx
-  // Tendencia real: runs por día de los últimos 7 días naturales.
-  const dayKey = (iso: string): string => iso.slice(0, 10);
-  const today = new Date();
-  const last7: string[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    last7.push(d.toISOString().slice(0, 10));
-  }
-  const runsByDay = last7.map(
-    (day) => rows.filter((r) => dayKey(r.created_at) === day).length,
-  );
+// Tendencia real: runs por día de los últimos 7 días naturales.
+const dayKey = (iso: string): string => iso.slice(0, 10);
+const today = new Date();
+const last7: string[] = [];
+for (let i = 6; i >= 0; i--) {
+  const d = new Date(today);
+  d.setDate(d.getDate() - i);
+  last7.push(d.toISOString().slice(0, 10));
+}
+const runsByDay = last7.map(
+  (day) => rows.filter((r) => dayKey(r.created_at) === day).length,
+);
 
-  const { data: userData } = await supabase.auth.getUser();
-  const emailLocal = userData.user?.email?.split("@")[0] ?? "";
-  const hour = today.getHours();
-  const saludo =
-    hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
+const { data: userData } = await supabase.auth.getUser();
+const emailLocal = userData.user?.email?.split("@")[0] ?? "";
+const hour = today.getHours();
+const saludo =
+  hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
 ```
 
 - [ ] **Step 3: Usar el saludo en el encabezado y pasar `trend` a los tiles**
@@ -1109,23 +1127,20 @@ En `app/dashboard/page.tsx`, después de la línea que define `recent` (línea 3
 En `app/dashboard/page.tsx`, reemplaza el `<PageHeader …>` (líneas 56-67) por:
 
 ```tsx
-      <div>
-        <p className="font-mono text-[0.6875rem] uppercase tracking-[0.16em] text-accent-text">
-          Resumen · hoy
-        </p>
-        <PageHeader
-          title={emailLocal ? `${saludo}, ${emailLocal}.` : `${saludo}.`}
-          description="El estado de tus pruebas automatizadas de un vistazo."
-        >
-          <Link
-            href="/dashboard/runs/new"
-            className={buttonVariants({ size: "sm" })}
-          >
-            <Plus size={15} />
-            Nuevo test run
-          </Link>
-        </PageHeader>
-      </div>
+<div>
+  <p className="text-accent-text font-mono text-[0.6875rem] tracking-[0.16em] uppercase">
+    Resumen · hoy
+  </p>
+  <PageHeader
+    title={emailLocal ? `${saludo}, ${emailLocal}.` : `${saludo}.`}
+    description="El estado de tus pruebas automatizadas de un vistazo."
+  >
+    <Link href="/dashboard/runs/new" className={buttonVariants({ size: "sm" })}>
+      <Plus size={15} />
+      Nuevo test run
+    </Link>
+  </PageHeader>
+</div>
 ```
 
 Y reemplaza el bloque de los 4 `StatTile` (líneas 90-99) por:
@@ -1151,14 +1166,12 @@ Y reemplaza el bloque de los 4 `StatTile` (líneas 90-99) por:
 En `app/dashboard/page.tsx`, dentro de la `<section>` derecha (la del breakdown), después del `</div>` que cierra el `rounded-lg` del breakdown (línea 148), añade dentro de la misma `<section>`:
 
 ```tsx
-              <div className="mt-4 rounded-lg border border-dashed border-border bg-surface px-5 py-6 text-center opacity-70">
-                <p className="text-sm font-medium text-muted">
-                  Próximas tareas
-                </p>
-                <p className="mt-1 text-xs text-faint">
-                  La cola de ejecuciones programadas estará disponible pronto.
-                </p>
-              </div>
+<div className="border-border bg-surface mt-4 rounded-lg border border-dashed px-5 py-6 text-center opacity-70">
+  <p className="text-muted text-sm font-medium">Próximas tareas</p>
+  <p className="text-faint mt-1 text-xs">
+    La cola de ejecuciones programadas estará disponible pronto.
+  </p>
+</div>
 ```
 
 - [ ] **Step 5: Verificar typecheck, lint y build**
@@ -1176,6 +1189,7 @@ git commit -m "feat(dashboard): saludo, sparklines reales y tarjeta de cola en R
 ### Task 12: Lista de runs — tabla y botones deshabilitados
 
 **Files:**
+
 - Modify: `app/dashboard/runs/_components/runs-table.tsx`
 
 Objetivo: añadir los botones "Más filtros" y "Export" deshabilitados a la fila de filtros. La lista de filas ya tiene el lenguaje visual correcto (grid con cabecera); se conserva. No se reestructura a `<table>` HTML — el grid actual ya cumple el diseño y es responsive; reescribirlo a `<table>` arriesgaría regresiones sin ganancia visual.
@@ -1191,39 +1205,39 @@ import { Filter, Search, Download } from "@/components/ui/icons";
 Reemplaza el `<div className="flex gap-2.5 sm:ml-auto">…</div>` (líneas 83-97) por:
 
 ```tsx
-          <div className="flex gap-2.5 sm:ml-auto">
-            <Select
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              aria-label="Filtrar por tipo"
-              className="sm:w-40"
-            >
-              <option value="todos">Todos los tipos</option>
-              {TEST_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {TEST_TYPE_LABELS[t]}
-                </option>
-              ))}
-            </Select>
-            <button
-              type="button"
-              aria-disabled="true"
-              title="Próximamente"
-              className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs text-faint opacity-60"
-            >
-              <Filter size={13} />
-              Más filtros
-            </button>
-            <button
-              type="button"
-              aria-disabled="true"
-              title="Próximamente"
-              className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs text-faint opacity-60"
-            >
-              <Download size={13} />
-              Export
-            </button>
-          </div>
+<div className="flex gap-2.5 sm:ml-auto">
+  <Select
+    value={type}
+    onChange={(e) => setType(e.target.value)}
+    aria-label="Filtrar por tipo"
+    className="sm:w-40"
+  >
+    <option value="todos">Todos los tipos</option>
+    {TEST_TYPES.map((t) => (
+      <option key={t} value={t}>
+        {TEST_TYPE_LABELS[t]}
+      </option>
+    ))}
+  </Select>
+  <button
+    type="button"
+    aria-disabled="true"
+    title="Próximamente"
+    className="border-border bg-surface text-faint inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs opacity-60"
+  >
+    <Filter size={13} />
+    Más filtros
+  </button>
+  <button
+    type="button"
+    aria-disabled="true"
+    title="Próximamente"
+    className="border-border bg-surface text-faint inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs opacity-60"
+  >
+    <Download size={13} />
+    Export
+  </button>
+</div>
 ```
 
 - [ ] **Step 2: Añadir el icono `Download`**
@@ -1255,6 +1269,7 @@ git commit -m "feat(dashboard): botones Más filtros y Export en la lista de run
 ### Task 13: Nuevo run — sección "Configuración del runner"
 
 **Files:**
+
 - Modify: `app/dashboard/runs/new/_components/new-test-run-form.tsx`
 
 Objetivo: añadir estado para `device` y `retries`, una nueva `FormSection` "Configuración del runner" antes del footer, los badges estáticos de detección de URL bajo el campo URL, y los botones deshabilitados del footer. El payload incluye `browser`/`device`/`retries`.
@@ -1280,8 +1295,8 @@ import {
 Después de `const [testType, setTestType] = useState<TestType>("login");` (línea 88), añade:
 
 ```tsx
-  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
-  const [retries, setRetries] = useState(1);
+const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+const [retries, setRetries] = useState(1);
 ```
 
 - [ ] **Step 2: Incluir los campos de runner en el payload**
@@ -1289,13 +1304,13 @@ Después de `const [testType, setTestType] = useState<TestType>("login");` (lín
 En `new-test-run-form.tsx`, reemplaza la línea de `base` dentro de `buildPayload` (línea 110):
 
 ```tsx
-    const base = {
-      target_url: targetUrl,
-      prompt: extraPrompt || undefined,
-      browser: "chromium" as const,
-      device,
-      retries,
-    };
+const base = {
+  target_url: targetUrl,
+  prompt: extraPrompt || undefined,
+  browser: "chromium" as const,
+  device,
+  retries,
+};
 ```
 
 - [ ] **Step 3: Añadir los badges estáticos de detección bajo el campo URL**
@@ -1303,22 +1318,22 @@ En `new-test-run-form.tsx`, reemplaza la línea de `base` dentro de `buildPayloa
 En `new-test-run-form.tsx`, dentro de la `FormSection` "URL objetivo", después del `</Field>` que cierra el campo URL (línea 201), antes del `</FormSection>`, añade:
 
 ```tsx
-          <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
-              detección:
-            </span>
-            {["https", "200 OK", "react · vite"].map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border border-border bg-surface-2 px-2 py-0.5 font-mono text-[0.625rem] text-faint opacity-70"
-              >
-                {tag}
-              </span>
-            ))}
-            <span className="font-mono text-[0.5625rem] text-faint opacity-60">
-              (vista previa)
-            </span>
-          </div>
+<div className="mt-3 flex flex-wrap items-center gap-1.5">
+  <span className="text-faint font-mono text-[0.625rem] tracking-widest uppercase">
+    detección:
+  </span>
+  {["https", "200 OK", "react · vite"].map((tag) => (
+    <span
+      key={tag}
+      className="border-border bg-surface-2 text-faint rounded-full border px-2 py-0.5 font-mono text-[0.625rem] opacity-70"
+    >
+      {tag}
+    </span>
+  ))}
+  <span className="text-faint font-mono text-[0.5625rem] opacity-60">
+    (vista previa)
+  </span>
+</div>
 ```
 
 - [ ] **Step 4: Añadir la sección "Configuración del runner"**
@@ -1326,98 +1341,98 @@ En `new-test-run-form.tsx`, dentro de la `FormSection` "URL objetivo", después 
 En `new-test-run-form.tsx`, después de la `FormSection` "Instrucción adicional" (cierra en línea 480) y antes del `<div className="bg-surface-2 px-5 py-4 sm:px-6">` del footer (línea 482), añade:
 
 ```tsx
-        <FormSection
-          title="Configuración del runner"
-          description="Por defecto: Chromium, escritorio, headless, 1 reintento."
-          step="05"
-        >
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-            <div className="flex flex-col gap-1.5">
-              <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
-                Navegador
-              </span>
-              <div className="flex gap-1.5">
-                <span className="inline-flex items-center rounded-md border border-accent-subtle bg-accent-subtle px-2.5 py-1.5 text-xs font-medium text-accent-text">
-                  Chromium
-                </span>
-                {["Firefox", "WebKit"].map((b) => (
-                  <span
-                    key={b}
-                    title="Próximamente"
-                    className="inline-flex cursor-not-allowed items-center rounded-md border border-border bg-surface-2 px-2.5 py-1.5 text-xs text-faint opacity-60"
-                  >
-                    {b}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
-                Dispositivo
-              </span>
-              <div className="flex gap-0.5 rounded-md border border-border bg-surface-2 p-0.5">
-                {(["desktop", "mobile"] as const).map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setDevice(d)}
-                    className={
-                      device === d
-                        ? "flex-1 rounded bg-elevated px-2 py-1 text-xs font-medium text-text shadow-e1"
-                        : "flex-1 rounded px-2 py-1 text-xs text-muted transition-colors hover:text-text"
-                    }
-                  >
-                    {d === "desktop" ? "Desktop" : "Mobile"}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
-                Reintentos
-              </span>
-              <div className="flex items-center gap-0.5 rounded-md border border-border bg-surface-2">
-                <button
-                  type="button"
-                  aria-label="Menos reintentos"
-                  onClick={() => setRetries((r) => Math.max(0, r - 1))}
-                  className="px-3 py-1.5 text-muted transition-colors hover:text-text"
-                >
-                  −
-                </button>
-                <span className="tabular flex-1 text-center font-mono text-sm text-text">
-                  {retries}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Más reintentos"
-                  onClick={() => setRetries((r) => Math.min(5, r + 1))}
-                  className="px-3 py-1.5 text-muted transition-colors hover:text-text"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div
-            className="mt-4 flex items-center justify-between rounded-md border border-border bg-surface-2 px-3 py-2.5"
-            title="El worker corre en un servidor sin pantalla: siempre headless."
+<FormSection
+  title="Configuración del runner"
+  description="Por defecto: Chromium, escritorio, headless, 1 reintento."
+  step="05"
+>
+  <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+    <div className="flex flex-col gap-1.5">
+      <span className="text-faint font-mono text-[0.625rem] tracking-widest uppercase">
+        Navegador
+      </span>
+      <div className="flex gap-1.5">
+        <span className="border-accent-subtle bg-accent-subtle text-accent-text inline-flex items-center rounded-md border px-2.5 py-1.5 text-xs font-medium">
+          Chromium
+        </span>
+        {["Firefox", "WebKit"].map((b) => (
+          <span
+            key={b}
+            title="Próximamente"
+            className="border-border bg-surface-2 text-faint inline-flex cursor-not-allowed items-center rounded-md border px-2.5 py-1.5 text-xs opacity-60"
           >
-            <span className="inline-flex items-center gap-2 text-xs text-muted">
-              <Eye size={14} />
-              Modo headless
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-xs text-faint">
-              fijo
-              <span className="relative h-3.5 w-6 rounded-full bg-accent">
-                <span className="absolute right-0.5 top-0.5 size-2.5 rounded-full bg-white" />
-              </span>
-            </span>
-          </div>
-        </FormSection>
+            {b}
+          </span>
+        ))}
+      </div>
+    </div>
+
+    <div className="flex flex-col gap-1.5">
+      <span className="text-faint font-mono text-[0.625rem] tracking-widest uppercase">
+        Dispositivo
+      </span>
+      <div className="border-border bg-surface-2 flex gap-0.5 rounded-md border p-0.5">
+        {(["desktop", "mobile"] as const).map((d) => (
+          <button
+            key={d}
+            type="button"
+            onClick={() => setDevice(d)}
+            className={
+              device === d
+                ? "bg-elevated text-text shadow-e1 flex-1 rounded px-2 py-1 text-xs font-medium"
+                : "text-muted hover:text-text flex-1 rounded px-2 py-1 text-xs transition-colors"
+            }
+          >
+            {d === "desktop" ? "Desktop" : "Mobile"}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <div className="flex flex-col gap-1.5">
+      <span className="text-faint font-mono text-[0.625rem] tracking-widest uppercase">
+        Reintentos
+      </span>
+      <div className="border-border bg-surface-2 flex items-center gap-0.5 rounded-md border">
+        <button
+          type="button"
+          aria-label="Menos reintentos"
+          onClick={() => setRetries((r) => Math.max(0, r - 1))}
+          className="text-muted hover:text-text px-3 py-1.5 transition-colors"
+        >
+          −
+        </button>
+        <span className="tabular text-text flex-1 text-center font-mono text-sm">
+          {retries}
+        </span>
+        <button
+          type="button"
+          aria-label="Más reintentos"
+          onClick={() => setRetries((r) => Math.min(5, r + 1))}
+          className="text-muted hover:text-text px-3 py-1.5 transition-colors"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div
+    className="border-border bg-surface-2 mt-4 flex items-center justify-between rounded-md border px-3 py-2.5"
+    title="El worker corre en un servidor sin pantalla: siempre headless."
+  >
+    <span className="text-muted inline-flex items-center gap-2 text-xs">
+      <Eye size={14} />
+      Modo headless
+    </span>
+    <span className="text-faint inline-flex items-center gap-1.5 text-xs">
+      fijo
+      <span className="bg-accent relative h-3.5 w-6 rounded-full">
+        <span className="absolute top-0.5 right-0.5 size-2.5 rounded-full bg-white" />
+      </span>
+    </span>
+  </div>
+</FormSection>
 ```
 
 - [ ] **Step 5: Añadir los botones deshabilitados al footer**
@@ -1425,33 +1440,32 @@ En `new-test-run-form.tsx`, después de la `FormSection` "Instrucción adicional
 En `new-test-run-form.tsx`, reemplaza el `<div className="flex flex-wrap items-center justify-between gap-3">` del footer (líneas 489-497) por:
 
 ```tsx
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-muted">
-              La IA generará el plan y el worker lo ejecutará en un navegador
-              real.
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                aria-disabled="true"
-                title="Próximamente"
-                className="cursor-not-allowed rounded-md border border-border bg-surface px-3 py-1.5 text-xs text-faint opacity-60"
-              >
-                Guardar como plantilla
-              </button>
-              <button
-                type="button"
-                aria-disabled="true"
-                title="Próximamente"
-                className="cursor-not-allowed rounded-md border border-border bg-surface px-3 py-1.5 text-xs text-faint opacity-60"
-              >
-                Ejecución programada
-              </button>
-              <Button type="submit" loading={isPending}>
-                {isPending ? "Creando" : "Generar y ejecutar"}
-              </Button>
-            </div>
-          </div>
+<div className="flex flex-wrap items-center justify-between gap-3">
+  <p className="text-muted text-xs">
+    La IA generará el plan y el worker lo ejecutará en un navegador real.
+  </p>
+  <div className="flex items-center gap-2">
+    <button
+      type="button"
+      aria-disabled="true"
+      title="Próximamente"
+      className="border-border bg-surface text-faint cursor-not-allowed rounded-md border px-3 py-1.5 text-xs opacity-60"
+    >
+      Guardar como plantilla
+    </button>
+    <button
+      type="button"
+      aria-disabled="true"
+      title="Próximamente"
+      className="border-border bg-surface text-faint cursor-not-allowed rounded-md border px-3 py-1.5 text-xs opacity-60"
+    >
+      Ejecución programada
+    </button>
+    <Button type="submit" loading={isPending}>
+      {isPending ? "Creando" : "Generar y ejecutar"}
+    </Button>
+  </div>
+</div>
 ```
 
 - [ ] **Step 6: Verificar typecheck, lint y build**
@@ -1469,6 +1483,7 @@ git commit -m "feat(dashboard): sección Configuración del runner en Nuevo run"
 ### Task 14: Detalle — pestañas y modo en vivo
 
 **Files:**
+
 - Modify: `app/dashboard/runs/[id]/page.tsx` (select de `test_runs`, tipos)
 - Modify: `app/dashboard/runs/[id]/_components/test-run-detail.tsx`
 
@@ -1519,12 +1534,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, type TabItem } from "@/components/ui/tabs";
-import {
-  AlertCircle,
-  Close,
-  ImageIcon,
-  Sparkles,
-} from "@/components/ui/icons";
+import { AlertCircle, Close, ImageIcon, Sparkles } from "@/components/ui/icons";
 import { RunStatusBadge, StepStatusBadge } from "@/components/runs/run-status";
 import { StepTimeline } from "@/components/runs/step-timeline";
 
@@ -1588,7 +1598,9 @@ export function TestRunDetail({
   const [openScreenshot, setOpenScreenshot] = useState<string | null>(null);
   const [tab, setTab] = useState("pasos");
 
-  const caseIdsRef = useRef<Set<string>>(new Set(initialCases.map((c) => c.id)));
+  const caseIdsRef = useRef<Set<string>>(
+    new Set(initialCases.map((c) => c.id)),
+  );
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -1604,8 +1616,14 @@ export function TestRunDetail({
           filter: `id=eq.${runId}`,
         },
         (payload) => {
-          if (payload.eventType === "UPDATE" || payload.eventType === "INSERT") {
-            setRun((prev) => ({ ...prev, ...(payload.new as Partial<TestRun>) }));
+          if (
+            payload.eventType === "UPDATE" ||
+            payload.eventType === "INSERT"
+          ) {
+            setRun((prev) => ({
+              ...prev,
+              ...(payload.new as Partial<TestRun>),
+            }));
           }
         },
       )
@@ -1762,8 +1780,7 @@ export function TestRunDetail({
   const totalDurationMs = useMemo(() => {
     if (!run.started_at || !run.finished_at) return null;
     return (
-      new Date(run.finished_at).getTime() -
-      new Date(run.started_at).getTime()
+      new Date(run.finished_at).getTime() - new Date(run.started_at).getTime()
     );
   }, [run.started_at, run.finished_at]);
 
@@ -1813,7 +1830,7 @@ export function TestRunDetail({
             />
           </div>
           {totalDurationMs !== null ? (
-            <span className="tabular ml-auto font-mono text-xs text-faint">
+            <span className="tabular text-faint ml-auto font-mono text-xs">
               {formatDuration(totalDurationMs)}
             </span>
           ) : null}
@@ -1822,10 +1839,10 @@ export function TestRunDetail({
         {isActive && steps.length > 0 ? (
           <div className="px-4 pb-4 sm:px-5">
             <div className="flex items-center justify-between gap-3 pb-1.5">
-              <span className="font-mono text-[0.625rem] uppercase tracking-widest text-faint">
+              <span className="text-faint font-mono text-[0.625rem] tracking-widest uppercase">
                 progreso
               </span>
-              <span className="tabular font-mono text-[0.625rem] text-faint">
+              <span className="tabular text-faint font-mono text-[0.625rem]">
                 {counts.passed + counts.failed}/{steps.length} pasos
               </span>
             </div>
@@ -1835,10 +1852,10 @@ export function TestRunDetail({
               aria-valuemin={0}
               aria-valuemax={100}
               aria-label="Progreso del run"
-              className="h-1.5 overflow-hidden rounded-full bg-neutral-bg"
+              className="bg-neutral-bg h-1.5 overflow-hidden rounded-full"
             >
               <div
-                className="h-full rounded-full bg-accent transition-[width] duration-700 ease-out"
+                className="bg-accent h-full rounded-full transition-[width] duration-700 ease-out"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
@@ -1846,8 +1863,8 @@ export function TestRunDetail({
         ) : null}
 
         {run.error_message ? (
-          <div className="border-t border-border px-4 py-3 sm:px-5">
-            <p className="flex items-start gap-2 rounded-md bg-danger-bg px-3 py-2 text-sm text-danger-text">
+          <div className="border-border border-t px-4 py-3 sm:px-5">
+            <p className="bg-danger-bg text-danger-text flex items-start gap-2 rounded-md px-3 py-2 text-sm">
               <AlertCircle size={15} className="mt-px shrink-0" />
               <span>{run.error_message}</span>
             </p>
@@ -1859,7 +1876,7 @@ export function TestRunDetail({
       {isActive ? (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1.1fr_1fr]">
           <Card className="overflow-hidden">
-            <header className="border-b border-border bg-surface-2 px-4 py-2.5 font-mono text-xs text-muted">
+            <header className="border-border bg-surface-2 text-muted border-b px-4 py-2.5 font-mono text-xs">
               vista previa · último paso
             </header>
             {latestShot ? (
@@ -1867,10 +1884,10 @@ export function TestRunDetail({
               <img
                 src={latestShot}
                 alt="Última captura del run en vivo"
-                className="max-h-[22rem] w-full bg-surface-2 object-contain"
+                className="bg-surface-2 max-h-[22rem] w-full object-contain"
               />
             ) : (
-              <div className="flex items-center justify-center gap-2.5 px-6 py-16 text-sm text-muted">
+              <div className="text-muted flex items-center justify-center gap-2.5 px-6 py-16 text-sm">
                 <Spinner size={15} />
                 Esperando la primera captura.
               </div>
@@ -1883,7 +1900,7 @@ export function TestRunDetail({
       {/* ── Empty state mientras arranca ─────────────────────────────── */}
       {cases.length === 0 ? (
         isActive ? (
-          <Card className="flex items-center justify-center gap-2.5 px-6 py-12 text-sm text-muted">
+          <Card className="text-muted flex items-center justify-center gap-2.5 px-6 py-12 text-sm">
             <Spinner size={15} />
             La IA está generando los casos de prueba.
           </Card>
@@ -1908,13 +1925,13 @@ export function TestRunDetail({
                 const list = stepsByCase.get(tc.id) ?? [];
                 return (
                   <Card key={tc.id} className="overflow-hidden">
-                    <header className="flex items-start justify-between gap-3 border-b border-border px-4 py-3.5 sm:px-5">
+                    <header className="border-border flex items-start justify-between gap-3 border-b px-4 py-3.5 sm:px-5">
                       <div className="min-w-0">
-                        <h3 className="truncate text-sm font-semibold text-text">
+                        <h3 className="text-text truncate text-sm font-semibold">
                           {tc.name}
                         </h3>
                         {tc.description ? (
-                          <p className="mt-0.5 text-xs text-muted">
+                          <p className="text-muted mt-0.5 text-xs">
                             {tc.description}
                           </p>
                         ) : null}
@@ -1922,7 +1939,7 @@ export function TestRunDetail({
                       <StepStatusBadge status={tc.status} />
                     </header>
                     {list.length === 0 ? (
-                      <p className="px-4 py-4 text-xs text-faint sm:px-5">
+                      <p className="text-faint px-4 py-4 text-xs sm:px-5">
                         Sin pasos registrados.
                       </p>
                     ) : (
@@ -1946,7 +1963,7 @@ export function TestRunDetail({
                     key={s.id}
                     type="button"
                     onClick={() => setOpenScreenshot(s.screenshot_url)}
-                    className="overflow-hidden rounded-lg border border-border bg-surface-2"
+                    className="border-border bg-surface-2 overflow-hidden rounded-lg border"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -1983,7 +2000,7 @@ export function TestRunDetail({
       {/* ── Lightbox de captura ──────────────────────────────────────── */}
       {openScreenshot ? (
         <div
-          className="fixed inset-0 z-[100] flex animate-fade-in items-center justify-center p-4 sm:p-8"
+          className="animate-fade-in fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8"
           role="dialog"
           aria-modal="true"
           aria-label="Captura del paso"
@@ -1992,11 +2009,11 @@ export function TestRunDetail({
             type="button"
             aria-label="Cerrar captura"
             onClick={() => setOpenScreenshot(null)}
-            className="absolute inset-0 bg-bg/90 backdrop-blur-md"
+            className="bg-bg/90 absolute inset-0 backdrop-blur-md"
           />
-          <figure className="relative flex max-h-full w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-e3">
-            <figcaption className="flex items-center justify-between gap-3 border-b border-border bg-surface-2 px-4 py-2.5">
-              <span className="inline-flex items-center gap-1.5 font-mono text-xs text-muted">
+          <figure className="border-border bg-surface shadow-e3 relative flex max-h-full w-full max-w-4xl flex-col overflow-hidden rounded-xl border">
+            <figcaption className="border-border bg-surface-2 flex items-center justify-between gap-3 border-b px-4 py-2.5">
+              <span className="text-muted inline-flex items-center gap-1.5 font-mono text-xs">
                 <ImageIcon size={13} />
                 captura del paso
               </span>
@@ -2006,7 +2023,7 @@ export function TestRunDetail({
                 aria-label="Cerrar"
                 className={cn(
                   "inline-flex size-7 items-center justify-center rounded-md",
-                  "text-muted transition-colors hover:bg-elevated hover:text-text",
+                  "text-muted hover:bg-elevated hover:text-text transition-colors",
                 )}
               >
                 <Close size={15} />
@@ -2016,7 +2033,7 @@ export function TestRunDetail({
             <img
               src={openScreenshot}
               alt="Captura de pantalla del paso de la prueba"
-              className="max-h-[80vh] w-full bg-surface-2 object-contain"
+              className="bg-surface-2 max-h-[80vh] w-full object-contain"
             />
           </figure>
         </div>
@@ -2046,7 +2063,7 @@ function Stat({
       <span className={cn("tabular text-sm font-semibold", STAT_TONE[tone])}>
         {value}
       </span>
-      <span className="text-[0.6875rem] uppercase tracking-[0.05em] text-faint">
+      <span className="text-faint text-[0.6875rem] tracking-[0.05em] uppercase">
         {label}
       </span>
     </span>
@@ -2062,21 +2079,21 @@ function LogPanel({
 }): React.JSX.Element {
   return (
     <Card className="overflow-hidden">
-      <header className="flex items-center justify-between border-b border-border bg-surface-2 px-4 py-2.5">
-        <span className="font-mono text-xs text-muted">
+      <header className="border-border bg-surface-2 flex items-center justify-between border-b px-4 py-2.5">
+        <span className="text-muted font-mono text-xs">
           {live ? "logs en vivo" : "logs"}
         </span>
-        <span className="font-mono text-[0.6875rem] text-faint">
+        <span className="text-faint font-mono text-[0.6875rem]">
           {logs.length} líneas
         </span>
       </header>
-      <div className="max-h-[22rem] overflow-auto bg-surface px-4 py-3 font-mono text-xs leading-relaxed">
+      <div className="bg-surface max-h-[22rem] overflow-auto px-4 py-3 font-mono text-xs leading-relaxed">
         {logs.length === 0 ? (
           <p className="text-faint">Sin logs todavía.</p>
         ) : (
           logs.map((entry, i) => (
             <div key={i} className="flex gap-2.5">
-              <span className="shrink-0 text-faint">
+              <span className="text-faint shrink-0">
                 {String(i + 1).padStart(3, "0")}
               </span>
               <span
@@ -2116,6 +2133,7 @@ git commit -m "feat(dashboard): detalle con pestañas, métricas y modo en vivo"
 ### Task 15: Limpieza y documentación
 
 **Files:**
+
 - Delete: `desing/` (carpeta completa)
 - Modify: `CLAUDE.md`
 
@@ -2175,6 +2193,7 @@ git commit -m "chore: elimina el prototipo desing/ y actualiza CLAUDE.md"
 ## Self-Review
 
 **Cobertura de la spec:**
+
 - Sección 1 (modelo de datos) → Task 1. ✓
 - Sección 2 (shell: En vivo, Cuenta, contadores, medidor, ⌘K, campana) → Tasks 9, 10. ✓
 - Sección 3 (Resumen: saludo, sparklines, cola) → Task 11. ✓

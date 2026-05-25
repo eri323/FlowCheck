@@ -12,11 +12,11 @@ export function PageHeader({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
       <div className="min-w-0">
-        <h1 className="text-xl font-semibold tracking-[-0.015em] text-text sm:text-[1.375rem]">
+        <h1 className="text-text text-xl font-semibold tracking-[-0.015em] sm:text-[1.375rem]">
           {title}
         </h1>
         {description ? (
-          <p className="mt-1 text-pretty text-sm text-muted">{description}</p>
+          <p className="text-muted mt-1 text-sm text-pretty">{description}</p>
         ) : null}
       </div>
       {children ? (

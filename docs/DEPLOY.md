@@ -6,11 +6,11 @@ incompatible con el modelo serverless de Vercel. El worker es un servidor
 Express en Render free tier; la API Route de Vercel lo contacta vía HTTP
 autenticada con `WORKER_SECRET`.
 
-| Pieza        | Provider | Build                              |
-|--------------|----------|------------------------------------|
-| Frontend + API Routes | Vercel   | `next build`                       |
+| Pieza                       | Provider | Build                                        |
+| --------------------------- | -------- | -------------------------------------------- |
+| Frontend + API Routes       | Vercel   | `next build`                                 |
 | Worker Express + Playwright | Render   | `render.yaml` (Node + `@sparticuz/chromium`) |
-| DB + Auth + Storage | Supabase | Proyecto remoto                    |
+| DB + Auth + Storage         | Supabase | Proyecto remoto                              |
 
 ---
 
@@ -26,7 +26,7 @@ autenticada con `WORKER_SECRET`.
    - `anon` public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `service_role` secret → `SUPABASE_SERVICE_ROLE_KEY`
 5. En Authentication → URL Configuration, agregar el dominio de Vercel
-   (`https://<tu-app>.vercel.app`) a *Site URL* y *Redirect URLs*.
+   (`https://<tu-app>.vercel.app`) a _Site URL_ y _Redirect URLs_.
 
 ---
 
@@ -44,6 +44,7 @@ autenticada con `WORKER_SECRET`.
 2. Framework preset: **Next.js** (autodetectado).
 3. En **Environment Variables** agregar:
    ```
+   NEXT_PUBLIC_SITE_URL       # https://<tu-app>.vercel.app (sin barra final)
    NEXT_PUBLIC_SUPABASE_URL
    NEXT_PUBLIC_SUPABASE_ANON_KEY
    SUPABASE_SERVICE_ROLE_KEY
@@ -51,6 +52,9 @@ autenticada con `WORKER_SECRET`.
    WORKER_SECRET              # mismo valor que en Render
    ```
    `GEMINI_API_KEY` **no va** en Vercel — solo en Render.
+   `NEXT_PUBLIC_SITE_URL` debe coincidir con el dominio de _Redirect URLs_ del
+   paso 1; sin él, los emails de confirmación de registro apuntarían a
+   `localhost` y romperían el alta en producción.
 4. Deploy. El archivo `.vercelignore` evita que Vercel intente bundlear
    `worker/`.
 
@@ -58,7 +62,7 @@ autenticada con `WORKER_SECRET`.
 
 ## 4. Render (worker)
 
-1. *New → Blueprint* desde el repo: Render detecta `render.yaml` y crea el
+1. _New → Blueprint_ desde el repo: Render detecta `render.yaml` y crea el
    servicio web `ai-testing-worker` con `rootDir: worker`.
 2. En **Environment** agregar:
    ```

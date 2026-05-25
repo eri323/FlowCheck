@@ -90,14 +90,19 @@ export type LoginOutcome = {
   errorText?: string;
 };
 
-export function isLoginSubmitSelector(selector: string | null | undefined): boolean {
+export function isLoginSubmitSelector(
+  selector: string | null | undefined,
+): boolean {
   if (!selector) return false;
   const lower = selector.toLowerCase();
-  if (lower.includes("type=submit") || lower.includes('type="submit"')) return true;
+  if (lower.includes("type=submit") || lower.includes('type="submit"'))
+    return true;
   return SUBMIT_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
-export function isPasswordFillSelector(selector: string | null | undefined): boolean {
+export function isPasswordFillSelector(
+  selector: string | null | undefined,
+): boolean {
   if (!selector) return false;
   const lower = selector.toLowerCase();
   if (lower.includes("type=password") || lower.includes('type="password"')) {
@@ -106,11 +111,14 @@ export function isPasswordFillSelector(selector: string | null | undefined): boo
   return PASSWORD_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
-export function isEmailFillSelector(selector: string | null | undefined): boolean {
+export function isEmailFillSelector(
+  selector: string | null | undefined,
+): boolean {
   if (!selector) return false;
   if (isPasswordFillSelector(selector)) return false;
   const lower = selector.toLowerCase();
-  if (lower.includes("type=email") || lower.includes('type="email"')) return true;
+  if (lower.includes("type=email") || lower.includes('type="email"'))
+    return true;
   return IDENTIFIER_SELECTOR_REGEX.test(lower);
 }
 
@@ -267,7 +275,9 @@ async function isPasswordVisible(page: Page): Promise<boolean> {
     .catch(() => false);
 }
 
-async function detectNativeValidationBlock(page: Page): Promise<string | undefined> {
+async function detectNativeValidationBlock(
+  page: Page,
+): Promise<string | undefined> {
   return page.evaluate(() => {
     // Preferimos el <form> que contiene el campo de contraseña (el form de
     // login); si no se identifica, caemos a revisar todos los forms. Así un
@@ -354,7 +364,8 @@ export async function verifyLoginOutcome(
         success: true,
         finalUrl: page.url(),
         initialUrl,
-        reason: "El campo de contraseña desapareció — el formulario fue aceptado",
+        reason:
+          "El campo de contraseña desapareció — el formulario fue aceptado",
       };
     }
 

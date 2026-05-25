@@ -22,8 +22,8 @@ un username), el flujo se rompe:
 2. `findEmailField()` encuentra y llena el campo correctamente con `.fill()`.
 3. Al hacer `findSubmitButton().click()`, el navegador corre la validación de
    restricciones HTML5, ve que el valor no contiene `@`, **bloquea el envío del
-   formulario** y muestra el globo nativo *"Incluye una @ en la dirección de
-   correo electrónico"*.
+   formulario** y muestra el globo nativo _"Incluye una @ en la dirección de
+   correo electrónico"_.
 4. El formulario nunca se envía: la URL no cambia y el campo de contraseña sigue
    visible. `verifyLoginOutcome` agota 30 s y devuelve un fallo con un mensaje
    genérico y confuso que no nombra la causa real.
@@ -96,9 +96,9 @@ export async function fillIdentifierField(
   del `.fill()`:
   - en el `<input>`: `type = "text"` y `removeAttribute("pattern")`;
   - en su `<form>` (si existe): `noValidate = true`.
-  Devuelve `{ relaxed: true }`. Si el valor sí parece email, no toca nada y
-  devuelve `{ relaxed: false }`. Si el input no está dentro de un `<form>` (SPA
-  con submit por JS), la validación nativa de submit no aplica y solo se llena.
+    Devuelve `{ relaxed: true }`. Si el valor sí parece email, no toca nada y
+    devuelve `{ relaxed: false }`. Si el input no está dentro de un `<form>` (SPA
+    con submit por JS), la validación nativa de submit no aplica y solo se llena.
 
 En `execute-test-run.ts`, rama `fill`: la vía `isEmailFillSelector` reemplaza el
 bloque actual (`findEmailField` + `.fill()`) por `fillIdentifierField`. El
@@ -125,7 +125,9 @@ submit:
 // y checkValidity() === false, devuelve el validationMessage del primer
 // input inválido (mensaje localizado del navegador). Si no hay bloqueo,
 // devuelve undefined.
-async function detectNativeValidationBlock(page: Page): Promise<string | undefined>;
+async function detectNativeValidationBlock(
+  page: Page,
+): Promise<string | undefined>;
 ```
 
 `verifyLoginOutcome` la invoca dentro de su loop de polling. Si devuelve un
@@ -143,12 +145,12 @@ para campos inválidos distintos al identificador.
 
 ## Archivos afectados
 
-| Archivo | Cambio |
-|---|---|
-| `lib/playwright/adaptive-login.ts` | Keywords/regex ampliadas; `looksLikeEmail`, `fillIdentifierField`, `detectNativeValidationBlock`; `isEmailFillSelector` reescrita con regex; `verifyLoginOutcome` invoca el diagnóstico. |
-| `lib/playwright/execute-test-run.ts` | Rama `fill` → vía `isEmailFillSelector` usa `fillIdentifierField` y ajusta el `selectorOverride` según `relaxed`. |
-| `tests/lib/adaptive-login.test.ts` | Nuevo. Unit tests de las funciones puras. |
-| `CLAUDE.md` | Actualizar la sección "Detección adaptativa en flujos de login". |
+| Archivo                              | Cambio                                                                                                                                                                                   |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/playwright/adaptive-login.ts`   | Keywords/regex ampliadas; `looksLikeEmail`, `fillIdentifierField`, `detectNativeValidationBlock`; `isEmailFillSelector` reescrita con regex; `verifyLoginOutcome` invoca el diagnóstico. |
+| `lib/playwright/execute-test-run.ts` | Rama `fill` → vía `isEmailFillSelector` usa `fillIdentifierField` y ajusta el `selectorOverride` según `relaxed`.                                                                        |
+| `tests/lib/adaptive-login.test.ts`   | Nuevo. Unit tests de las funciones puras.                                                                                                                                                |
+| `CLAUDE.md`                          | Actualizar la sección "Detección adaptativa en flujos de login".                                                                                                                         |
 
 ## Plan de pruebas
 

@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  frontend:
+    name: Frontend (Next.js + API)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm test
+
+  worker:
+    name: Worker (Express + Playwright)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      # playwright-core no trae instalador de navegadores: usamos el CLI de
+      # `playwright` fijado a la MISMA versión instalada para que la revisión de
+      # Chromium coincida con la que `chromium.launch()` espera en los tests de
+      # integración.
+      - name: Resolver versión de playwright-core
+        id: pw
+        run: echo "version=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Instalar Chromium para Playwright
+        run: npx --yes playwright@${{ steps.pw.outputs.version }} install --with-deps chromium
+      - run: npm test

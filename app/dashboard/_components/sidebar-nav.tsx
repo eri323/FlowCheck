@@ -68,7 +68,7 @@ export function SidebarNav({
       </Link>
 
       <nav className="mt-5 flex flex-col gap-0.5">
-        <p className="px-2 pb-1.5 pt-3.5 font-mono text-[0.625rem] uppercase tracking-[0.14em] text-muted">
+        <p className="text-muted px-2 pt-3.5 pb-1.5 font-mono text-[0.625rem] tracking-[0.14em] uppercase">
           Panel
         </p>
         {PANEL.map((item) => {
@@ -84,8 +84,8 @@ export function SidebarNav({
               className={cn(
                 "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors duration-150",
                 active
-                  ? "border border-border bg-surface-2 font-medium text-text"
-                  : "border border-transparent text-muted hover:bg-surface hover:text-text",
+                  ? "border-border bg-surface-2 text-text border font-medium"
+                  : "text-muted hover:bg-surface hover:text-text border border-transparent",
               )}
             >
               <Icon
@@ -103,7 +103,7 @@ export function SidebarNav({
                   )}
                 >
                   {item.live ? (
-                    <span className="size-1.5 animate-pulse-dot rounded-full bg-accent" />
+                    <span className="animate-pulse-dot bg-accent size-1.5 rounded-full" />
                   ) : null}
                   {count}
                 </span>
@@ -112,7 +112,7 @@ export function SidebarNav({
           );
         })}
 
-        <p className="px-2 pb-1.5 pt-4 font-mono text-[0.625rem] uppercase tracking-[0.14em] text-muted">
+        <p className="text-muted px-2 pt-4 pb-1.5 font-mono text-[0.625rem] tracking-[0.14em] uppercase">
           Cuenta
         </p>
         {CUENTA.map((item) => {
@@ -122,11 +122,11 @@ export function SidebarNav({
               key={item.label}
               aria-disabled="true"
               title="Próximamente"
-              className="flex cursor-not-allowed items-center gap-2.5 rounded-md border border-transparent px-2.5 py-2 text-sm text-faint opacity-60"
+              className="text-faint flex cursor-not-allowed items-center gap-2.5 rounded-md border border-transparent px-2.5 py-2 text-sm opacity-60"
             >
               <Icon size={16} className="text-faint" />
               <span className="flex-1">{item.label}</span>
-              <span className="rounded-full border border-border bg-surface-2 px-1.5 font-mono text-[0.5625rem] uppercase tracking-wide text-faint">
+              <span className="border-border bg-surface-2 text-faint rounded-full border px-1.5 font-mono text-[0.5625rem] tracking-wide uppercase">
                 pronto
               </span>
             </span>
@@ -135,14 +135,14 @@ export function SidebarNav({
       </nav>
 
       <div className="mt-auto flex flex-col gap-1.5 px-2.5 pt-4">
-        <div className="flex items-center justify-between font-mono text-[0.625rem] text-faint">
+        <div className="text-faint flex items-center justify-between font-mono text-[0.625rem]">
           <span>Uso del mes</span>
           <span className="text-muted">— / —</span>
         </div>
-        <div className="h-1 overflow-hidden rounded-full bg-surface-2">
-          <div className="h-full w-0 rounded-full bg-accent" />
+        <div className="bg-surface-2 h-1 overflow-hidden rounded-full">
+          <div className="bg-accent h-full w-0 rounded-full" />
         </div>
-        <p className="font-mono text-[0.625rem] text-faint">
+        <p className="text-faint font-mono text-[0.625rem]">
           FlowCheck · entorno de demostración
         </p>
       </div>

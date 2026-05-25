@@ -25,6 +25,7 @@
 ## Task 1: Excluir el prototipo de ESLint y aplicar los tokens esmeralda
 
 **Files:**
+
 - Modify: `eslint.config.mjs`
 - Modify: `app/globals.css:10-26` (bloque light `:root`) y `app/globals.css:52-67` (bloque dark `.dark`)
 
@@ -62,11 +63,11 @@ git commit -m "chore: excluir los archivos de prototipo de ESLint"
 En `app/globals.css`, dentro de `:root`, sustituir las cinco líneas del accent (actualmente hue naranja ~52):
 
 ```css
-  --accent: oklch(0.6 0.142 163);
-  --accent-hover: oklch(0.545 0.145 162);
-  --accent-fg: oklch(0.99 0.012 165);
-  --accent-subtle: oklch(0.945 0.04 165);
-  --accent-text: oklch(0.52 0.13 162);
+--accent: oklch(0.6 0.142 163);
+--accent-hover: oklch(0.545 0.145 162);
+--accent-fg: oklch(0.99 0.012 165);
+--accent-subtle: oklch(0.945 0.04 165);
+--accent-text: oklch(0.52 0.13 162);
 ```
 
 - [ ] **Step 5: Reemplazar los tokens accent del bloque dark**
@@ -74,11 +75,11 @@ En `app/globals.css`, dentro de `:root`, sustituir las cinco líneas del accent 
 En `app/globals.css`, dentro de `.dark`, sustituir las cinco líneas del accent:
 
 ```css
-  --accent: oklch(0.74 0.145 164);
-  --accent-hover: oklch(0.8 0.14 166);
-  --accent-fg: oklch(0.24 0.05 165);
-  --accent-subtle: oklch(0.3 0.05 163);
-  --accent-text: oklch(0.82 0.13 165);
+--accent: oklch(0.74 0.145 164);
+--accent-hover: oklch(0.8 0.14 166);
+--accent-fg: oklch(0.24 0.05 165);
+--accent-subtle: oklch(0.3 0.05 163);
+--accent-text: oklch(0.82 0.13 165);
 ```
 
 - [ ] **Step 6: Actualizar el comentario del bloque de tokens**
@@ -110,6 +111,7 @@ git commit -m "feat: adoptar accent esmeralda en los tokens de color"
 ## Task 2: Componente `Tabs`
 
 **Files:**
+
 - Create: `components/ui/tabs.tsx`
 
 - [ ] **Step 1: Crear el componente**
@@ -136,7 +138,7 @@ export function Tabs({
     <div
       role="tablist"
       className={cn(
-        "inline-flex gap-0.5 rounded-lg border border-border bg-surface-2 p-0.5",
+        "border-border bg-surface-2 inline-flex gap-0.5 rounded-lg border p-0.5",
         className,
       )}
     >
@@ -158,7 +160,7 @@ export function Tabs({
           >
             {item.label}
             {item.count !== undefined ? (
-              <span className="tabular font-mono text-[0.6875rem] text-faint">
+              <span className="tabular text-faint font-mono text-[0.6875rem]">
                 {item.count}
               </span>
             ) : null}
@@ -190,6 +192,7 @@ git commit -m "feat: añadir componente Tabs (pestañas tipo pill)"
 ## Task 3: Componente `StatTile`
 
 **Files:**
+
 - Create: `components/ui/stat-tile.tsx`
 
 - [ ] **Step 1: Crear el componente**
@@ -218,17 +221,17 @@ export function StatTile({
   tone: StatTone;
 }): React.JSX.Element {
   return (
-    <div className="flex flex-col gap-2 bg-surface px-4 py-4">
+    <div className="bg-surface flex flex-col gap-2 px-4 py-4">
       <div className="flex items-center gap-1.5">
         <span className={cn("size-1.5 rounded-full", DOT[tone])} />
-        <span className="font-mono text-[0.6875rem] uppercase tracking-[0.1em] text-muted">
+        <span className="text-muted font-mono text-[0.6875rem] tracking-[0.1em] uppercase">
           {label}
         </span>
       </div>
-      <p className="tabular text-[1.75rem] font-semibold leading-none tracking-tight text-text">
+      <p className="tabular text-text text-[1.75rem] leading-none font-semibold tracking-tight">
         {value}
         {unit ? (
-          <span className="ml-1 text-sm font-medium text-faint">{unit}</span>
+          <span className="text-faint ml-1 text-sm font-medium">{unit}</span>
         ) : null}
       </p>
     </div>
@@ -253,6 +256,7 @@ git commit -m "feat: añadir componente StatTile"
 ## Task 4: Componente `BreakdownBar`
 
 **Files:**
+
 - Create: `components/ui/breakdown-bar.tsx`
 
 - [ ] **Step 1: Crear el componente**
@@ -274,14 +278,14 @@ export function BreakdownBar({
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted">{label}</span>
-        <span className="tabular font-mono text-faint">
+        <span className="tabular text-faint font-mono">
           {value}
           {caption ? <span className="opacity-60"> · {caption}</span> : null}
         </span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+      <div className="bg-surface-2 h-1.5 overflow-hidden rounded-full">
         <div
-          className="h-full rounded-full bg-accent transition-[width] duration-700"
+          className="bg-accent h-full rounded-full transition-[width] duration-700"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -307,6 +311,7 @@ git commit -m "feat: añadir componente BreakdownBar"
 ## Task 5: Componente `StepTimeline`
 
 **Files:**
+
 - Create: `components/runs/step-timeline.tsx`
 
 Este componente reemplaza la lista `<ol>` de `StepRow` de `test-run-detail.tsx`. Porta el contenido completo de cada fila (acción, badge adaptativo, selector, valor, duración, error, captura) y le añade el marcador con línea conectora del prototipo.
@@ -363,32 +368,32 @@ export function StepTimeline({
                   step.status === "corriendo" && "animate-pulse-dot",
                 )}
               />
-              {!last ? <span className="w-px flex-1 bg-border" /> : null}
+              {!last ? <span className="bg-border w-px flex-1" /> : null}
             </div>
-            <div className="min-w-0 flex-1 pb-4 pt-1">
+            <div className="min-w-0 flex-1 pt-1 pb-4">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[0.6875rem] font-medium text-accent-text">
+                <code className="bg-surface-2 text-accent-text rounded px-1.5 py-0.5 font-mono text-[0.6875rem] font-medium">
                   {step.action}
                 </code>
                 {adaptive ? <Badge tone="accent">adaptativo</Badge> : null}
                 {selectorText ? (
-                  <span className="min-w-0 truncate font-mono text-xs text-muted">
+                  <span className="text-muted min-w-0 truncate font-mono text-xs">
                     {selectorText}
                   </span>
                 ) : null}
                 {step.value ? (
-                  <span className="min-w-0 truncate font-mono text-xs text-faint">
+                  <span className="text-faint min-w-0 truncate font-mono text-xs">
                     → {step.value}
                   </span>
                 ) : null}
                 {step.duration_ms !== null ? (
-                  <span className="tabular ml-auto shrink-0 font-mono text-[0.6875rem] text-faint">
+                  <span className="tabular text-faint ml-auto shrink-0 font-mono text-[0.6875rem]">
                     {step.duration_ms} ms
                   </span>
                 ) : null}
               </div>
               {step.error_message ? (
-                <p className="mt-1.5 rounded-md bg-danger-bg px-2.5 py-1.5 text-xs text-danger-text">
+                <p className="bg-danger-bg text-danger-text mt-1.5 rounded-md px-2.5 py-1.5 text-xs">
                   {step.error_message}
                 </p>
               ) : null}
@@ -398,7 +403,7 @@ export function StepTimeline({
                   onClick={() =>
                     onOpenScreenshot(step.screenshot_url as string)
                   }
-                  className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-accent-text transition-opacity hover:opacity-80"
+                  className="text-accent-text mt-1.5 inline-flex items-center gap-1 text-xs font-medium transition-opacity hover:opacity-80"
                 >
                   <ImageIcon size={12} />
                   Ver captura
@@ -432,6 +437,7 @@ git commit -m "feat: añadir componente StepTimeline"
 ## Task 6: Componente `TypeChip`
 
 **Files:**
+
 - Create: `components/runs/type-chip.tsx`
 
 Extrae a un componente el patrón de chip de tipo de prueba que hoy está inline en `new-test-run-form.tsx:211-231`.
@@ -469,10 +475,7 @@ export function TypeChip({
           : "border-border bg-surface text-muted hover:border-border-strong hover:text-text",
       )}
     >
-      <Icon
-        size={16}
-        className={active ? "text-accent-text" : "text-faint"}
-      />
+      <Icon size={16} className={active ? "text-accent-text" : "text-faint"} />
       <span className="font-medium">{label}</span>
     </button>
   );
@@ -496,6 +499,7 @@ git commit -m "feat: añadir componente TypeChip"
 ## Task 7: Restyle del shell (sidebar + topbar)
 
 **Files:**
+
 - Modify: `app/dashboard/_components/topbar.tsx`
 - Modify: `app/dashboard/_components/sidebar-nav.tsx`
 
@@ -539,12 +543,13 @@ const crumbs = crumbsFor(usePathname());
       </span>
     </span>
   ))}
-</nav>
+</nav>;
 ```
 
 - [ ] **Step 2: Restilizar el sidebar**
 
 En `sidebar-nav.tsx`, aplicar el tratamiento del prototipo sin cambiar la lista `NAV` ni la lógica `isActive`:
+
 - Item activo: punto/ícono en accent, fondo `surface` y `shadow-e1` (ya cercano — refinar a la jerarquía del prototipo: borde sutil `border border-border` en el activo, ícono `text-accent`).
 - Etiqueta de sección "Panel": estilo mono en mayúsculas con tracking amplio (ya presente — alinear con `.nav-section-label` del prototipo).
 - Mantener el botón "Nuevo test run" (`buttonVariants()`), la marca (`Logo`) y el pie `Probe · entorno de demostración`.
@@ -570,6 +575,7 @@ git commit -m "feat: rediseñar el shell del dashboard con breadcrumbs"
 ## Task 8: Restyle del Resumen
 
 **Files:**
+
 - Modify: `app/dashboard/page.tsx`
 
 Referencia visual: `screens.jsx` (`ScreenResumen`, líneas 26-184) y `styles.css`.
@@ -589,10 +595,7 @@ Sustituir el grid de `StatCell` por cuatro `StatTile` con los mismos datos (`sta
 Añadir imports:
 
 ```tsx
-import {
-  TEST_TYPES,
-  TEST_TYPE_LABELS,
-} from "@/lib/validation/test-run";
+import { TEST_TYPES, TEST_TYPE_LABELS } from "@/lib/validation/test-run";
 import { BreakdownBar } from "@/components/ui/breakdown-bar";
 ```
 
@@ -606,7 +609,8 @@ const breakdown = TEST_TYPES.map((t) => {
     type: t,
     label: TEST_TYPE_LABELS[t],
     count: ofType.length,
-    passRate: ofType.length > 0 ? Math.round((passed / ofType.length) * 100) : 0,
+    passRate:
+      ofType.length > 0 ? Math.round((passed / ofType.length) * 100) : 0,
   };
 }).filter((b) => b.count > 0);
 const breakdownMax = Math.max(1, ...breakdown.map((b) => b.count));
@@ -640,6 +644,7 @@ git commit -m "feat: rediseñar la pantalla de Resumen"
 ## Task 9: Restyle de Test runs (lista)
 
 **Files:**
+
 - Modify: `app/dashboard/runs/_components/runs-table.tsx`
 - Modify: `app/dashboard/runs/_components/run-list.tsx`
 
@@ -684,6 +689,7 @@ git commit -m "feat: rediseñar la lista de test runs con filtros por tabs"
 ## Task 10: Restyle del formulario de nuevo run
 
 **Files:**
+
 - Modify: `app/dashboard/runs/new/_components/new-test-run-form.tsx`
 
 Referencia visual: `screens.jsx` (`ScreenNew`, líneas 272-469) y `styles.css` (`.card`, `.card-h`, `.chip`, `.field`).
@@ -720,6 +726,7 @@ git commit -m "feat: rediseñar el formulario de nuevo test run"
 ## Task 11: Restyle del detalle del run
 
 **Files:**
+
 - Modify: `app/dashboard/runs/[id]/_components/test-run-detail.tsx`
 
 Referencia visual: `screens.jsx` (`ScreenDetail`, líneas 485-673; `ScreenLive`, líneas 712-879) y `styles.css` (`.timeline`, `.tl-*`).
@@ -758,6 +765,7 @@ git commit -m "feat: rediseñar el detalle del run con timeline de pasos"
 ## Task 12: Actualizar `CLAUDE.md`
 
 **Files:**
+
 - Modify: `CLAUDE.md` (sección "Sistema de diseño y UI")
 
 - [ ] **Step 1: Reescribir la regla de color**
@@ -792,6 +800,7 @@ git commit -m "docs: actualizar CLAUDE.md al sistema de color esmeralda"
 ## Task 13: Eliminar los archivos de prototipo y verificación final
 
 **Files:**
+
 - Delete: `app.jsx`, `components.jsx`, `screens.jsx`, `styles.css`, `tweaks-panel.jsx` (raíz del repo)
 - Modify: `eslint.config.mjs`
 

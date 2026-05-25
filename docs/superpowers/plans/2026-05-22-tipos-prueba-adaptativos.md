@@ -24,18 +24,18 @@
 
 ## Estructura de archivos
 
-| Archivo | Responsabilidad |
-|---|---|
-| `worker/lib/adaptive-common.ts` | Helpers compartidos: `pickFirstVisible`, `pickFirstVisibleOrNull`, `ERROR_SELECTORS`, `readVisibleErrorText`, `detectNativeValidationBlock`, `SUCCESS_TEXT_REGEX`, `isSuccessTextVisible`, `SUBMIT_VERBS`, `findGenericSubmit`, constantes de timeout. |
-| `worker/lib/adaptive-navegacion.ts` | `looksLikeErrorPage`, `verifyPageHealthy`, `clickAdaptive`. |
-| `worker/lib/adaptive-formulario.ts` | `parseFields`, `asBoolean`, `isFormSubmitSelector`, `resolveField`, `fillField`, `fillAndSubmitForm`. |
-| `worker/lib/adaptive-registro.ts` | `isNameFillSelector`, `isConfirmPasswordSelector`, `isRegisterSubmitSelector`, `findNameField`, `findConfirmPasswordField`, `registerAndVerify`. |
-| `worker/lib/adaptive-ecommerce.ts` | `isAddToCartSelector`, `isCheckoutNavSelector`, `isConfirmOrderSelector`, `isPaymentFieldSelector`, `splitExpiry`, `findAddToCart`, `addToCartStage`, `goToCheckoutStage`, `fillPaymentStage`, `confirmOrderAndVerify`. |
-| `worker/lib/execute-test-run.ts` | Ramas por `testType` para los 4 tipos nuevos. |
-| `worker/test/adaptive-*.test.ts` | Unit de funciones puras. |
-| `worker/test/adaptive-*.integration.test.ts` | Integración con Chromium real. |
-| `FLUJOS-DE-PRUEBA.md` | Documento técnico + UX, construido fase por fase. |
-| `CLAUDE.md` | Secciones de detección adaptativa nuevas (Fase 5). |
+| Archivo                                      | Responsabilidad                                                                                                                                                                                                                                        |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `worker/lib/adaptive-common.ts`              | Helpers compartidos: `pickFirstVisible`, `pickFirstVisibleOrNull`, `ERROR_SELECTORS`, `readVisibleErrorText`, `detectNativeValidationBlock`, `SUCCESS_TEXT_REGEX`, `isSuccessTextVisible`, `SUBMIT_VERBS`, `findGenericSubmit`, constantes de timeout. |
+| `worker/lib/adaptive-navegacion.ts`          | `looksLikeErrorPage`, `verifyPageHealthy`, `clickAdaptive`.                                                                                                                                                                                            |
+| `worker/lib/adaptive-formulario.ts`          | `parseFields`, `asBoolean`, `isFormSubmitSelector`, `resolveField`, `fillField`, `fillAndSubmitForm`.                                                                                                                                                  |
+| `worker/lib/adaptive-registro.ts`            | `isNameFillSelector`, `isConfirmPasswordSelector`, `isRegisterSubmitSelector`, `findNameField`, `findConfirmPasswordField`, `registerAndVerify`.                                                                                                       |
+| `worker/lib/adaptive-ecommerce.ts`           | `isAddToCartSelector`, `isCheckoutNavSelector`, `isConfirmOrderSelector`, `isPaymentFieldSelector`, `splitExpiry`, `findAddToCart`, `addToCartStage`, `goToCheckoutStage`, `fillPaymentStage`, `confirmOrderAndVerify`.                                |
+| `worker/lib/execute-test-run.ts`             | Ramas por `testType` para los 4 tipos nuevos.                                                                                                                                                                                                          |
+| `worker/test/adaptive-*.test.ts`             | Unit de funciones puras.                                                                                                                                                                                                                               |
+| `worker/test/adaptive-*.integration.test.ts` | Integración con Chromium real.                                                                                                                                                                                                                         |
+| `FLUJOS-DE-PRUEBA.md`                        | Documento técnico + UX, construido fase por fase.                                                                                                                                                                                                      |
+| `CLAUDE.md`                                  | Secciones de detección adaptativa nuevas (Fase 5).                                                                                                                                                                                                     |
 
 ---
 
@@ -44,6 +44,7 @@
 ## Task 1.1: Crear `adaptive-common.ts` (funciones puras + constantes)
 
 **Files:**
+
 - Create: `worker/lib/adaptive-common.ts`
 - Test: `worker/test/adaptive-common.test.ts`
 
@@ -78,7 +79,14 @@ describe("SUCCESS_TEXT_REGEX", () => {
 
 describe("SUBMIT_VERBS", () => {
   it("incluye verbos de envío comunes", () => {
-    for (const v of ["enviar", "submit", "guardar", "continuar", "aceptar", "confirmar"]) {
+    for (const v of [
+      "enviar",
+      "submit",
+      "guardar",
+      "continuar",
+      "aceptar",
+      "confirmar",
+    ]) {
       expect(SUBMIT_VERBS).toContain(v);
     }
   });
@@ -149,7 +157,9 @@ export async function pickFirstVisible(
 ): Promise<Locator> {
   const found = await pickFirstVisibleOrNull(candidates);
   if (found) return found;
-  throw new Error(`No se encontró un ${label} visible mediante detección adaptativa.`);
+  throw new Error(
+    `No se encontró un ${label} visible mediante detección adaptativa.`,
+  );
 }
 
 export async function pickFirstVisibleOrNull(
@@ -170,7 +180,9 @@ export async function pickFirstVisibleOrNull(
   return null;
 }
 
-export async function readVisibleErrorText(page: Page): Promise<string | undefined> {
+export async function readVisibleErrorText(
+  page: Page,
+): Promise<string | undefined> {
   for (const selector of ERROR_SELECTORS) {
     const locator = page.locator(selector);
     const count = await locator.count().catch(() => 0);
@@ -222,7 +234,13 @@ export async function isSuccessTextVisible(page: Page): Promise<boolean> {
   const count = await locator.count().catch(() => 0);
   const probeLimit = Math.min(count, 5);
   for (let i = 0; i < probeLimit; i++) {
-    if (await locator.nth(i).isVisible().catch(() => false)) return true;
+    if (
+      await locator
+        .nth(i)
+        .isVisible()
+        .catch(() => false)
+    )
+      return true;
   }
   return false;
 }
@@ -245,7 +263,9 @@ export async function findGenericSubmit(
       page.locator('button[type="submit"]'),
       page.locator('input[type="submit"]'),
       page.getByRole("button", { name: nameRegex }),
-      page.locator(':is(button, a, [role="button"])').filter({ hasText: nameRegex }),
+      page
+        .locator(':is(button, a, [role="button"])')
+        .filter({ hasText: nameRegex }),
     ],
     "botón de submit",
   );
@@ -267,6 +287,7 @@ git commit -m "feat(worker): adaptive-common con helpers compartidos"
 ## Task 1.2: Integración de `adaptive-common` (helpers DOM)
 
 **Files:**
+
 - Create: `worker/test/adaptive-common.integration.test.ts`
 
 - [ ] **Step 1: Write the failing test**
@@ -275,7 +296,15 @@ git commit -m "feat(worker): adaptive-common con helpers compartidos"
 // worker/test/adaptive-common.integration.test.ts
 import http from "node:http";
 import type { AddressInfo } from "node:net";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 import { chromium, type Browser, type Page } from "playwright-core";
 import {
   findGenericSubmit,
@@ -292,13 +321,19 @@ const server = http.createServer((req, res) => {
   res.setHeader("content-type", "text/html; charset=utf-8");
   switch (url.pathname) {
     case "/form":
-      res.end(html(`<form><input name="x"><button type="submit">Guardar</button></form>`));
+      res.end(
+        html(
+          `<form><input name="x"><button type="submit">Guardar</button></form>`,
+        ),
+      );
       return;
     case "/error":
       res.end(html(`<div role="alert">Credenciales inválidas</div>`));
       return;
     case "/hidden":
-      res.end(html(`<button type="submit" style="display:none">Enviar</button>`));
+      res.end(
+        html(`<button type="submit" style="display:none">Enviar</button>`),
+      );
       return;
     default:
       res.statusCode = 404;
@@ -369,6 +404,7 @@ git commit -m "test(worker): integración de adaptive-common"
 ## Task 1.3: `navegacion` — función pura `looksLikeErrorPage`
 
 **Files:**
+
 - Create: `worker/lib/adaptive-navegacion.ts`
 - Test: `worker/test/adaptive-navegacion.test.ts`
 
@@ -387,12 +423,15 @@ describe("looksLikeErrorPage", () => {
   });
 
   it("no marca una página real con mucho contenido aunque mencione 'error'", () => {
-    const body = "Bienvenido. ".repeat(80) + "Reporta cualquier error al soporte.";
+    const body =
+      "Bienvenido. ".repeat(80) + "Reporta cualquier error al soporte.";
     expect(looksLikeErrorPage("Inicio", body)).toBe(false);
   });
 
   it("no marca una home normal", () => {
-    expect(looksLikeErrorPage("Mi Tienda", "Productos ".repeat(50))).toBe(false);
+    expect(looksLikeErrorPage("Mi Tienda", "Productos ".repeat(50))).toBe(
+      false,
+    );
   });
 });
 ```
@@ -438,6 +477,7 @@ git commit -m "feat(worker): navegacion looksLikeErrorPage"
 ## Task 1.4: `navegacion` — `verifyPageHealthy` y `clickAdaptive` (DOM)
 
 **Files:**
+
 - Modify: `worker/lib/adaptive-navegacion.ts`
 - Create: `worker/test/adaptive-navegacion.integration.test.ts`
 
@@ -447,7 +487,15 @@ git commit -m "feat(worker): navegacion looksLikeErrorPage"
 // worker/test/adaptive-navegacion.integration.test.ts
 import http from "node:http";
 import type { AddressInfo } from "node:net";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { clickAdaptive, verifyPageHealthy } from "../lib/adaptive-navegacion";
 
@@ -460,11 +508,18 @@ const server = http.createServer((req, res) => {
   res.setHeader("content-type", "text/html; charset=utf-8");
   switch (url.pathname) {
     case "/home":
-      res.end(html(`<main><h1>Inicio</h1><p>${"Contenido real ".repeat(40)}</p>
-        <a href="/about">Acerca de</a></main>`, "Mi Sitio"));
+      res.end(
+        html(
+          `<main><h1>Inicio</h1><p>${"Contenido real ".repeat(40)}</p>
+        <a href="/about">Acerca de</a></main>`,
+          "Mi Sitio",
+        ),
+      );
       return;
     case "/about":
-      res.end(html(`<h1>Acerca de</h1><p>${"Info ".repeat(40)}</p>`, "Acerca de"));
+      res.end(
+        html(`<h1>Acerca de</h1><p>${"Info ".repeat(40)}</p>`, "Acerca de"),
+      );
       return;
     case "/missing":
       res.statusCode = 404;
@@ -522,7 +577,7 @@ describe("clickAdaptive (browser)", () => {
   it("cae al texto cuando el selector literal no existe", async () => {
     await activePage.goto(`${base}/home`);
     // selector inválido para esta página, pero el texto 'Acerca de' existe
-    await clickAdaptive(activePage, 'text=Acerca de', 5_000);
+    await clickAdaptive(activePage, "text=Acerca de", 5_000);
     await activePage.waitForLoadState("domcontentloaded");
     expect(activePage.url()).toContain("/about");
   }, 20_000);
@@ -556,8 +611,10 @@ export async function verifyPageHealthy(page: Page): Promise<PageHealth> {
   const finalUrl = page.url();
   const title = (await page.title().catch(() => "")) ?? "";
   const bodyText = (
-    (await page.locator("body").innerText({ timeout: SETTLE_TIMEOUT_MS }).catch(() => "")) ??
-    ""
+    (await page
+      .locator("body")
+      .innerText({ timeout: SETTLE_TIMEOUT_MS })
+      .catch(() => "")) ?? ""
   ).trim();
 
   if (bodyText.length < MIN_BODY_TEXT) {
@@ -636,9 +693,10 @@ git commit -m "feat(worker): navegacion verifyPageHealthy + clickAdaptive"
 ## Task 1.5: Cablear `navegacion` en `execute-test-run.ts`
 
 **Files:**
+
 - Modify: `worker/lib/execute-test-run.ts`
 
-- [ ] **Step 1: Añadir el import** (junto a los imports de adaptive-*)
+- [ ] **Step 1: Añadir el import** (junto a los imports de adaptive-\*)
 
 ```ts
 import { clickAdaptive, verifyPageHealthy } from "./adaptive-navegacion";
@@ -649,16 +707,18 @@ import { clickAdaptive, verifyPageHealthy } from "./adaptive-navegacion";
 En `executeStep`, justo después del bloque de la ventana de verificación de login (antes del `if (!isExpectAction)`), añadir:
 
 ```ts
-  if (ctx.testType === "navegacion" && isExpectAction) {
-    const health = await verifyPageHealthy(page);
-    if (!health.healthy) {
-      throw new Error(`Navegación no saludable: ${health.reason} (URL: ${health.finalUrl})`);
-    }
-    return {
-      valueOverride: health.finalUrl,
-      selectorOverride: "[adaptive] navegación verificada por salud de página",
-    };
+if (ctx.testType === "navegacion" && isExpectAction) {
+  const health = await verifyPageHealthy(page);
+  if (!health.healthy) {
+    throw new Error(
+      `Navegación no saludable: ${health.reason} (URL: ${health.finalUrl})`,
+    );
   }
+  return {
+    valueOverride: health.finalUrl,
+    selectorOverride: "[adaptive] navegación verificada por salud de página",
+  };
+}
 ```
 
 - [ ] **Step 3: Usar `clickAdaptive` para los clicks de navegación**
@@ -666,10 +726,10 @@ En `executeStep`, justo después del bloque de la ventana de verificación de lo
 En el `case "click"`, antes de la línea final `await page.locator(step.selector).click(...)`, añadir:
 
 ```ts
-      if (ctx.testType === "navegacion") {
-        await clickAdaptive(page, step.selector, STEP_TIMEOUT_MS);
-        return { selectorOverride: "[adaptive] click tolerante" };
-      }
+if (ctx.testType === "navegacion") {
+  await clickAdaptive(page, step.selector, STEP_TIMEOUT_MS);
+  return { selectorOverride: "[adaptive] click tolerante" };
+}
 ```
 
 - [ ] **Step 4: Verificar typecheck y tests existentes**
@@ -689,6 +749,7 @@ git commit -m "feat(worker): cablear navegacion adaptativa en execute-test-run"
 ## Task 1.6: Iniciar `FLUJOS-DE-PRUEBA.md` con la sección de `navegacion`
 
 **Files:**
+
 - Create: `FLUJOS-DE-PRUEBA.md`
 
 - [ ] **Step 1: Verificación en vivo con Playwright MCP**
@@ -707,11 +768,15 @@ sección:
 # Flujos de prueba — Cómo funciona cada tipo
 
 ## Navegación (smoke test)
+
 ### Cómo funciona técnicamente
+
 - Detección: `worker/lib/adaptive-navegacion.ts` (`verifyPageHealthy`, `clickAdaptive`).
 - Verificación por comportamiento: la página cargó, tiene título, renderizó
   contenido y no parece documento de error. Los clicks usan fallback por texto.
+
 ### Experiencia de usuario
+
 - URL de ejemplo: `https://the-internet.herokuapp.com/`
 - El usuario elige tipo "Navegación", pega la URL (sin datos extra).
 - En ~<TIEMPO MEDIDO> s recibe: smoke test verde con screenshot del home cargado.
@@ -733,6 +798,7 @@ git commit -m "docs: FLUJOS-DE-PRUEBA.md con sección de navegación"
 ## Task 2.1: Funciones puras `parseFields`, `asBoolean`, `isFormSubmitSelector`
 
 **Files:**
+
 - Create: `worker/lib/adaptive-formulario.ts`
 - Test: `worker/test/adaptive-formulario.test.ts`
 
@@ -741,7 +807,11 @@ git commit -m "docs: FLUJOS-DE-PRUEBA.md con sección de navegación"
 ```ts
 // worker/test/adaptive-formulario.test.ts
 import { describe, expect, it } from "vitest";
-import { asBoolean, isFormSubmitSelector, parseFields } from "../lib/adaptive-formulario";
+import {
+  asBoolean,
+  isFormSubmitSelector,
+  parseFields,
+} from "../lib/adaptive-formulario";
 
 describe("parseFields", () => {
   it("parsea pares 'label: value' por línea", () => {
@@ -778,7 +848,7 @@ describe("asBoolean", () => {
 describe("isFormSubmitSelector", () => {
   it("detecta selectores de submit", () => {
     expect(isFormSubmitSelector('button[type="submit"]')).toBe(true);
-    expect(isFormSubmitSelector('text=Enviar')).toBe(true);
+    expect(isFormSubmitSelector("text=Enviar")).toBe(true);
     expect(isFormSubmitSelector('role=button[name="Guardar"]')).toBe(true);
   });
   it("no marca un input de texto", () => {
@@ -824,7 +894,16 @@ export function parseFields(raw: string): FieldPair[] {
   return out;
 }
 
-const TRUE_TOKENS = new Set(["sí", "si", "true", "x", "yes", "on", "1", "checked"]);
+const TRUE_TOKENS = new Set([
+  "sí",
+  "si",
+  "true",
+  "x",
+  "yes",
+  "on",
+  "1",
+  "checked",
+]);
 const FALSE_TOKENS = new Set(["no", "false", "off", "0", "unchecked"]);
 
 export function asBoolean(value: string): boolean | null {
@@ -839,8 +918,10 @@ const SUBMIT_TOKEN_REGEX = new RegExp(`(${SUBMIT_VERBS.join("|")})`, "i");
 export function isFormSubmitSelector(selector?: string | null): boolean {
   if (!selector) return false;
   const lower = selector.toLowerCase();
-  if (lower.includes("type=submit") || lower.includes('type="submit"')) return true;
-  if (lower.includes("type=text") || lower.includes('type="text"')) return false;
+  if (lower.includes("type=submit") || lower.includes('type="submit"'))
+    return true;
+  if (lower.includes("type=text") || lower.includes('type="text"'))
+    return false;
   if (lower.startsWith("input[name")) return false;
   return SUBMIT_TOKEN_REGEX.test(lower);
 }
@@ -861,6 +942,7 @@ git commit -m "feat(worker): formulario funciones puras (parseFields, asBoolean,
 ## Task 2.2: `resolveField` y `fillField` (DOM)
 
 **Files:**
+
 - Modify: `worker/lib/adaptive-formulario.ts`
 - Create: `worker/test/adaptive-formulario.integration.test.ts`
 
@@ -870,9 +952,21 @@ git commit -m "feat(worker): formulario funciones puras (parseFields, asBoolean,
 // worker/test/adaptive-formulario.integration.test.ts
 import http from "node:http";
 import type { AddressInfo } from "node:net";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 import { chromium, type Browser, type Page } from "playwright-core";
-import { fillAndSubmitForm, fillField, resolveField } from "../lib/adaptive-formulario";
+import {
+  fillAndSubmitForm,
+  fillField,
+  resolveField,
+} from "../lib/adaptive-formulario";
 
 function html(body: string): string {
   return `<!doctype html><html><head><meta charset="utf-8"><title>Form</title></head><body>${body}</body></html>`;
@@ -883,22 +977,26 @@ const server = http.createServer((req, res) => {
   res.setHeader("content-type", "text/html; charset=utf-8");
   switch (url.pathname) {
     case "/labeled":
-      res.end(html(`
+      res.end(
+        html(`
         <form action="/done" method="get">
           <label>Nombre completo <input name="full"></label>
           <label>Mensaje <textarea name="msg"></textarea></label>
           <label>País <select name="country"><option>México</option><option>Colombia</option></select></label>
           <label>Acepto términos <input type="checkbox" name="tos"></label>
           <button type="submit">Enviar</button>
-        </form>`));
+        </form>`),
+      );
       return;
     case "/done":
       res.end(html(`<h1>Gracias</h1><p>Formulario enviado correctamente</p>`));
       return;
     case "/noop":
-      res.end(html(`
+      res.end(
+        html(`
         <form id="f"><input name="a" placeholder="Campo A"><button type="submit">Enviar</button></form>
-        <script>document.getElementById('f').addEventListener('submit', e => e.preventDefault());</script>`));
+        <script>document.getElementById('f').addEventListener('submit', e => e.preventDefault());</script>`),
+      );
       return;
     default:
       res.statusCode = 404;
@@ -933,19 +1031,27 @@ describe("resolveField + fillField (browser)", () => {
     const name = await resolveField(activePage, "Nombre completo");
     expect(name).not.toBeNull();
     await fillField(name!, "Ana Pérez");
-    expect(await activePage.locator('input[name="full"]').inputValue()).toBe("Ana Pérez");
+    expect(await activePage.locator('input[name="full"]').inputValue()).toBe(
+      "Ana Pérez",
+    );
 
     const msg = await resolveField(activePage, "Mensaje");
     await fillField(msg!, "Hola");
-    expect(await activePage.locator('textarea[name="msg"]').inputValue()).toBe("Hola");
+    expect(await activePage.locator('textarea[name="msg"]').inputValue()).toBe(
+      "Hola",
+    );
 
     const country = await resolveField(activePage, "País");
     await fillField(country!, "Colombia");
-    expect(await activePage.locator('select[name="country"]').inputValue()).toBe("Colombia");
+    expect(
+      await activePage.locator('select[name="country"]').inputValue(),
+    ).toBe("Colombia");
 
     const tos = await resolveField(activePage, "Acepto términos");
     await fillField(tos!, "sí");
-    expect(await activePage.locator('input[name="tos"]').isChecked()).toBe(true);
+    expect(await activePage.locator('input[name="tos"]').isChecked()).toBe(
+      true,
+    );
   }, 30_000);
 });
 ```
@@ -976,12 +1082,19 @@ export async function resolveField(
     page.getByLabel(new RegExp(escaped, "i")),
     page.getByPlaceholder(new RegExp(escaped, "i")),
     page.locator(`[aria-label*="${escaped}" i]`),
-    page.locator(`input[name*="${s}" i], textarea[name*="${s}" i], select[name*="${s}" i]`),
-    page.locator(`input[id*="${s}" i], textarea[id*="${s}" i], select[id*="${s}" i]`),
+    page.locator(
+      `input[name*="${s}" i], textarea[name*="${s}" i], select[name*="${s}" i]`,
+    ),
+    page.locator(
+      `input[id*="${s}" i], textarea[id*="${s}" i], select[id*="${s}" i]`,
+    ),
   ]);
 }
 
-export async function fillField(control: Locator, value: string): Promise<void> {
+export async function fillField(
+  control: Locator,
+  value: string,
+): Promise<void> {
   const tag = (await control.evaluate((el) => el.tagName.toLowerCase())).trim();
   if (tag === "select") {
     await control.selectOption({ label: value }).catch(async () => {
@@ -1015,6 +1128,7 @@ git commit -m "feat(worker): formulario resolveField + fillField"
 ## Task 2.3: `fillAndSubmitForm` (orquestación + verificación + trampa de falso positivo)
 
 **Files:**
+
 - Modify: `worker/lib/adaptive-formulario.ts`
 - Modify: `worker/test/adaptive-formulario.integration.test.ts`
 
@@ -1064,7 +1178,11 @@ Expected: FAIL — `fillAndSubmitForm` no implementado.
 const FORM_POLL_INTERVAL_MS = 300;
 const FORM_RESULTS_TIMEOUT_MS = 8_000;
 
-export type FormOutcome = { success: boolean; finalUrl: string; reason: string };
+export type FormOutcome = {
+  success: boolean;
+  finalUrl: string;
+  reason: string;
+};
 
 export async function fillAndSubmitForm(
   page: Page,
@@ -1088,7 +1206,8 @@ export async function fillAndSubmitForm(
     return {
       success: false,
       finalUrl: page.url(),
-      reason: "No se pudo resolver ningún campo del formulario por su etiqueta.",
+      reason:
+        "No se pudo resolver ningún campo del formulario por su etiqueta.",
     };
   }
 
@@ -1108,7 +1227,8 @@ export async function fillAndSubmitForm(
     .waitForLoadState("domcontentloaded", { timeout: SETTLE_TIMEOUT_MS })
     .catch(() => {});
 
-  const deadline = Date.now() + (opts.resultsTimeoutMs ?? FORM_RESULTS_TIMEOUT_MS);
+  const deadline =
+    Date.now() + (opts.resultsTimeoutMs ?? FORM_RESULTS_TIMEOUT_MS);
   while (Date.now() < deadline) {
     // Fallo inmediato si hay error visible o bloqueo de validación nativa.
     const errorText = await readVisibleErrorText(page);
@@ -1129,7 +1249,11 @@ export async function fillAndSubmitForm(
     }
     // Éxito por comportamiento: URL cambió, mensaje de éxito, o form desapareció.
     if (page.url() !== initialUrl) {
-      return { success: true, finalUrl: page.url(), reason: "La URL cambió tras enviar." };
+      return {
+        success: true,
+        finalUrl: page.url(),
+        reason: "La URL cambió tras enviar.",
+      };
     }
     if (await isSuccessTextVisible(page)) {
       return {
@@ -1138,7 +1262,11 @@ export async function fillAndSubmitForm(
         reason: "Apareció un mensaje de éxito tras enviar.",
       };
     }
-    const formGone = (await page.locator("form").count().catch(() => 0)) === 0;
+    const formGone =
+      (await page
+        .locator("form")
+        .count()
+        .catch(() => 0)) === 0;
     if (formGone) {
       return {
         success: true,
@@ -1175,6 +1303,7 @@ git commit -m "feat(worker): formulario fillAndSubmitForm con verificación por 
 ## Task 2.4: Cablear `formulario` en `execute-test-run.ts`
 
 **Files:**
+
 - Modify: `worker/lib/execute-test-run.ts`
 
 - [ ] **Step 1: Imports y contexto**
@@ -1182,7 +1311,11 @@ git commit -m "feat(worker): formulario fillAndSubmitForm con verificación por 
 Añadir import:
 
 ```ts
-import { fillAndSubmitForm, isFormSubmitSelector, parseFields } from "./adaptive-formulario";
+import {
+  fillAndSubmitForm,
+  isFormSubmitSelector,
+  parseFields,
+} from "./adaptive-formulario";
 ```
 
 Añadir al tipo `LoginRunContext` un campo para los pares del formulario:
@@ -1213,11 +1346,11 @@ export async function executeTestRun(
 Pasar `formFieldsRaw` a `runCase` (añadir parámetro) y al construir `loginCtx`:
 
 ```ts
-  const loginCtx: LoginRunContext = {
-    testType,
-    inVerificationWindow: false,
-    formFields: formFieldsRaw ? parseFields(formFieldsRaw) : undefined,
-  };
+const loginCtx: LoginRunContext = {
+  testType,
+  inVerificationWindow: false,
+  formFields: formFieldsRaw ? parseFields(formFieldsRaw) : undefined,
+};
 ```
 
 - [ ] **Step 3: Manejar el submit de formulario en `case "click"`**
@@ -1225,20 +1358,22 @@ Pasar `formFieldsRaw` a `runCase` (añadir parámetro) y al construir `loginCtx`
 En `case "click"`, antes del click literal final, añadir:
 
 ```ts
-      if (ctx.testType === "formulario" && isFormSubmitSelector(step.selector)) {
-        const outcome = await fillAndSubmitForm(
-          page,
-          ctx.formFields ?? [],
-          STEP_TIMEOUT_MS,
-        );
-        if (!outcome.success) {
-          throw new Error(`Formulario adaptativo falló: ${outcome.reason} (URL: ${outcome.finalUrl})`);
-        }
-        return {
-          valueOverride: outcome.finalUrl,
-          selectorOverride: "[adaptive] formulario enviado y verificado",
-        };
-      }
+if (ctx.testType === "formulario" && isFormSubmitSelector(step.selector)) {
+  const outcome = await fillAndSubmitForm(
+    page,
+    ctx.formFields ?? [],
+    STEP_TIMEOUT_MS,
+  );
+  if (!outcome.success) {
+    throw new Error(
+      `Formulario adaptativo falló: ${outcome.reason} (URL: ${outcome.finalUrl})`,
+    );
+  }
+  return {
+    valueOverride: outcome.finalUrl,
+    selectorOverride: "[adaptive] formulario enviado y verificado",
+  };
+}
 ```
 
 - [ ] **Step 4: Pasar `test_data.fields` desde `process-test-run.ts`**
@@ -1247,19 +1382,19 @@ En `worker/process-test-run.ts`, en la llamada a `executeTestRun`, pasar el raw
 de fields cuando aplique:
 
 ```ts
-    const finalStatus = await withTimeout(
-      executeTestRun(
-        supabase,
-        testRunId,
-        testRun.test_type,
-        testRun.device,
-        testRun.test_type === "formulario"
-          ? String(testRun.test_data.fields ?? "")
-          : undefined,
-      ),
-      EXECUTION_TIMEOUT_MS,
-      "Ejecución del plan con Playwright",
-    );
+const finalStatus = await withTimeout(
+  executeTestRun(
+    supabase,
+    testRunId,
+    testRun.test_type,
+    testRun.device,
+    testRun.test_type === "formulario"
+      ? String(testRun.test_data.fields ?? "")
+      : undefined,
+  ),
+  EXECUTION_TIMEOUT_MS,
+  "Ejecución del plan con Playwright",
+);
 ```
 
 - [ ] **Step 5: Typecheck + suite**
@@ -1279,6 +1414,7 @@ git commit -m "feat(worker): cablear formulario adaptativo en execute-test-run"
 ## Task 2.5: Sección de `formulario` en `FLUJOS-DE-PRUEBA.md`
 
 **Files:**
+
 - Modify: `FLUJOS-DE-PRUEBA.md`
 
 - [ ] **Step 1: Verificación en vivo con Playwright MCP** contra `https://httpbin.org/forms/post`, midiendo tiempos.
@@ -1287,13 +1423,17 @@ git commit -m "feat(worker): cablear formulario adaptativo en execute-test-run"
 
 ```markdown
 ## Formulario (llenado genérico)
+
 ### Cómo funciona técnicamente
+
 - Detección: `worker/lib/adaptive-formulario.ts` (`resolveField`, `fillField`, `fillAndSubmitForm`).
 - El usuario describe campos como `etiqueta: valor`. La heurística resuelve cada
   campo por label/placeholder/name/id, lo llena según su tipo (texto, textarea,
   select, checkbox), envía y verifica por comportamiento (URL cambió / mensaje de
   éxito / form desapareció). Trampa de falso positivo cubierta por tests.
+
 ### Experiencia de usuario
+
 - URL de ejemplo: `https://httpbin.org/forms/post`
 - Campos: `Customer name: Ana`, `Telephone: 555`, `Email: ana@x.com`, etc.
 - En ~<TIEMPO MEDIDO> s recibe: envío verde con la página de eco del POST.
@@ -1313,6 +1453,7 @@ git commit -m "docs: sección de formulario en FLUJOS-DE-PRUEBA.md"
 ## Task 3.1: Detectores puros de `registro`
 
 **Files:**
+
 - Create: `worker/lib/adaptive-registro.ts`
 - Test: `worker/test/adaptive-registro.test.ts`
 
@@ -1342,9 +1483,15 @@ describe("isNameFillSelector", () => {
 
 describe("isConfirmPasswordSelector", () => {
   it("detecta confirmación de contraseña", () => {
-    expect(isConfirmPasswordSelector('input[name="confirmPassword"]')).toBe(true);
-    expect(isConfirmPasswordSelector('input[name="password_confirmation"]')).toBe(true);
-    expect(isConfirmPasswordSelector('[placeholder="Repetir contraseña"]')).toBe(true);
+    expect(isConfirmPasswordSelector('input[name="confirmPassword"]')).toBe(
+      true,
+    );
+    expect(
+      isConfirmPasswordSelector('input[name="password_confirmation"]'),
+    ).toBe(true);
+    expect(
+      isConfirmPasswordSelector('[placeholder="Repetir contraseña"]'),
+    ).toBe(true);
   });
   it("no marca la contraseña principal", () => {
     expect(isConfirmPasswordSelector('input[name="password"]')).toBe(false);
@@ -1353,7 +1500,7 @@ describe("isConfirmPasswordSelector", () => {
 
 describe("isRegisterSubmitSelector", () => {
   it("detecta verbos de registro", () => {
-    expect(isRegisterSubmitSelector('text=Crear cuenta')).toBe(true);
+    expect(isRegisterSubmitSelector("text=Crear cuenta")).toBe(true);
     expect(isRegisterSubmitSelector('role=button[name="Sign up"]')).toBe(true);
     expect(isRegisterSubmitSelector('button[type="submit"]')).toBe(true);
   });
@@ -1390,9 +1537,39 @@ import {
   type LoginOutcome,
 } from "./adaptive-login";
 
-const NAME_TOKENS = ["fullname", "full-name", "name", "nombre", "firstname", "first-name", "given-name"];
-const CONFIRM_TOKENS = ["confirm", "confirmation", "confirmar", "repeat", "repetir", "again", "verificar", "_2", "retype"];
-const REGISTER_VERBS = ["registrar", "registrarme", "regístrate", "registrate", "crear cuenta", "crear", "sign up", "signup", "register", "unirse", "create account"];
+const NAME_TOKENS = [
+  "fullname",
+  "full-name",
+  "name",
+  "nombre",
+  "firstname",
+  "first-name",
+  "given-name",
+];
+const CONFIRM_TOKENS = [
+  "confirm",
+  "confirmation",
+  "confirmar",
+  "repeat",
+  "repetir",
+  "again",
+  "verificar",
+  "_2",
+  "retype",
+];
+const REGISTER_VERBS = [
+  "registrar",
+  "registrarme",
+  "regístrate",
+  "registrate",
+  "crear cuenta",
+  "crear",
+  "sign up",
+  "signup",
+  "register",
+  "unirse",
+  "create account",
+];
 
 const NAME_REGEX = new RegExp(`(${NAME_TOKENS.join("|")})`, "i");
 const CONFIRM_REGEX = new RegExp(`(${CONFIRM_TOKENS.join("|")})`, "i");
@@ -1405,10 +1582,15 @@ const REGISTER_NAME_REGEX = new RegExp(
 export function isNameFillSelector(selector?: string | null): boolean {
   if (!selector) return false;
   const lower = selector.toLowerCase();
-  if (lower.includes("password") || lower.includes("type=email") || lower.includes('type="email"')) {
+  if (
+    lower.includes("password") ||
+    lower.includes("type=email") ||
+    lower.includes('type="email"')
+  ) {
     return false;
   }
-  if (lower.includes("type=password") || lower.includes('type="password"')) return false;
+  if (lower.includes("type=password") || lower.includes('type="password"'))
+    return false;
   return NAME_REGEX.test(lower);
 }
 
@@ -1416,14 +1598,17 @@ export function isConfirmPasswordSelector(selector?: string | null): boolean {
   if (!selector) return false;
   const lower = selector.toLowerCase();
   const isPasswordLike =
-    lower.includes("password") || lower.includes("contrase") || lower.includes("clave");
+    lower.includes("password") ||
+    lower.includes("contrase") ||
+    lower.includes("clave");
   return isPasswordLike && CONFIRM_REGEX.test(lower);
 }
 
 export function isRegisterSubmitSelector(selector?: string | null): boolean {
   if (!selector) return false;
   const lower = selector.toLowerCase();
-  if (lower.includes("type=submit") || lower.includes('type="submit"')) return true;
+  if (lower.includes("type=submit") || lower.includes('type="submit"'))
+    return true;
   return REGISTER_REGEX.test(lower);
 }
 ```
@@ -1443,6 +1628,7 @@ git commit -m "feat(worker): registro detectores puros"
 ## Task 3.2: `findNameField`, `findConfirmPasswordField`, `registerAndVerify` (DOM)
 
 **Files:**
+
 - Modify: `worker/lib/adaptive-registro.ts`
 - Create: `worker/test/adaptive-registro.integration.test.ts`
 
@@ -1452,7 +1638,15 @@ git commit -m "feat(worker): registro detectores puros"
 // worker/test/adaptive-registro.integration.test.ts
 import http from "node:http";
 import type { AddressInfo } from "node:net";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 import { chromium, type Browser, type Page } from "playwright-core";
 import {
   findConfirmPasswordField,
@@ -1469,21 +1663,24 @@ const server = http.createServer((req, res) => {
   res.setHeader("content-type", "text/html; charset=utf-8");
   switch (url.pathname) {
     case "/signup":
-      res.end(html(`
+      res.end(
+        html(`
         <form action="/welcome" method="get">
           <input name="name" placeholder="Nombre">
           <input type="email" name="email" placeholder="Email">
           <input type="password" name="password" placeholder="Contraseña">
           <input type="password" name="confirm" placeholder="Repetir contraseña">
           <button type="submit">Crear cuenta</button>
-        </form>`));
+        </form>`),
+      );
       return;
     case "/welcome":
       res.end(html(`<h1>Bienvenido</h1><p>Tu cuenta fue creada</p>`));
       return;
     case "/dup":
       // Trampa: siempre muestra error de email duplicado, no navega.
-      res.end(html(`
+      res.end(
+        html(`
         <form id="f">
           <input name="name"><input type="email" name="email">
           <input type="password" name="password">
@@ -1492,7 +1689,8 @@ const server = http.createServer((req, res) => {
         <div role="alert" style="display:none" id="e">El email ya está en uso</div>
         <script>document.getElementById('f').addEventListener('submit', e => {
           e.preventDefault(); document.getElementById('e').style.display='block';
-        });</script>`));
+        });</script>`),
+      );
       return;
     default:
       res.statusCode = 404;
@@ -1523,8 +1721,12 @@ afterEach(async () => {
 describe("findNameField / findConfirmPasswordField (browser)", () => {
   it("encuentra nombre y el segundo password como confirmación", async () => {
     await activePage.goto(`${base}/signup`);
-    expect(await (await findNameField(activePage))!.getAttribute("name")).toBe("name");
-    expect(await (await findConfirmPasswordField(activePage))!.getAttribute("name")).toBe("confirm");
+    expect(await (await findNameField(activePage))!.getAttribute("name")).toBe(
+      "name",
+    );
+    expect(
+      await (await findConfirmPasswordField(activePage))!.getAttribute("name"),
+    ).toBe("confirm");
   }, 20_000);
 });
 
@@ -1533,7 +1735,12 @@ describe("registerAndVerify (browser)", () => {
     await activePage.goto(`${base}/signup`);
     const outcome = await registerAndVerify(
       activePage,
-      { name: "Ana", email: "ana@x.com", password: "Secret123", confirmPassword: "Secret123" },
+      {
+        name: "Ana",
+        email: "ana@x.com",
+        password: "Secret123",
+        confirmPassword: "Secret123",
+      },
       activePage.url(),
       8_000,
     );
@@ -1545,7 +1752,12 @@ describe("registerAndVerify (browser)", () => {
     await activePage.goto(`${base}/dup`);
     const outcome = await registerAndVerify(
       activePage,
-      { name: "Ana", email: "ana@x.com", password: "Secret123", confirmPassword: "Secret123" },
+      {
+        name: "Ana",
+        email: "ana@x.com",
+        password: "Secret123",
+        confirmPassword: "Secret123",
+      },
       activePage.url(),
       4_000,
     );
@@ -1575,13 +1787,17 @@ export async function findNameField(page: Page): Promise<Locator | null> {
     page.locator('input[name*="nombre" i]'),
     page.locator('input[name="name" i]'),
     page.locator('input[name*="firstname" i]'),
-    page.locator('input[id*="name" i]:not([type="email"]):not([type="password"])'),
+    page.locator(
+      'input[id*="name" i]:not([type="email"]):not([type="password"])',
+    ),
     page.getByLabel(NAME_LABEL_REGEX),
     page.getByPlaceholder(NAME_LABEL_REGEX),
   ]);
 }
 
-export async function findConfirmPasswordField(page: Page): Promise<Locator | null> {
+export async function findConfirmPasswordField(
+  page: Page,
+): Promise<Locator | null> {
   // Estrategia primaria: si hay 2+ inputs password, el segundo es "confirmar".
   const passwords = page.locator('input[type="password"]');
   const count = await passwords.count().catch(() => 0);
@@ -1602,11 +1818,17 @@ export async function findConfirmPasswordField(page: Page): Promise<Locator | nu
 export type RegisterOutcome = LoginOutcome;
 
 const OUTCOME_TIMEOUT_DEFAULT_MS = 15_000;
-const DUP_EMAIL_REGEX = /(ya (está|esta) (en uso|registrad)|already (taken|registered|in use)|email exists|usuario existente)/i;
+const DUP_EMAIL_REGEX =
+  /(ya (está|esta) (en uso|registrad)|already (taken|registered|in use)|email exists|usuario existente)/i;
 
 export async function registerAndVerify(
   page: Page,
-  data: { name: string; email: string; password: string; confirmPassword: string },
+  data: {
+    name: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+  },
   initialUrl: string,
   timeoutMs: number,
 ): Promise<RegisterOutcome> {
@@ -1629,7 +1851,8 @@ export async function registerAndVerify(
   await passwordField.fill(data.password, { timeout: timeoutMs });
 
   const confirmField = await findConfirmPasswordField(page);
-  if (confirmField) await confirmField.fill(data.confirmPassword).catch(() => {});
+  if (confirmField)
+    await confirmField.fill(data.confirmPassword).catch(() => {});
 
   const submit = await findGenericSubmit(page, REGISTER_VERBS);
   await submit.click({ timeout: timeoutMs });
@@ -1719,6 +1942,7 @@ git commit -m "feat(worker): registro findNameField/findConfirmPasswordField/reg
 ## Task 3.3: Cablear `registro` en `execute-test-run.ts`
 
 **Files:**
+
 - Modify: `worker/lib/execute-test-run.ts`
 
 - [ ] **Step 1: Imports y contexto**
@@ -1769,35 +1993,39 @@ Añadir una rama `if (ctx.testType === "registro")` análoga a la de login, ante
 del fill literal:
 
 ```ts
-      if (ctx.testType === "registro") {
-        if (isConfirmPasswordSelector(step.selector)) {
-          const field = await findConfirmPasswordField(page);
-          if (field) {
-            await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
-            return { selectorOverride: "[adaptive] confirmar password" };
-          }
-        }
-        if (isPasswordFillSelector(step.selector)) {
-          const field = await findPasswordField(page);
-          await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
-          return { selectorOverride: "[adaptive] password" };
-        }
-        if (isNameFillSelector(step.selector)) {
-          const field = await findNameField(page);
-          if (field) {
-            await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
-            return { selectorOverride: "[adaptive] nombre" };
-          }
-        }
-        if (isEmailFillSelector(step.selector)) {
-          const { relaxed } = await fillIdentifierField(page, step.value, STEP_TIMEOUT_MS);
-          return {
-            selectorOverride: relaxed
-              ? "[adaptive] identificador (validación nativa relajada)"
-              : "[adaptive] email/usuario",
-          };
-        }
-      }
+if (ctx.testType === "registro") {
+  if (isConfirmPasswordSelector(step.selector)) {
+    const field = await findConfirmPasswordField(page);
+    if (field) {
+      await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
+      return { selectorOverride: "[adaptive] confirmar password" };
+    }
+  }
+  if (isPasswordFillSelector(step.selector)) {
+    const field = await findPasswordField(page);
+    await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
+    return { selectorOverride: "[adaptive] password" };
+  }
+  if (isNameFillSelector(step.selector)) {
+    const field = await findNameField(page);
+    if (field) {
+      await field.fill(step.value, { timeout: STEP_TIMEOUT_MS });
+      return { selectorOverride: "[adaptive] nombre" };
+    }
+  }
+  if (isEmailFillSelector(step.selector)) {
+    const { relaxed } = await fillIdentifierField(
+      page,
+      step.value,
+      STEP_TIMEOUT_MS,
+    );
+    return {
+      selectorOverride: relaxed
+        ? "[adaptive] identificador (validación nativa relajada)"
+        : "[adaptive] email/usuario",
+    };
+  }
+}
 ```
 
 (Asegurar que `findConfirmPasswordField`, `findNameField` están importados.)
@@ -1805,24 +2033,31 @@ del fill literal:
 - [ ] **Step 4: Manejar el submit de registro en `case "click"`**
 
 ```ts
-      if (ctx.testType === "registro" && isRegisterSubmitSelector(step.selector)) {
-        const initialUrl = page.url();
-        const outcome = await registerAndVerify(
-          page,
-          ctx.registroData ?? { name: "", email: "", password: "", confirmPassword: "" },
-          initialUrl,
-          STEP_TIMEOUT_MS,
-        );
-        ctx.lastOutcome = outcome;
-        if (!outcome.success) {
-          throw new Error(`Registro adaptativo falló: ${outcome.reason} (URL: ${outcome.finalUrl})`);
-        }
-        ctx.inVerificationWindow = true;
-        return {
-          valueOverride: outcome.finalUrl,
-          selectorOverride: "[adaptive] submit registro",
-        };
-      }
+if (ctx.testType === "registro" && isRegisterSubmitSelector(step.selector)) {
+  const initialUrl = page.url();
+  const outcome = await registerAndVerify(
+    page,
+    ctx.registroData ?? {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+    initialUrl,
+    STEP_TIMEOUT_MS,
+  );
+  ctx.lastOutcome = outcome;
+  if (!outcome.success) {
+    throw new Error(
+      `Registro adaptativo falló: ${outcome.reason} (URL: ${outcome.finalUrl})`,
+    );
+  }
+  ctx.inVerificationWindow = true;
+  return {
+    valueOverride: outcome.finalUrl,
+    selectorOverride: "[adaptive] submit registro",
+  };
+}
 ```
 
 - [ ] **Step 5: Extender la ventana de verificación a registro**
@@ -1831,20 +2066,20 @@ En el bloque inicial de `executeStep` que hoy chequea `ctx.testType === "login"`
 para la ventana de verificación, ampliar a registro:
 
 ```ts
-  if (
-    (ctx.testType === "login" || ctx.testType === "registro") &&
-    ctx.inVerificationWindow &&
-    ctx.lastOutcome?.success &&
-    isExpectAction
-  ) {
-    return {
-      valueOverride: ctx.lastOutcome.finalUrl,
-      selectorOverride:
-        ctx.testType === "registro"
-          ? "[adaptive] verificado por comportamiento post-registro"
-          : "[adaptive] verificado por comportamiento post-login",
-    };
-  }
+if (
+  (ctx.testType === "login" || ctx.testType === "registro") &&
+  ctx.inVerificationWindow &&
+  ctx.lastOutcome?.success &&
+  isExpectAction
+) {
+  return {
+    valueOverride: ctx.lastOutcome.finalUrl,
+    selectorOverride:
+      ctx.testType === "registro"
+        ? "[adaptive] verificado por comportamiento post-registro"
+        : "[adaptive] verificado por comportamiento post-login",
+  };
+}
 ```
 
 - [ ] **Step 6: Typecheck + suite**
@@ -1864,23 +2099,28 @@ git commit -m "feat(worker): cablear registro adaptativo en execute-test-run"
 ## Task 3.4: Sección de `registro` en `FLUJOS-DE-PRUEBA.md`
 
 **Files:**
+
 - Modify: `FLUJOS-DE-PRUEBA.md`
 
 - [ ] **Step 1: Verificación en vivo con Playwright MCP** contra
-  `https://demo.realworld.io/#/register` con email/usuario aleatorios, midiendo
-  tiempos.
+      `https://demo.realworld.io/#/register` con email/usuario aleatorios, midiendo
+      tiempos.
 
 - [ ] **Step 2: Añadir la sección:**
 
 ```markdown
 ## Registro (alta de cuenta)
+
 ### Cómo funciona técnicamente
+
 - Detección: `worker/lib/adaptive-registro.ts` (`findNameField`,
   `findConfirmPasswordField`, `registerAndVerify`); reusa el detector de
   email/password de login. Tolera apps sin "confirmar contraseña".
 - Verificación por comportamiento: URL cambió / mensaje de éxito / form
   desapareció; detecta el error "email ya en uso" como fallo real.
+
 ### Experiencia de usuario
+
 - URL de ejemplo: `https://demo.realworld.io/#/register` (Conduit)
 - Datos: nombre/usuario, email (único por corrida), contraseña.
 - En ~<TIEMPO MEDIDO> s recibe: registro verde con redirección al feed.
@@ -1900,6 +2140,7 @@ git commit -m "docs: sección de registro en FLUJOS-DE-PRUEBA.md"
 ## Task 4.1: Detectores puros de `ecommerce` + `splitExpiry`
 
 **Files:**
+
 - Create: `worker/lib/adaptive-ecommerce.ts`
 - Test: `worker/test/adaptive-ecommerce.test.ts`
 
@@ -1936,7 +2177,9 @@ describe("detectores de ecommerce", () => {
   it("isPaymentFieldSelector", () => {
     expect(isPaymentFieldSelector('input[name="card"]')).toBe(true);
     expect(isPaymentFieldSelector('input[name="cvc"]')).toBe(true);
-    expect(isPaymentFieldSelector('[placeholder="Número de tarjeta"]')).toBe(true);
+    expect(isPaymentFieldSelector('[placeholder="Número de tarjeta"]')).toBe(
+      true,
+    );
     expect(isPaymentFieldSelector('input[name="city"]')).toBe(false);
   });
 });
@@ -1971,10 +2214,14 @@ import {
 } from "./adaptive-common";
 import { resolveField } from "./adaptive-formulario";
 
-const ADD_TO_CART_REGEX = /(add to cart|add to bag|agregar al carrito|añadir al carrito|anadir al carrito|añadir|anadir|agregar|comprar|buy now|buy)/i;
-const CHECKOUT_NAV_REGEX = /(checkout|place order|realizar pedido|finalizar compra|finalizar|proceed|ir al carrito|ver carrito|cart|carrito|basket|bag)/i;
-const CONFIRM_ORDER_REGEX = /(purchase|place order|pay\b|pagar|confirmar compra|confirmar pedido|comprar ahora|comprar|finalizar compra|complete order|submit order)/i;
-const PAYMENT_FIELD_REGEX = /(card|tarjeta|cc-number|cardnumber|credit|cvc|cvv|security code|expir|vencimiento|mm\/aa|mm\/yy)/i;
+const ADD_TO_CART_REGEX =
+  /(add to cart|add to bag|agregar al carrito|añadir al carrito|anadir al carrito|añadir|anadir|agregar|comprar|buy now|buy)/i;
+const CHECKOUT_NAV_REGEX =
+  /(checkout|place order|realizar pedido|finalizar compra|finalizar|proceed|ir al carrito|ver carrito|cart|carrito|basket|bag)/i;
+const CONFIRM_ORDER_REGEX =
+  /(purchase|place order|pay\b|pagar|confirmar compra|confirmar pedido|comprar ahora|comprar|finalizar compra|complete order|submit order)/i;
+const PAYMENT_FIELD_REGEX =
+  /(card|tarjeta|cc-number|cardnumber|credit|cvc|cvv|security code|expir|vencimiento|mm\/aa|mm\/yy)/i;
 
 export function isAddToCartSelector(selector?: string | null): boolean {
   return !!selector && ADD_TO_CART_REGEX.test(selector.toLowerCase());
@@ -2011,6 +2258,7 @@ git commit -m "feat(worker): ecommerce detectores puros + splitExpiry"
 ## Task 4.2: Etapas DOM de `ecommerce` (add-to-cart, checkout, pago, confirmar)
 
 **Files:**
+
 - Modify: `worker/lib/adaptive-ecommerce.ts`
 - Create: `worker/test/adaptive-ecommerce.integration.test.ts`
 
@@ -2020,7 +2268,15 @@ git commit -m "feat(worker): ecommerce detectores puros + splitExpiry"
 // worker/test/adaptive-ecommerce.integration.test.ts
 import http from "node:http";
 import type { AddressInfo } from "node:net";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 import { chromium, type Browser, type Page } from "playwright-core";
 import {
   addToCartStage,
@@ -2101,11 +2357,18 @@ describe("flujo ecommerce (browser)", () => {
     expect((await addToCartStage(activePage, 5_000)).success).toBe(true);
     expect((await goToCheckoutStage(activePage, 5_000)).success).toBe(true);
     expect(
-      (await fillPaymentStage(
-        activePage,
-        { email: "a@x.com", card: "4111111111111111", expiry: "09/27", cvc: "123" },
-        5_000,
-      )).success,
+      (
+        await fillPaymentStage(
+          activePage,
+          {
+            email: "a@x.com",
+            card: "4111111111111111",
+            expiry: "09/27",
+            cvc: "123",
+          },
+          5_000,
+        )
+      ).success,
     ).toBe(true);
 
     const order = await confirmOrderAndVerify(activePage, 5_000);
@@ -2133,8 +2396,17 @@ Expected: FAIL — etapas no implementadas.
 // añadir a worker/lib/adaptive-ecommerce.ts
 
 export type StageOutcome = { success: boolean; reason: string };
-export type OrderOutcome = { success: boolean; finalUrl: string; reason: string };
-export type EcommerceData = { email: string; card: string; expiry: string; cvc: string };
+export type OrderOutcome = {
+  success: boolean;
+  finalUrl: string;
+  reason: string;
+};
+export type EcommerceData = {
+  email: string;
+  card: string;
+  expiry: string;
+  cvc: string;
+};
 
 const ORDER_CONFIRM_TIMEOUT_MS = 8_000;
 const POLL_MS = 300;
@@ -2143,31 +2415,51 @@ export async function findAddToCart(page: Page): Promise<Locator | null> {
   return pickFirstVisibleOrNull([
     page.getByRole("button", { name: ADD_TO_CART_REGEX }),
     page.getByRole("link", { name: ADD_TO_CART_REGEX }),
-    page.locator(':is(button, a, [role="button"])').filter({ hasText: ADD_TO_CART_REGEX }),
+    page
+      .locator(':is(button, a, [role="button"])')
+      .filter({ hasText: ADD_TO_CART_REGEX }),
     page.locator('[data-testid*="add-to-cart" i], [class*="add-to-cart" i]'),
   ]);
 }
 
-export async function addToCartStage(page: Page, timeoutMs: number): Promise<StageOutcome> {
+export async function addToCartStage(
+  page: Page,
+  timeoutMs: number,
+): Promise<StageOutcome> {
   // Aceptar diálogos nativos (algunas tiendas hacen alert("Producto agregado")).
   page.on("dialog", (d) => void d.accept().catch(() => {}));
   const button = await findAddToCart(page);
-  if (!button) return { success: false, reason: "No se encontró el botón de agregar al carrito." };
+  if (!button)
+    return {
+      success: false,
+      reason: "No se encontró el botón de agregar al carrito.",
+    };
   await button.click({ timeout: timeoutMs });
   await page.waitForTimeout(POLL_MS);
   return { success: true, reason: "Producto agregado al carrito." };
 }
 
-export async function goToCheckoutStage(page: Page, timeoutMs: number): Promise<StageOutcome> {
+export async function goToCheckoutStage(
+  page: Page,
+  timeoutMs: number,
+): Promise<StageOutcome> {
   const nav = await pickFirstVisibleOrNull([
     page.getByRole("link", { name: CHECKOUT_NAV_REGEX }),
     page.getByRole("button", { name: CHECKOUT_NAV_REGEX }),
-    page.locator(':is(a, button, [role="button"])').filter({ hasText: CHECKOUT_NAV_REGEX }),
+    page
+      .locator(':is(a, button, [role="button"])')
+      .filter({ hasText: CHECKOUT_NAV_REGEX }),
     page.locator('[href*="cart" i], [href*="checkout" i]'),
   ]);
-  if (!nav) return { success: false, reason: "No se encontró cómo ir al carrito/checkout." };
+  if (!nav)
+    return {
+      success: false,
+      reason: "No se encontró cómo ir al carrito/checkout.",
+    };
   await nav.click({ timeout: timeoutMs });
-  await page.waitForLoadState("domcontentloaded", { timeout: SETTLE_TIMEOUT_MS }).catch(() => {});
+  await page
+    .waitForLoadState("domcontentloaded", { timeout: SETTLE_TIMEOUT_MS })
+    .catch(() => {});
   return { success: true, reason: "Avanzó al carrito/checkout." };
 }
 
@@ -2179,7 +2471,8 @@ export async function fillPaymentStage(
   // Email (si lo pide el checkout).
   if (data.email) {
     const emailCtl = await resolveField(page, "email");
-    if (emailCtl) await emailCtl.fill(data.email, { timeout: timeoutMs }).catch(() => {});
+    if (emailCtl)
+      await emailCtl.fill(data.email, { timeout: timeoutMs }).catch(() => {});
   }
   // Tarjeta.
   const cardCtl = await pickFirstVisibleOrNull([
@@ -2187,7 +2480,8 @@ export async function fillPaymentStage(
     page.locator('input[autocomplete="cc-number"]'),
     page.getByPlaceholder(/(card|tarjeta|número de tarjeta)/i),
   ]);
-  if (cardCtl) await cardCtl.fill(data.card, { timeout: timeoutMs }).catch(() => {});
+  if (cardCtl)
+    await cardCtl.fill(data.card, { timeout: timeoutMs }).catch(() => {});
 
   // Expiry: campo único o mes/año separados.
   const { month, year } = splitExpiry(data.expiry);
@@ -2202,10 +2496,14 @@ export async function fillPaymentStage(
       page.locator('input[name*="month" i], input[name*="mes" i]'),
     ]);
     const yearCtl = await pickFirstVisibleOrNull([
-      page.locator('input[name*="year" i], input[name*="anio" i], input[name*="año" i]'),
+      page.locator(
+        'input[name*="year" i], input[name*="anio" i], input[name*="año" i]',
+      ),
     ]);
-    if (monthCtl && month) await monthCtl.fill(month, { timeout: timeoutMs }).catch(() => {});
-    if (yearCtl && year) await yearCtl.fill(year, { timeout: timeoutMs }).catch(() => {});
+    if (monthCtl && month)
+      await monthCtl.fill(month, { timeout: timeoutMs }).catch(() => {});
+    if (yearCtl && year)
+      await yearCtl.fill(year, { timeout: timeoutMs }).catch(() => {});
   }
 
   // CVC.
@@ -2214,9 +2512,13 @@ export async function fillPaymentStage(
     page.locator('input[autocomplete="cc-csc"]'),
     page.getByPlaceholder(/(cvc|cvv|security code|código de seguridad)/i),
   ]);
-  if (cvcCtl) await cvcCtl.fill(data.cvc, { timeout: timeoutMs }).catch(() => {});
+  if (cvcCtl)
+    await cvcCtl.fill(data.cvc, { timeout: timeoutMs }).catch(() => {});
 
-  return { success: true, reason: "Datos de pago completados (los campos ausentes se omiten)." };
+  return {
+    success: true,
+    reason: "Datos de pago completados (los campos ausentes se omiten).",
+  };
 }
 
 export async function confirmOrderAndVerify(
@@ -2225,11 +2527,17 @@ export async function confirmOrderAndVerify(
 ): Promise<OrderOutcome> {
   const confirm = await pickFirstVisibleOrNull([
     page.getByRole("button", { name: CONFIRM_ORDER_REGEX }),
-    page.locator(':is(button, a, [role="button"])').filter({ hasText: CONFIRM_ORDER_REGEX }),
+    page
+      .locator(':is(button, a, [role="button"])')
+      .filter({ hasText: CONFIRM_ORDER_REGEX }),
     page.locator('input[type="submit"]'),
   ]);
   if (!confirm) {
-    return { success: false, finalUrl: page.url(), reason: "No se encontró el botón de confirmar/pagar." };
+    return {
+      success: false,
+      finalUrl: page.url(),
+      reason: "No se encontró el botón de confirmar/pagar.",
+    };
   }
   await confirm.click({ timeout: timeoutMs });
   await page.waitForTimeout(POLL_MS);
@@ -2271,6 +2579,7 @@ git commit -m "feat(worker): ecommerce etapas DOM con verificación de orden"
 ## Task 4.3: Cablear `ecommerce` en `execute-test-run.ts`
 
 **Files:**
+
 - Modify: `worker/lib/execute-test-run.ts`
 
 - [ ] **Step 1: Imports y contexto**
@@ -2303,25 +2612,31 @@ Y pasarlo desde `process-test-run.ts` (igual patrón que registro) cuando
 Antes del click literal final:
 
 ```ts
-      if (ctx.testType === "ecommerce") {
-        if (isConfirmOrderSelector(step.selector)) {
-          const outcome = await confirmOrderAndVerify(page, STEP_TIMEOUT_MS);
-          if (!outcome.success) {
-            throw new Error(`Confirmación de orden falló: ${outcome.reason} (URL: ${outcome.finalUrl})`);
-          }
-          return { valueOverride: outcome.finalUrl, selectorOverride: "[adaptive] confirmar orden" };
-        }
-        if (isAddToCartSelector(step.selector)) {
-          const stage = await addToCartStage(page, STEP_TIMEOUT_MS);
-          if (!stage.success) throw new Error(`Agregar al carrito falló: ${stage.reason}`);
-          return { selectorOverride: "[adaptive] agregar al carrito" };
-        }
-        if (isCheckoutNavSelector(step.selector)) {
-          const stage = await goToCheckoutStage(page, STEP_TIMEOUT_MS);
-          if (!stage.success) throw new Error(`Ir a checkout falló: ${stage.reason}`);
-          return { selectorOverride: "[adaptive] ir a checkout" };
-        }
-      }
+if (ctx.testType === "ecommerce") {
+  if (isConfirmOrderSelector(step.selector)) {
+    const outcome = await confirmOrderAndVerify(page, STEP_TIMEOUT_MS);
+    if (!outcome.success) {
+      throw new Error(
+        `Confirmación de orden falló: ${outcome.reason} (URL: ${outcome.finalUrl})`,
+      );
+    }
+    return {
+      valueOverride: outcome.finalUrl,
+      selectorOverride: "[adaptive] confirmar orden",
+    };
+  }
+  if (isAddToCartSelector(step.selector)) {
+    const stage = await addToCartStage(page, STEP_TIMEOUT_MS);
+    if (!stage.success)
+      throw new Error(`Agregar al carrito falló: ${stage.reason}`);
+    return { selectorOverride: "[adaptive] agregar al carrito" };
+  }
+  if (isCheckoutNavSelector(step.selector)) {
+    const stage = await goToCheckoutStage(page, STEP_TIMEOUT_MS);
+    if (!stage.success) throw new Error(`Ir a checkout falló: ${stage.reason}`);
+    return { selectorOverride: "[adaptive] ir a checkout" };
+  }
+}
 ```
 
 (El orden importa: confirmar > add-to-cart > checkout, porque "comprar" puede
@@ -2331,14 +2646,14 @@ add-to-cart.)
 - [ ] **Step 3: Manejar fills de pago en `case "fill"`**
 
 ```ts
-      if (ctx.testType === "ecommerce" && isPaymentFieldSelector(step.selector)) {
-        await fillPaymentStage(
-          page,
-          ctx.ecommerceData ?? { email: "", card: "", expiry: "", cvc: "" },
-          STEP_TIMEOUT_MS,
-        );
-        return { selectorOverride: "[adaptive] datos de pago" };
-      }
+if (ctx.testType === "ecommerce" && isPaymentFieldSelector(step.selector)) {
+  await fillPaymentStage(
+    page,
+    ctx.ecommerceData ?? { email: "", card: "", expiry: "", cvc: "" },
+    STEP_TIMEOUT_MS,
+  );
+  return { selectorOverride: "[adaptive] datos de pago" };
+}
 ```
 
 (Nota: `fillPaymentStage` llena todos los campos de pago de una; los `fill`
@@ -2362,16 +2677,19 @@ git commit -m "feat(worker): cablear ecommerce adaptativo en execute-test-run"
 ## Task 4.4: Sección de `ecommerce` en `FLUJOS-DE-PRUEBA.md`
 
 **Files:**
+
 - Modify: `FLUJOS-DE-PRUEBA.md`
 
 - [ ] **Step 1: Verificación en vivo con Playwright MCP** contra
-  `https://www.demoblaze.com/`, midiendo tiempos.
+      `https://www.demoblaze.com/`, midiendo tiempos.
 
 - [ ] **Step 2: Añadir la sección** (incluir el límite de iframes):
 
 ```markdown
 ## E-commerce (compra completa)
+
 ### Cómo funciona técnicamente
+
 - Detección: `worker/lib/adaptive-ecommerce.ts` (macro por etapas:
   `addToCartStage`, `goToCheckoutStage`, `fillPaymentStage`,
   `confirmOrderAndVerify`).
@@ -2379,7 +2697,9 @@ git commit -m "feat(worker): cablear ecommerce adaptativo en execute-test-run"
   confirmación de la orden. Trampa de falso positivo cubierta por tests.
 - Límite conocido: pagos en iframe (Stripe/PayPal) no son accesibles inline; la
   macro lo reporta con un diagnóstico claro.
+
 ### Experiencia de usuario
+
 - URL de ejemplo: `https://www.demoblaze.com/`
 - Datos: email, tarjeta, vencimiento (MM/AA), CVC.
 - En ~<TIEMPO MEDIDO> s recibe: compra verde con la confirmación de la orden.
@@ -2399,18 +2719,19 @@ git commit -m "docs: sección de ecommerce en FLUJOS-DE-PRUEBA.md"
 ## Task 5.1: Completar `FLUJOS-DE-PRUEBA.md` con `login` y `busqueda`
 
 **Files:**
+
 - Modify: `FLUJOS-DE-PRUEBA.md`
 
 - [ ] **Step 1: Verificación en vivo con Playwright MCP** de login y búsqueda
-  contra demos canónicos (login: `https://www.saucedemo.com/` con
-  `standard_user`/`secret_sauce`; búsqueda: `https://www.demoblaze.com/` o
-  cualquier sitio con buscador), midiendo tiempos.
+      contra demos canónicos (login: `https://www.saucedemo.com/` con
+      `standard_user`/`secret_sauce`; búsqueda: `https://www.demoblaze.com/` o
+      cualquier sitio con buscador), midiendo tiempos.
 
 - [ ] **Step 2: Añadir las dos secciones restantes** (login y búsqueda) con el
-  mismo formato (técnico + UX + tiempos reales), citando
-  `worker/lib/adaptive-login.ts` y `worker/lib/adaptive-search.ts`. Añadir al
-  inicio del documento una tabla resumen de los 6 tipos con su demo y su criterio
-  de verificación por comportamiento.
+      mismo formato (técnico + UX + tiempos reales), citando
+      `worker/lib/adaptive-login.ts` y `worker/lib/adaptive-search.ts`. Añadir al
+      inicio del documento una tabla resumen de los 6 tipos con su demo y su criterio
+      de verificación por comportamiento.
 
 - [ ] **Step 3: Commit**
 
@@ -2422,6 +2743,7 @@ git commit -m "docs: completar FLUJOS-DE-PRUEBA.md con login y búsqueda + tabla
 ## Task 5.2: Actualizar `CLAUDE.md`
 
 **Files:**
+
 - Modify: `CLAUDE.md`
 
 - [ ] **Step 1: Añadir secciones de detección adaptativa**

@@ -1,7 +1,15 @@
 // worker/test/adaptive-registro.integration.test.ts
 import http from "node:http";
 import type { AddressInfo } from "node:net";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 import { chromium, type Browser, type Page } from "playwright-core";
 import {
   findConfirmPasswordField,
@@ -18,21 +26,24 @@ const server = http.createServer((req, res) => {
   res.setHeader("content-type", "text/html; charset=utf-8");
   switch (url.pathname) {
     case "/signup":
-      res.end(html(`
+      res.end(
+        html(`
         <form action="/welcome" method="get">
           <input name="name" placeholder="Nombre">
           <input type="email" name="email" placeholder="Email">
           <input type="password" name="password" placeholder="Contraseña">
           <input type="password" name="confirm" placeholder="Repetir contraseña">
           <button type="submit">Crear cuenta</button>
-        </form>`));
+        </form>`),
+      );
       return;
     case "/welcome":
       res.end(html(`<h1>Bienvenido</h1><p>Tu cuenta fue creada</p>`));
       return;
     case "/dup":
       // Trampa: siempre muestra error de email duplicado, no navega.
-      res.end(html(`
+      res.end(
+        html(`
         <form id="f">
           <input name="name"><input type="email" name="email">
           <input type="password" name="password">
@@ -41,7 +52,8 @@ const server = http.createServer((req, res) => {
         <div role="alert" style="display:none" id="e">El email ya está en uso</div>
         <script>document.getElementById('f').addEventListener('submit', e => {
           e.preventDefault(); document.getElementById('e').style.display='block';
-        });</script>`));
+        });</script>`),
+      );
       return;
     default:
       res.statusCode = 404;
@@ -72,8 +84,12 @@ afterEach(async () => {
 describe("findNameField / findConfirmPasswordField (browser)", () => {
   it("encuentra nombre y el segundo password como confirmación", async () => {
     await activePage.goto(`${base}/signup`);
-    expect(await (await findNameField(activePage))!.getAttribute("name")).toBe("name");
-    expect(await (await findConfirmPasswordField(activePage))!.getAttribute("name")).toBe("confirm");
+    expect(await (await findNameField(activePage))!.getAttribute("name")).toBe(
+      "name",
+    );
+    expect(
+      await (await findConfirmPasswordField(activePage))!.getAttribute("name"),
+    ).toBe("confirm");
   }, 20_000);
 });
 
@@ -82,7 +98,12 @@ describe("registerAndVerify (browser)", () => {
     await activePage.goto(`${base}/signup`);
     const outcome = await registerAndVerify(
       activePage,
-      { name: "Ana", email: "ana@x.com", password: "Secret123", confirmPassword: "Secret123" },
+      {
+        name: "Ana",
+        email: "ana@x.com",
+        password: "Secret123",
+        confirmPassword: "Secret123",
+      },
       activePage.url(),
       8_000,
     );
@@ -94,7 +115,12 @@ describe("registerAndVerify (browser)", () => {
     await activePage.goto(`${base}/dup`);
     const outcome = await registerAndVerify(
       activePage,
-      { name: "Ana", email: "ana@x.com", password: "Secret123", confirmPassword: "Secret123" },
+      {
+        name: "Ana",
+        email: "ana@x.com",
+        password: "Secret123",
+        confirmPassword: "Secret123",
+      },
       activePage.url(),
       4_000,
     );

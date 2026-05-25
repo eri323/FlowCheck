@@ -14,9 +14,9 @@ export function DashboardShell({
   const [navOpen, setNavOpen] = useState(false);
 
   return (
-    <div className="flex min-h-dvh bg-bg">
+    <div className="bg-bg flex min-h-dvh">
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 border-r border-border bg-surface-2 lg:block">
+      <aside className="border-border bg-surface-2 hidden w-60 shrink-0 border-r lg:block">
         <div className="sticky top-0 h-dvh">
           <SidebarNav />
         </div>
@@ -29,9 +29,9 @@ export function DashboardShell({
             type="button"
             aria-label="Cerrar navegación"
             onClick={() => setNavOpen(false)}
-            className="absolute inset-0 animate-fade-in bg-bg/70 backdrop-blur-sm"
+            className="animate-fade-in bg-bg/70 absolute inset-0 backdrop-blur-sm"
           />
-          <div className="absolute left-0 top-0 h-full w-64 animate-fade-in border-r border-border bg-surface-2">
+          <div className="animate-fade-in border-border bg-surface-2 absolute top-0 left-0 h-full w-64 border-r">
             <SidebarNav onNavigate={() => setNavOpen(false)} />
           </div>
         </div>

@@ -32,7 +32,7 @@ const BLOCKED_V4: Array<[number, number]> = (
 
 function inV4Range(ip: number, baseInt: number, bits: number): boolean {
   const mask = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0;
-  return ((ip & mask) >>> 0) === ((baseInt & mask) >>> 0);
+  return (ip & mask) >>> 0 === (baseInt & mask) >>> 0;
 }
 
 function isBlockedIpv4(ip: number): boolean {
@@ -76,16 +76,26 @@ function ipv6Groups(ip: string): number[] | null {
 function isBlockedIpv6(g: number[]): boolean {
   if (g.every((x) => x === 0)) return true; // ::
   if (
-    g[0]! === 0 && g[1]! === 0 && g[2]! === 0 && g[3]! === 0 &&
-    g[4]! === 0 && g[5]! === 0 && g[6]! === 0 && g[7]! === 1
+    g[0]! === 0 &&
+    g[1]! === 0 &&
+    g[2]! === 0 &&
+    g[3]! === 0 &&
+    g[4]! === 0 &&
+    g[5]! === 0 &&
+    g[6]! === 0 &&
+    g[7]! === 1
   ) {
     return true; // ::1
   }
   if (
-    g[0]! === 0 && g[1]! === 0 && g[2]! === 0 && g[3]! === 0 &&
-    g[4]! === 0 && g[5]! === 0xffff
+    g[0]! === 0 &&
+    g[1]! === 0 &&
+    g[2]! === 0 &&
+    g[3]! === 0 &&
+    g[4]! === 0 &&
+    g[5]! === 0xffff
   ) {
-    return isBlockedIpv4((((g[6]! << 16) | g[7]!) >>> 0)); // ::ffff:a.b.c.d
+    return isBlockedIpv4(((g[6]! << 16) | g[7]!) >>> 0); // ::ffff:a.b.c.d
   }
   if ((g[0]! & 0xfe00) === 0xfc00) return true; // fc00::/7 ULA
   if ((g[0]! & 0xffc0) === 0xfe80) return true; // fe80::/10 link-local

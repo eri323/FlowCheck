@@ -54,7 +54,9 @@ export async function pickFirstVisible(
 ): Promise<Locator> {
   const found = await pickFirstVisibleOrNull(candidates);
   if (found) return found;
-  throw new Error(`No se encontró un ${label} visible mediante detección adaptativa.`);
+  throw new Error(
+    `No se encontró un ${label} visible mediante detección adaptativa.`,
+  );
 }
 
 export async function pickFirstVisibleOrNull(
@@ -75,7 +77,9 @@ export async function pickFirstVisibleOrNull(
   return null;
 }
 
-export async function readVisibleErrorText(page: Page): Promise<string | undefined> {
+export async function readVisibleErrorText(
+  page: Page,
+): Promise<string | undefined> {
   for (const selector of ERROR_SELECTORS) {
     const locator = page.locator(selector);
     const count = await locator.count().catch(() => 0);
@@ -127,7 +131,13 @@ export async function isSuccessTextVisible(page: Page): Promise<boolean> {
   const count = await locator.count().catch(() => 0);
   const probeLimit = Math.min(count, 5);
   for (let i = 0; i < probeLimit; i++) {
-    if (await locator.nth(i).isVisible().catch(() => false)) return true;
+    if (
+      await locator
+        .nth(i)
+        .isVisible()
+        .catch(() => false)
+    )
+      return true;
   }
   return false;
 }
@@ -150,7 +160,9 @@ export async function findGenericSubmit(
       page.locator('button[type="submit"]'),
       page.locator('input[type="submit"]'),
       page.getByRole("button", { name: nameRegex }),
-      page.locator(':is(button, a, [role="button"])').filter({ hasText: nameRegex }),
+      page
+        .locator(':is(button, a, [role="button"])')
+        .filter({ hasText: nameRegex }),
     ],
     "botón de submit",
   );

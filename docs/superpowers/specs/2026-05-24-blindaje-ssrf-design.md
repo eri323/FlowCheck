@@ -67,11 +67,11 @@ como insuficiente.
 
 ## Modelo en capas
 
-| Capa | Dónde | Chequeo | Rol |
-|---|---|---|---|
-| API (Zod) | `lib/validation/test-run.ts` | síncrono, blocklist **literal** de host | `400` rápido: un `target_url` malo ni arranca el run |
-| Worker pre-nav | `worker/lib/safe-url.ts` | async, guard que **resuelve DNS** sobre el `value` del `goto` | mensaje de error limpio por paso |
-| Worker interceptor de requests | contexto en `execute-test-run.ts` | async, guard con DNS en **cada request** | **la frontera real**: redirects, rebinding, sub-recursos |
+| Capa                           | Dónde                             | Chequeo                                                       | Rol                                                      |
+| ------------------------------ | --------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------- |
+| API (Zod)                      | `lib/validation/test-run.ts`      | síncrono, blocklist **literal** de host                       | `400` rápido: un `target_url` malo ni arranca el run     |
+| Worker pre-nav                 | `worker/lib/safe-url.ts`          | async, guard que **resuelve DNS** sobre el `value` del `goto` | mensaje de error limpio por paso                         |
+| Worker interceptor de requests | contexto en `execute-test-run.ts` | async, guard con DNS en **cada request**                      | **la frontera real**: redirects, rebinding, sub-recursos |
 
 Es defensa en profundidad intencional, no redundancia: la capa Zod da feedback
 rápido; el worker es la enforcement real.

@@ -47,32 +47,32 @@ export function StepTimeline({
                   step.status === "corriendo" && "animate-pulse-dot",
                 )}
               />
-              {!last ? <span className="w-px flex-1 bg-border" /> : null}
+              {!last ? <span className="bg-border w-px flex-1" /> : null}
             </div>
-            <div className="min-w-0 flex-1 pb-4 pt-1">
+            <div className="min-w-0 flex-1 pt-1 pb-4">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[0.6875rem] font-medium text-accent-text">
+                <code className="bg-surface-2 text-accent-text rounded px-1.5 py-0.5 font-mono text-[0.6875rem] font-medium">
                   {step.action}
                 </code>
                 {adaptive ? <Badge tone="accent">adaptativo</Badge> : null}
                 {selectorText ? (
-                  <span className="min-w-0 truncate font-mono text-xs text-muted">
+                  <span className="text-muted min-w-0 truncate font-mono text-xs">
                     {selectorText}
                   </span>
                 ) : null}
                 {step.value ? (
-                  <span className="min-w-0 truncate font-mono text-xs text-faint">
+                  <span className="text-faint min-w-0 truncate font-mono text-xs">
                     → {step.value}
                   </span>
                 ) : null}
                 {step.duration_ms !== null ? (
-                  <span className="tabular ml-auto shrink-0 font-mono text-[0.6875rem] text-faint">
+                  <span className="tabular text-faint ml-auto shrink-0 font-mono text-[0.6875rem]">
                     {step.duration_ms} ms
                   </span>
                 ) : null}
               </div>
               {step.error_message ? (
-                <p className="mt-1.5 rounded-md bg-danger-bg px-2.5 py-1.5 text-xs text-danger-text">
+                <p className="bg-danger-bg text-danger-text mt-1.5 rounded-md px-2.5 py-1.5 text-xs">
                   {step.error_message}
                 </p>
               ) : null}
@@ -82,7 +82,7 @@ export function StepTimeline({
                   onClick={() =>
                     onOpenScreenshot(step.screenshot_url as string)
                   }
-                  className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-accent-text transition-opacity hover:opacity-80"
+                  className="text-accent-text mt-1.5 inline-flex items-center gap-1 text-xs font-medium transition-opacity hover:opacity-80"
                 >
                   <ImageIcon size={12} />
                   Ver captura

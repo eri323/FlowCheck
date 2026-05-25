@@ -84,7 +84,10 @@ function makeSupabaseMock(opts: SupabaseMockOptions): SupabaseMock {
             error: opts.rateError ?? null,
           }).then(resolve, reject);
         }
-        return Promise.resolve({ data: null, error: null }).then(resolve, reject);
+        return Promise.resolve({ data: null, error: null }).then(
+          resolve,
+          reject,
+        );
       };
       return builder;
     }),
@@ -111,7 +114,10 @@ function makeAdminMock(): AdminMock {
   return { client, updates };
 }
 
-function makeRequest(body: unknown, options: { rawBody?: string } = {}): Request {
+function makeRequest(
+  body: unknown,
+  options: { rawBody?: string } = {},
+): Request {
   return new Request("http://localhost/api/test-runs", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -156,7 +162,9 @@ describe("POST /api/test-runs", () => {
     const { POST, createSupabaseServerClient } = await loadRoute();
     const { client } = makeSupabaseMock({ user: null });
     createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+      client as unknown as Awaited<
+        ReturnType<typeof createSupabaseServerClient>
+      >,
     );
 
     const response = await POST(makeRequest(validBody));
@@ -167,10 +175,14 @@ describe("POST /api/test-runs", () => {
     const { POST, createSupabaseServerClient } = await loadRoute();
     const { client } = makeSupabaseMock({ user: { id: "u1" } });
     createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+      client as unknown as Awaited<
+        ReturnType<typeof createSupabaseServerClient>
+      >,
     );
 
-    const response = await POST(makeRequest(undefined, { rawBody: "no-es-json" }));
+    const response = await POST(
+      makeRequest(undefined, { rawBody: "no-es-json" }),
+    );
     expect(response.status).toBe(400);
   });
 
@@ -178,7 +190,9 @@ describe("POST /api/test-runs", () => {
     const { POST, createSupabaseServerClient } = await loadRoute();
     const { client } = makeSupabaseMock({ user: { id: "u1" } });
     createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+      client as unknown as Awaited<
+        ReturnType<typeof createSupabaseServerClient>
+      >,
     );
 
     const response = await POST(
@@ -196,7 +210,9 @@ describe("POST /api/test-runs", () => {
       await loadRoute();
     const { client } = makeSupabaseMock({ user: { id: "u1" }, recentCount: 5 });
     createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+      client as unknown as Awaited<
+        ReturnType<typeof createSupabaseServerClient>
+      >,
     );
 
     const response = await POST(makeRequest(validBody));
@@ -214,7 +230,9 @@ describe("POST /api/test-runs", () => {
       insertData: { id: "run-123" },
     });
     createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+      client as unknown as Awaited<
+        ReturnType<typeof createSupabaseServerClient>
+      >,
     );
     triggerWorkerRun.mockResolvedValue(undefined);
 
@@ -235,11 +253,15 @@ describe("POST /api/test-runs", () => {
       insertData: { id: "run-r" },
     });
     createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+      client as unknown as Awaited<
+        ReturnType<typeof createSupabaseServerClient>
+      >,
     );
     triggerWorkerRun.mockResolvedValue(undefined);
 
-    const response = await POST(makeRequest({ ...validBody, device: "mobile" }));
+    const response = await POST(
+      makeRequest({ ...validBody, device: "mobile" }),
+    );
     expect(response.status).toBe(201);
     expect(inserts).toHaveLength(1);
     expect(inserts[0]).toMatchObject({ browser: "chromium", device: "mobile" });
@@ -255,7 +277,9 @@ describe("POST /api/test-runs", () => {
       insertError: { message: "boom" },
     });
     createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+      client as unknown as Awaited<
+        ReturnType<typeof createSupabaseServerClient>
+      >,
     );
 
     const response = await POST(makeRequest(validBody));
@@ -275,7 +299,9 @@ describe("POST /api/test-runs", () => {
       insertData: { id: "run-xyz" },
     });
     createSupabaseServerClient.mockResolvedValue(
-      client as unknown as Awaited<ReturnType<typeof createSupabaseServerClient>>,
+      client as unknown as Awaited<
+        ReturnType<typeof createSupabaseServerClient>
+      >,
     );
     const admin = makeAdminMock();
     createSupabaseAdminClient.mockReturnValue(

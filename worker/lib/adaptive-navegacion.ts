@@ -34,7 +34,10 @@ export async function verifyPageHealthy(page: Page): Promise<PageHealth> {
   const finalUrl = page.url();
   const title = await page.title().catch(() => "");
   const bodyText = (
-    await page.locator("body").innerText({ timeout: SETTLE_TIMEOUT_MS }).catch(() => "")
+    await page
+      .locator("body")
+      .innerText({ timeout: SETTLE_TIMEOUT_MS })
+      .catch(() => "")
   ).trim();
 
   if (bodyText.length < MIN_BODY_TEXT) {
@@ -83,12 +86,17 @@ export async function clickAdaptive(
       };
 
       const link = page.getByRole("link", { name: text, exact: false }).first();
-      if ((await link.count().catch(() => 0)) > 0 && (await link.isVisible().catch(() => false))) {
+      if (
+        (await link.count().catch(() => 0)) > 0 &&
+        (await link.isVisible().catch(() => false))
+      ) {
         await link.click({ timeout: timeoutMs });
         return;
       }
 
-      const button = page.getByRole("button", { name: text, exact: false }).first();
+      const button = page
+        .getByRole("button", { name: text, exact: false })
+        .first();
       if (
         (await button.count().catch(() => 0)) > 0 &&
         (await button.isVisible().catch(() => false))

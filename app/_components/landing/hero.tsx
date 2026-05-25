@@ -24,41 +24,42 @@ export function Hero({ authed }: { authed: boolean }): React.JSX.Element {
       {/* Soft clay glow behind the product visual. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-32 -top-24 size-[34rem] rounded-full opacity-[0.14] blur-3xl"
+        className="pointer-events-none absolute -top-24 -right-32 size-[34rem] rounded-full opacity-[0.14] blur-3xl"
         style={{
           background:
             "radial-gradient(circle, var(--accent) 0%, transparent 68%)",
         }}
       />
 
-      <div className="relative mx-auto grid max-w-6xl gap-12 px-5 pb-20 pt-16 sm:px-8 lg:grid-cols-[1.04fr_0.96fr] lg:items-center lg:gap-10 lg:pb-28 lg:pt-24">
+      <div className="relative mx-auto grid max-w-6xl gap-12 px-5 pt-16 pb-20 sm:px-8 lg:grid-cols-[1.04fr_0.96fr] lg:items-center lg:gap-10 lg:pt-24 lg:pb-28">
         <div>
           <span
-            className="inline-flex animate-rise items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs text-muted"
+            className="animate-rise border-border bg-surface text-muted inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs"
             style={{ animationDelay: "0ms" }}
           >
-            <span className="size-1.5 rounded-full bg-accent" />
+            <span className="bg-accent size-1.5 rounded-full" />
             Construido sobre Playwright y Gemini
           </span>
 
           <h1
-            className="mt-5 animate-rise text-balance text-[2.5rem] font-semibold leading-[1.07] tracking-[-0.03em] text-text sm:text-5xl lg:text-[3.25rem]"
+            className="animate-rise text-text mt-5 text-[2.5rem] leading-[1.07] font-semibold tracking-[-0.03em] text-balance sm:text-5xl lg:text-[3.25rem]"
             style={{ animationDelay: "60ms" }}
           >
             Describe qué probar. Lo demás lo hace la IA.
           </h1>
 
           <p
-            className="mt-5 max-w-xl animate-rise text-pretty text-base leading-relaxed text-muted sm:text-[1.0625rem]"
+            className="animate-rise text-muted mt-5 max-w-xl text-base leading-relaxed text-pretty sm:text-[1.0625rem]"
             style={{ animationDelay: "120ms" }}
           >
-            Pega la URL de tu aplicación y explica el flujo en una frase. FlowCheck
-            genera los casos en Playwright, los ejecuta en un navegador real y
-            te devuelve un reporte en vivo con una captura por cada paso.
+            Pega la URL de tu aplicación y explica el flujo en una frase.
+            FlowCheck genera los casos en Playwright, los ejecuta en un
+            navegador real y te devuelve un reporte en vivo con una captura por
+            cada paso.
           </p>
 
           <div
-            className="mt-7 flex animate-rise flex-wrap items-center gap-3"
+            className="animate-rise mt-7 flex flex-wrap items-center gap-3"
             style={{ animationDelay: "180ms" }}
           >
             <Link
@@ -80,7 +81,7 @@ export function Hero({ authed }: { authed: boolean }): React.JSX.Element {
           </div>
 
           <p
-            className="mt-6 animate-rise font-mono text-xs text-faint"
+            className="animate-rise text-faint mt-6 font-mono text-xs"
             style={{ animationDelay: "240ms" }}
           >
             sin tarjeta · reporte en tiempo real · detección adaptativa de login

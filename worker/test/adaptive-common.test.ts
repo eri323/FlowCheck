@@ -26,7 +26,14 @@ describe("SUCCESS_TEXT_REGEX", () => {
 
 describe("SUBMIT_VERBS", () => {
   it("incluye verbos de envío comunes", () => {
-    for (const v of ["enviar", "submit", "guardar", "continuar", "aceptar", "confirmar"]) {
+    for (const v of [
+      "enviar",
+      "submit",
+      "guardar",
+      "continuar",
+      "aceptar",
+      "confirmar",
+    ]) {
       expect(SUBMIT_VERBS).toContain(v);
     }
   });

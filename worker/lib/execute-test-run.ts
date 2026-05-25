@@ -117,7 +117,9 @@ class RunLog {
       .update({ logs: this.entries })
       .eq("id", testRunId);
     if (error) {
-      console.warn(`No se pudo volcar logs del run ${testRunId}: ${error.message}`);
+      console.warn(
+        `No se pudo volcar logs del run ${testRunId}: ${error.message}`,
+      );
     }
   }
 }
@@ -149,7 +151,9 @@ async function loadCasesForRun(
     );
   }
   if (!cases || cases.length === 0) {
-    throw new TestExecutionError("El test_run no tiene test_cases para ejecutar");
+    throw new TestExecutionError(
+      "El test_run no tiene test_cases para ejecutar",
+    );
   }
 
   const caseIds = cases.map((c) => c.id);
@@ -218,7 +222,9 @@ async function executeStep(
   if (ctx.testType === "navegacion" && isExpectAction) {
     const health = await verifyPageHealthy(page);
     if (!health.healthy) {
-      throw new Error(`Navegación no saludable: ${health.reason} (URL: ${health.finalUrl})`);
+      throw new Error(
+        `Navegación no saludable: ${health.reason} (URL: ${health.finalUrl})`,
+      );
     }
     return {
       valueOverride: health.finalUrl,
@@ -232,13 +238,18 @@ async function executeStep(
 
   switch (step.action) {
     case "goto": {
-      if (!step.value) throw new Error("La acción 'goto' requiere un value (URL)");
+      if (!step.value)
+        throw new Error("La acción 'goto' requiere un value (URL)");
       await assertSafeUrl(step.value);
-      await page.goto(step.value, { timeout: STEP_TIMEOUT_MS, waitUntil: "load" });
+      await page.goto(step.value, {
+        timeout: STEP_TIMEOUT_MS,
+        waitUntil: "load",
+      });
       return {};
     }
     case "click": {
-      if (!step.selector) throw new Error("La acción 'click' requiere un selector");
+      if (!step.selector)
+        throw new Error("La acción 'click' requiere un selector");
       if (ctx.testType === "login" && isLoginSubmitSelector(step.selector)) {
         const initialUrl = page.url();
         const submit = await findSubmitButton(page);
@@ -256,7 +267,10 @@ async function executeStep(
           selectorOverride: "[adaptive] submit",
         };
       }
-      if (ctx.testType === "registro" && isRegisterSubmitSelector(step.selector)) {
+      if (
+        ctx.testType === "registro" &&
+        isRegisterSubmitSelector(step.selector)
+      ) {
         const initialUrl = page.url();
         const outcome = await registerAndVerify(
           page,
@@ -281,7 +295,10 @@ async function executeStep(
           selectorOverride: "[adaptive] submit registro",
         };
       }
-      if (ctx.testType === "busqueda" && isSearchSubmitSelector(step.selector)) {
+      if (
+        ctx.testType === "busqueda" &&
+        isSearchSubmitSelector(step.selector)
+      ) {
         const query = ctx.searchQuery ?? "";
         const outcome = await executeSearch(page, query, STEP_TIMEOUT_MS);
         if (!outcome.success) {
@@ -300,7 +317,10 @@ async function executeStep(
         await clickAdaptive(page, step.selector, STEP_TIMEOUT_MS);
         return { selectorOverride: "[adaptive] click tolerante" };
       }
-      if (ctx.testType === "formulario" && isFormSubmitSelector(step.selector)) {
+      if (
+        ctx.testType === "formulario" &&
+        isFormSubmitSelector(step.selector)
+      ) {
         const outcome = await fillAndSubmitForm(
           page,
           ctx.formFields ?? [],
@@ -351,8 +371,10 @@ async function executeStep(
       return {};
     }
     case "fill": {
-      if (!step.selector) throw new Error("La acción 'fill' requiere un selector");
-      if (step.value === null) throw new Error("La acción 'fill' requiere un value");
+      if (!step.selector)
+        throw new Error("La acción 'fill' requiere un selector");
+      if (step.value === null)
+        throw new Error("La acción 'fill' requiere un value");
       if (ctx.testType === "login") {
         if (isPasswordFillSelector(step.selector)) {
           const field = await findPasswordField(page);
@@ -414,7 +436,10 @@ async function executeStep(
           return { selectorOverride: "[adaptive] campo de búsqueda" };
         }
       }
-      if (ctx.testType === "ecommerce" && isPaymentFieldSelector(step.selector)) {
+      if (
+        ctx.testType === "ecommerce" &&
+        isPaymentFieldSelector(step.selector)
+      ) {
         await fillPaymentStage(
           page,
           ctx.ecommerceData ?? { email: "", card: "", expiry: "", cvc: "" },
@@ -422,7 +447,9 @@ async function executeStep(
         );
         return { selectorOverride: "[adaptive] datos de pago" };
       }
-      await page.locator(step.selector).fill(step.value, { timeout: STEP_TIMEOUT_MS });
+      await page
+        .locator(step.selector)
+        .fill(step.value, { timeout: STEP_TIMEOUT_MS });
       return {};
     }
     case "expect_visible": {
@@ -437,10 +464,12 @@ async function executeStep(
     case "expect_text": {
       if (!step.selector)
         throw new Error("La acción 'expect_text' requiere un selector");
-      if (!step.value) throw new Error("La acción 'expect_text' requiere un value");
+      if (!step.value)
+        throw new Error("La acción 'expect_text' requiere un value");
       const locator = page.locator(step.selector).first();
       await locator.waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS });
-      const text = (await locator.textContent({ timeout: STEP_TIMEOUT_MS })) ?? "";
+      const text =
+        (await locator.textContent({ timeout: STEP_TIMEOUT_MS })) ?? "";
       if (!text.toLowerCase().includes(step.value.toLowerCase())) {
         throw new Error(
           `El texto esperado "${step.value}" no aparece en el elemento. Texto actual: "${text.trim().slice(0, 200)}"`,
@@ -460,7 +489,8 @@ async function executeStep(
         }
         return { valueOverride: outcome.finalUrl };
       }
-      if (!step.value) throw new Error("La acción 'expect_url' requiere un value");
+      if (!step.value)
+        throw new Error("La acción 'expect_url' requiere un value");
       const current = page.url();
       if (!current.includes(step.value)) {
         throw new Error(
@@ -550,7 +580,9 @@ async function runCase(
         selectorOverride = result.selectorOverride;
       } catch (error) {
         errorMessage =
-          error instanceof Error ? error.message : "Error desconocido en el paso";
+          error instanceof Error
+            ? error.message
+            : "Error desconocido en el paso";
         if (loginCtx.lastOutcome) {
           valueOverride = loginCtx.lastOutcome.finalUrl;
         }
@@ -567,8 +599,12 @@ async function runCase(
         );
       } catch (error) {
         const msg =
-          error instanceof Error ? error.message : "Error desconocido al guardar screenshot";
-        console.warn(`Screenshot del paso ${step.id} no se pudo guardar: ${msg}`);
+          error instanceof Error
+            ? error.message
+            : "Error desconocido al guardar screenshot";
+        console.warn(
+          `Screenshot del paso ${step.id} no se pudo guardar: ${msg}`,
+        );
       }
 
       const durationMs = Date.now() - startedAt;
@@ -604,7 +640,10 @@ async function runCase(
   }
 
   const caseStatus = caseFailed ? "fallido" : "completado";
-  await supabase.from("test_cases").update({ status: caseStatus }).eq("id", testCase.id);
+  await supabase
+    .from("test_cases")
+    .update({ status: caseStatus })
+    .eq("id", testCase.id);
   return caseStatus;
 }
 
@@ -635,7 +674,10 @@ export async function executeTestRun(
 
   const log = new RunLog();
   const jsErrors = { count: 0 };
-  log.add("info", `ejecución iniciada · device=${device} · ${cases.length} casos`);
+  log.add(
+    "info",
+    `ejecución iniciada · device=${device} · ${cases.length} casos`,
+  );
   await log.flush(supabase, testRunId);
 
   const browser = await launchBrowser();

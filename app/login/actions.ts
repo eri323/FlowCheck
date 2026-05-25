@@ -2,10 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import {
-  credentialsSchema,
-  type AuthFormState,
-} from "@/lib/validation/auth";
+import { credentialsSchema, type AuthFormState } from "@/lib/validation/auth";
 
 export async function loginAction(
   _prev: AuthFormState | undefined,

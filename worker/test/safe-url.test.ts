@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { assertSafeUrl, isBlockedIp, isBlockedLiteralHost, isPrivateNetworkAllowed } from "../lib/safe-url";
+import {
+  assertSafeUrl,
+  isBlockedIp,
+  isBlockedLiteralHost,
+  isPrivateNetworkAllowed,
+} from "../lib/safe-url";
 
 describe("isBlockedIp — IPv4", () => {
   it("bloquea loopback, privadas, link-local/metadata y especiales", () => {
@@ -109,7 +114,9 @@ describe("assertSafeUrl", () => {
 
   it("rechaza IPs literales internas", async () => {
     await expect(assertSafeUrl("http://127.0.0.1")).rejects.toThrow();
-    await expect(assertSafeUrl("http://169.254.169.254/latest/meta-data/")).rejects.toThrow();
+    await expect(
+      assertSafeUrl("http://169.254.169.254/latest/meta-data/"),
+    ).rejects.toThrow();
     await expect(assertSafeUrl("http://[::1]:3000")).rejects.toThrow();
   });
 

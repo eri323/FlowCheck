@@ -7,10 +7,14 @@ import {
 } from "./adaptive-common";
 import { resolveField } from "./adaptive-formulario";
 
-const ADD_TO_CART_REGEX = /(add to cart|add to bag|agregar al carrito|añadir al carrito|anadir al carrito|añadir|anadir|agregar|comprar|buy now|buy)/i;
-const CHECKOUT_NAV_REGEX = /(checkout|place order|realizar pedido|finalizar compra|finalizar|proceed|ir al carrito|ver carrito|cart|carrito|basket|bag)/i;
-const CONFIRM_ORDER_REGEX = /(purchase|place order|pay\b|pagar|confirmar compra|confirmar pedido|comprar ahora|comprar|finalizar compra|complete order|submit order)/i;
-const PAYMENT_FIELD_REGEX = /(card|tarjeta|cc-number|cardnumber|credit|cvc|cvv|security code|expir|vencimiento|mm\/aa|mm\/yy)/i;
+const ADD_TO_CART_REGEX =
+  /(add to cart|add to bag|agregar al carrito|añadir al carrito|anadir al carrito|añadir|anadir|agregar|comprar|buy now|buy)/i;
+const CHECKOUT_NAV_REGEX =
+  /(checkout|place order|realizar pedido|finalizar compra|finalizar|proceed|ir al carrito|ver carrito|cart|carrito|basket|bag)/i;
+const CONFIRM_ORDER_REGEX =
+  /(purchase|place order|pay\b|pagar|confirmar compra|confirmar pedido|comprar ahora|comprar|finalizar compra|complete order|submit order)/i;
+const PAYMENT_FIELD_REGEX =
+  /(card|tarjeta|cc-number|cardnumber|credit|cvc|cvv|security code|expir|vencimiento|mm\/aa|mm\/yy)/i;
 
 export function isAddToCartSelector(selector?: string | null): boolean {
   return !!selector && ADD_TO_CART_REGEX.test(selector.toLowerCase());
@@ -32,8 +36,17 @@ export function splitExpiry(expiry: string): { month: string; year: string } {
 }
 
 export type StageOutcome = { success: boolean; reason: string };
-export type OrderOutcome = { success: boolean; finalUrl: string; reason: string };
-export type EcommerceData = { email: string; card: string; expiry: string; cvc: string };
+export type OrderOutcome = {
+  success: boolean;
+  finalUrl: string;
+  reason: string;
+};
+export type EcommerceData = {
+  email: string;
+  card: string;
+  expiry: string;
+  cvc: string;
+};
 
 const ORDER_CONFIRM_TIMEOUT_MS = 8_000;
 const POLL_MS = 300;
@@ -42,33 +55,53 @@ export async function findAddToCart(page: Page): Promise<Locator | null> {
   return pickFirstVisibleOrNull([
     page.getByRole("button", { name: ADD_TO_CART_REGEX }),
     page.getByRole("link", { name: ADD_TO_CART_REGEX }),
-    page.locator(':is(button, a, [role="button"])').filter({ hasText: ADD_TO_CART_REGEX }),
+    page
+      .locator(':is(button, a, [role="button"])')
+      .filter({ hasText: ADD_TO_CART_REGEX }),
     page.locator('[data-testid*="add-to-cart" i], [class*="add-to-cart" i]'),
   ]);
 }
 
-export async function addToCartStage(page: Page, timeoutMs: number): Promise<StageOutcome> {
+export async function addToCartStage(
+  page: Page,
+  timeoutMs: number,
+): Promise<StageOutcome> {
   // Aceptar diálogos nativos (algunas tiendas hacen alert("Producto agregado")).
   // Reset previo para no acumular listeners duplicados entre llamadas sucesivas.
   page.removeAllListeners("dialog");
   page.on("dialog", (d) => void d.accept().catch(() => {}));
   const button = await findAddToCart(page);
-  if (!button) return { success: false, reason: "No se encontró el botón de agregar al carrito." };
+  if (!button)
+    return {
+      success: false,
+      reason: "No se encontró el botón de agregar al carrito.",
+    };
   await button.click({ timeout: timeoutMs });
   await page.waitForTimeout(POLL_MS);
   return { success: true, reason: "Producto agregado al carrito." };
 }
 
-export async function goToCheckoutStage(page: Page, timeoutMs: number): Promise<StageOutcome> {
+export async function goToCheckoutStage(
+  page: Page,
+  timeoutMs: number,
+): Promise<StageOutcome> {
   const nav = await pickFirstVisibleOrNull([
     page.getByRole("link", { name: CHECKOUT_NAV_REGEX }),
     page.getByRole("button", { name: CHECKOUT_NAV_REGEX }),
-    page.locator(':is(a, button, [role="button"])').filter({ hasText: CHECKOUT_NAV_REGEX }),
+    page
+      .locator(':is(a, button, [role="button"])')
+      .filter({ hasText: CHECKOUT_NAV_REGEX }),
     page.locator('[href*="cart" i], [href*="checkout" i]'),
   ]);
-  if (!nav) return { success: false, reason: "No se encontró cómo ir al carrito/checkout." };
+  if (!nav)
+    return {
+      success: false,
+      reason: "No se encontró cómo ir al carrito/checkout.",
+    };
   await nav.click({ timeout: timeoutMs });
-  await page.waitForLoadState("domcontentloaded", { timeout: SETTLE_TIMEOUT_MS }).catch(() => {});
+  await page
+    .waitForLoadState("domcontentloaded", { timeout: SETTLE_TIMEOUT_MS })
+    .catch(() => {});
   return { success: true, reason: "Avanzó al carrito/checkout." };
 }
 
@@ -80,7 +113,8 @@ export async function fillPaymentStage(
   // Email (si lo pide el checkout).
   if (data.email) {
     const emailCtl = await resolveField(page, "email");
-    if (emailCtl) await emailCtl.fill(data.email, { timeout: timeoutMs }).catch(() => {});
+    if (emailCtl)
+      await emailCtl.fill(data.email, { timeout: timeoutMs }).catch(() => {});
   }
   // Tarjeta. Orden: name/autocomplete primero, luego id, label/placeholder al final.
   const cardCtl = await pickFirstVisibleOrNull([
@@ -90,7 +124,8 @@ export async function fillPaymentStage(
     page.getByLabel(/credit\s*card|tarjeta|card number|número de tarjeta/i),
     page.getByPlaceholder(/(card|tarjeta|número de tarjeta)/i),
   ]);
-  if (cardCtl) await cardCtl.fill(data.card, { timeout: timeoutMs }).catch(() => {});
+  if (cardCtl)
+    await cardCtl.fill(data.card, { timeout: timeoutMs }).catch(() => {});
 
   // Expiry: campo único o mes/año separados.
   const { month, year } = splitExpiry(data.expiry);
@@ -109,12 +144,18 @@ export async function fillPaymentStage(
       page.getByLabel(/month|mes/i),
     ]);
     const yearCtl = await pickFirstVisibleOrNull([
-      page.locator('input[name*="year" i], input[name*="anio" i], input[name*="año" i]'),
-      page.locator('input[id*="year" i], input[id*="anio" i], input[id*="año" i]'),
+      page.locator(
+        'input[name*="year" i], input[name*="anio" i], input[name*="año" i]',
+      ),
+      page.locator(
+        'input[id*="year" i], input[id*="anio" i], input[id*="año" i]',
+      ),
       page.getByLabel(/year|año|anio/i),
     ]);
-    if (monthCtl && month) await monthCtl.fill(month, { timeout: timeoutMs }).catch(() => {});
-    if (yearCtl && year) await yearCtl.fill(year, { timeout: timeoutMs }).catch(() => {});
+    if (monthCtl && month)
+      await monthCtl.fill(month, { timeout: timeoutMs }).catch(() => {});
+    if (yearCtl && year)
+      await yearCtl.fill(year, { timeout: timeoutMs }).catch(() => {});
   }
 
   // CVC.
@@ -125,9 +166,13 @@ export async function fillPaymentStage(
     page.getByLabel(/cvc|cvv|security code|código de seguridad/i),
     page.getByPlaceholder(/(cvc|cvv|security code|código de seguridad)/i),
   ]);
-  if (cvcCtl) await cvcCtl.fill(data.cvc, { timeout: timeoutMs }).catch(() => {});
+  if (cvcCtl)
+    await cvcCtl.fill(data.cvc, { timeout: timeoutMs }).catch(() => {});
 
-  return { success: true, reason: "Datos de pago completados (los campos ausentes se omiten)." };
+  return {
+    success: true,
+    reason: "Datos de pago completados (los campos ausentes se omiten).",
+  };
 }
 
 export async function confirmOrderAndVerify(
@@ -136,11 +181,17 @@ export async function confirmOrderAndVerify(
 ): Promise<OrderOutcome> {
   const confirm = await pickFirstVisibleOrNull([
     page.getByRole("button", { name: CONFIRM_ORDER_REGEX }),
-    page.locator(':is(button, a, [role="button"])').filter({ hasText: CONFIRM_ORDER_REGEX }),
+    page
+      .locator(':is(button, a, [role="button"])')
+      .filter({ hasText: CONFIRM_ORDER_REGEX }),
     page.locator('input[type="submit"]'),
   ]);
   if (!confirm) {
-    return { success: false, finalUrl: page.url(), reason: "No se encontró el botón de confirmar/pagar." };
+    return {
+      success: false,
+      finalUrl: page.url(),
+      reason: "No se encontró el botón de confirmar/pagar.",
+    };
   }
   await confirm.click({ timeout: timeoutMs });
   await page.waitForTimeout(POLL_MS);
