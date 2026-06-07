@@ -1,8 +1,16 @@
-# Plataforma de Testing Automatizado con IA
+# FlowCheck — Testing Automatizado con IA
 
-Pegás una URL, describís un flujo en lenguaje natural ("entrá con
-`admin@demo.com / 1234`, andá a _Mis pedidos_ y verificá que aparezcan 3
-items"), y el sistema:
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Playwright](https://img.shields.io/badge/Playwright-Chromium-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev)
+[![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20RLS-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com)
+[![Gemini](https://img.shields.io/badge/Gemini-2.5%20Flash-4285F4?logo=google&logoColor=white)](https://ai.google.dev)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
+
+**FlowCheck** convierte una descripción en lenguaje natural en una prueba
+end-to-end ejecutada en un navegador real. Pegás una URL, describís un flujo
+("entrá con `admin@demo.com / 1234`, andá a _Mis pedidos_ y verificá que
+aparezcan 3 items"), y el sistema:
 
 1. Llama a Gemini para traducir el prompt a un plan de testing estructurado.
 2. Ejecuta cada paso en Chromium headless con Playwright.
@@ -13,7 +21,9 @@ Equivalente real: [Testim.io](https://testim.io), [Mabl](https://mabl.com),
 [Reflect.run](https://reflect.run) — pero construido desde cero como
 proyecto de portafolio.
 
-> **Demo:** _añadir GIF en `docs/demo.gif` cuando se grabe._
+> **🔗 Demo en vivo:** <!-- TODO: pegar URL pública de Vercel, p. ej. https://flowcheck.vercel.app -->
+>
+> **🎬 Demo:** _añadir GIF en `docs/demo.gif` cuando se grabe._
 
 ---
 
@@ -63,6 +73,20 @@ por Realtime.
 
 ---
 
+## Capturas
+
+<!--
+TODO: subir las imágenes a docs/screenshots/ y descomentar.
+Sugeridas: la landing, el formulario de nuevo run, y el detalle de un run
+en vivo con los pasos `[adaptive]` y un screenshot por paso.
+
+| Nuevo test run | Reporte en vivo |
+| -------------- | --------------- |
+| ![Formulario de nuevo run](docs/screenshots/new-run.png) | ![Detalle del run en vivo](docs/screenshots/run-detail.png) |
+-->
+
+---
+
 ## Estructura del repo
 
 ```
@@ -90,11 +114,13 @@ docs/DEPLOY.md           # Guía paso a paso de despliegue
 ## Setup local
 
 ```bash
-git clone <repo>
-cd ai-testing-platform
+git clone https://github.com/eri323/flowcheck.git
+cd flowcheck
 npm install
 cp .env.example .env.local           # rellenar con tus claves reales
-cd worker && npm install && cd ..    # worker es paquete aparte
+cd worker && npm install             # worker es paquete aparte
+npx playwright install chromium      # navegador para el worker y sus tests
+cd ..
 ```
 
 Aplicar las migraciones de `supabase/migrations/` a tu proyecto de Supabase.

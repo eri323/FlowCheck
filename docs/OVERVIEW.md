@@ -152,7 +152,7 @@ el cold start de Render.
 ## 6. Estructura del repo
 
 ```
-ai-testing-platform/
+flowcheck/
 ├── app/                         Next.js 16 App Router
 │   ├── _components/             Componentes privados de la app
 │   │   ├── auth/                AuthLayout
@@ -404,8 +404,8 @@ Reglas duras del proyecto:
 ## 13. Setup local
 
 ```bash
-git clone <repo>
-cd ai-testing-platform
+git clone https://github.com/eri323/flowcheck.git
+cd flowcheck
 npm install
 cp .env.example .env.local            # rellenar con tus claves reales
 cd worker && npm install && cd ..      # worker es paquete aparte
