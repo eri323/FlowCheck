@@ -23,7 +23,7 @@ proyecto de portafolio.
 
 > **🔗 Demo en vivo:** <!-- TODO: pegar URL pública de Vercel, p. ej. https://flowcheck.vercel.app -->
 >
-> **🎬 Demo:** _añadir GIF en `docs/demo.gif` cuando se grabe._
+> **🎬 Demo:** _añadir GIF en `assets/demo.gif` cuando se grabe._
 
 ---
 
@@ -76,13 +76,13 @@ por Realtime.
 ## Capturas
 
 <!--
-TODO: subir las imágenes a docs/screenshots/ y descomentar.
+TODO: subir las imágenes a assets/screenshots/ y descomentar.
 Sugeridas: la landing, el formulario de nuevo run, y el detalle de un run
 en vivo con los pasos `[adaptive]` y un screenshot por paso.
 
 | Nuevo test run | Reporte en vivo |
 | -------------- | --------------- |
-| ![Formulario de nuevo run](docs/screenshots/new-run.png) | ![Detalle del run en vivo](docs/screenshots/run-detail.png) |
+| ![Formulario de nuevo run](assets/screenshots/new-run.png) | ![Detalle del run en vivo](assets/screenshots/run-detail.png) |
 -->
 
 ---
@@ -106,7 +106,6 @@ worker/                  # Paquete npm separado (deploy en Render)
   lib/                   # gemini, test-plan, execute-test-run, adaptive-login, …
 supabase/migrations/     # SQL versionado de tablas, RLS, Realtime
 tests/api/               # Vitest sobre las rutas de API
-docs/DEPLOY.md           # Guía paso a paso de despliegue
 ```
 
 ---
@@ -152,7 +151,9 @@ de verificación** donde los `expect_*` consecutivos se marcan automáticamente
 como `passed` (porque el redirect ya validó el login). Los pasos resueltos
 por la heurística aparecen con prefijo `[adaptive]` en la columna `selector`.
 
-Detalles completos en `CLAUDE.md`.
+La misma estrategia adaptativa cubre los seis `test_type` soportados
+(`login`, `busqueda`, `registro`, `navegacion`, `formulario`, `ecommerce`):
+detectores puros testeables + verificación por comportamiento del resultado.
 
 ---
 
@@ -175,13 +176,16 @@ WORKER_SECRET`. Sin el secreto, responde `401`.
 
 ## Despliegue
 
-Ver [`docs/DEPLOY.md`](docs/DEPLOY.md) — guía completa de Supabase, Vercel
-y Render con checklist de verificación post-deploy.
+- **Frontend** → Vercel, con las variables de entorno de producción
+  (Supabase, `WORKER_URL`, `WORKER_SECRET`).
+- **Worker** → Render (free tier) vía `render.yaml`, con `GEMINI_API_KEY`,
+  `SUPABASE_SERVICE_ROLE_KEY` y `WORKER_SECRET`.
+- Verificar `GET {WORKER_URL}/health` y un run end-to-end tras desplegar.
 
 ---
 
 ## Roadmap
 
-Estado de cada fase: ver sección _Roadmap_ en `CLAUDE.md`.
-Las fases 1–5 están implementadas; la fase 6 (deploy a producción)
-es la que documenta este README.
+Las fases 1–5 (base del proyecto, integración con Gemini, motor Playwright,
+worker HTTP asíncrono y reporte en tiempo real) están implementadas. La fase 6
+es el despliegue a producción que documenta este README.

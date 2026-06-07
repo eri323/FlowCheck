@@ -39,6 +39,12 @@ yarn-error.log*
 .claude/
 .superpowers/
 
+# internal docs / agent context (kept local, out of the repo)
+CLAUDE.md
+AGENTS.md
+FLUJOS-DE-PRUEBA.md
+docs/
+
 # playwright artifacts
 playwright-report/
 test-results/
