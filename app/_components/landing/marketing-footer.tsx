@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
+import { Credit } from "@/components/ui/credit";
 
 function FooterCol({
   title,
@@ -58,9 +59,12 @@ export function MarketingFooter(): React.JSX.Element {
         </div>
 
         <div className="border-border mt-10 flex flex-col gap-2 border-t pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-faint text-xs">
-            © 2026 FlowCheck. Proyecto de demostración técnica.
-          </p>
+          <div className="flex flex-col gap-1">
+            <p className="text-faint text-xs">
+              © 2026 FlowCheck. Proyecto de demostración técnica.
+            </p>
+            <Credit />
+          </div>
           <p className="text-faint font-mono text-xs">
             Next.js · Playwright · Gemini · Supabase
           </p>

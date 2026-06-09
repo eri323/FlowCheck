@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Credit } from "@/components/ui/credit";
 import { Check, ArrowRight } from "@/components/ui/icons";
 
 const KEY_POINTS = [
@@ -112,6 +113,10 @@ export function SplitAuthLayout({
             ) : null}
           </div>
         </div>
+
+        <footer className="px-5 pb-6 sm:px-8">
+          <Credit className="text-center" />
+        </footer>
       </section>
     </div>
   );

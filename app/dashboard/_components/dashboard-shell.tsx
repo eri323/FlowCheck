@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { SidebarNav } from "./sidebar-nav";
 import { Topbar } from "./topbar";
+import { Credit } from "@/components/ui/credit";
 
 export function DashboardShell({
   userEmail,
@@ -42,6 +43,11 @@ export function DashboardShell({
         <main className="flex-1 px-5 py-7 sm:px-8 lg:px-10">
           <div className="mx-auto max-w-6xl">{children}</div>
         </main>
+        <footer className="border-border border-t px-5 py-4 sm:px-8 lg:px-10">
+          <div className="mx-auto max-w-6xl">
+            <Credit />
+          </div>
+        </footer>
       </div>
     </div>
   );
