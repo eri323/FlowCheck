@@ -209,6 +209,42 @@ function getErrorStatus(error: unknown): number | undefined {
     : undefined;
 }
 
+// Un 429 de Gemini puede venir de dos cuotas muy distintas: la de
+// solicitudes por minuto (transitoria, se recupera en segundos) o la diaria
+// del free tier (no se restablece hasta el reset del día). El SDK expone el
+// body JSON del error dentro de `message`, que trae el `quotaId` (con
+// "PerDay"/"per day" cuando es la diaria) y un `RetryInfo.retryDelay`.
+export type QuotaErrorKind = "daily" | "transient";
+
+export interface QuotaErrorInfo {
+  kind: QuotaErrorKind;
+  retryDelaySeconds?: number;
+}
+
+const DAILY_QUOTA_RE = /per[\s_-]?day/i;
+const RETRY_DELAY_RE = /"?retryDelay"?\s*[:=]\s*"?(\d+(?:\.\d+)?)s/i;
+
+function errorMessageText(error: unknown): string {
+  if (typeof error === "string") return error;
+  if (typeof error === "object" && error !== null && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string") return message;
+  }
+  return "";
+}
+
+export function classifyQuotaError(error: unknown): QuotaErrorInfo {
+  const text = errorMessageText(error);
+  const retryMatch = text.match(RETRY_DELAY_RE);
+  const retryDelaySeconds = retryMatch
+    ? Math.ceil(Number(retryMatch[1]))
+    : undefined;
+  // Default seguro a "transient": ante un 429 ambiguo conviene reintentar
+  // (barato) antes que rendirse como si fuera la cuota diaria.
+  const kind: QuotaErrorKind = DAILY_QUOTA_RE.test(text) ? "daily" : "transient";
+  return { kind, retryDelaySeconds };
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -232,8 +268,18 @@ function classifyGeminiError(
   status: number | undefined,
 ): TestPlanGenerationError {
   if (status === 429) {
+    const { kind, retryDelaySeconds } = classifyQuotaError(error);
+    if (kind === "daily") {
+      return new TestPlanGenerationError(
+        "Se agotó la cuota diaria gratuita de la API de Gemini. No se restablece de inmediato: vuelve a intentarlo cuando se reinicie la cuota (medianoche, hora del Pacífico) o habilita facturación en Google Cloud para subir el límite.",
+        error,
+      );
+    }
+    const espera = retryDelaySeconds
+      ? `Intenta de nuevo en ~${retryDelaySeconds}s.`
+      : "Intenta de nuevo en un momento.";
     return new TestPlanGenerationError(
-      "Se alcanzó el límite de la API de Gemini. Intenta de nuevo en un momento.",
+      `Se alcanzó el límite de solicitudes por minuto de la API de Gemini. ${espera}`,
       error,
     );
   }
@@ -293,8 +339,14 @@ export async function generateTestPlan(
       break;
     } catch (error) {
       const status = getErrorStatus(error);
+      // La cuota diaria no se recupera dentro de la ventana de backoff (~7s):
+      // reintentarla solo retrasa el fallo. El resto de 429 (por minuto) y los
+      // 5xx sí son transitorios.
+      const isDailyQuota =
+        status === 429 && classifyQuotaError(error).kind === "daily";
       const isRetryable =
-        status === undefined || RETRYABLE_STATUSES.has(status);
+        !isDailyQuota &&
+        (status === undefined || RETRYABLE_STATUSES.has(status));
       if (isRetryable && attempt < MAX_GEMINI_ATTEMPTS) {
         // Backoff exponencial con jitter: 1s, 2s, 4s (cap 8s). El timeout de
         // generación (90s en process-test-run) deja holgura de sobra.

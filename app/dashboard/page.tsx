@@ -2,13 +2,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  ArrowRight,
-  Plus,
-  Sparkles,
-  Shield,
-  Bolt,
-} from "@/components/ui/icons";
+import { ArrowRight, Plus, Sparkles } from "@/components/ui/icons";
 import { StatTile } from "@/components/ui/stat-tile";
 import { BreakdownBar } from "@/components/ui/breakdown-bar";
 import { TEST_TYPES, TEST_TYPE_LABELS } from "@/lib/validation/test-run";
@@ -183,69 +177,8 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
               </div>
             </section>
           </div>
-
-          {/* Shortcuts */}
-          <section>
-            <div className="mb-3 flex items-center gap-3">
-              <h2 className="text-text text-sm font-semibold">Atajos</h2>
-              <span className="bg-border h-px flex-1" />
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <ShortcutCard
-                icon={Shield}
-                title="Probar un login"
-                description="Verifica credenciales y flujo de acceso en menos de un minuto."
-              />
-              <ShortcutCard
-                icon={Bolt}
-                title="Validar checkout"
-                description="Carrito, pago de prueba y confirmación de orden end-to-end."
-              />
-              <ShortcutCard
-                icon={Sparkles}
-                title="Generar suite desde URL"
-                description="Pega una URL y la IA propone y ejecuta pruebas automáticamente."
-              />
-            </div>
-          </section>
         </>
       )}
     </div>
-  );
-}
-
-type IconComponent = (props: {
-  size?: number;
-  className?: string;
-}) => React.JSX.Element;
-
-function ShortcutCard({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: IconComponent;
-  title: string;
-  description: string;
-}): React.JSX.Element {
-  return (
-    <Link
-      href="/dashboard/runs/new"
-      className="group border-border bg-surface hover:bg-surface-2 flex flex-col gap-3 rounded-lg border p-4 transition-colors duration-150"
-    >
-      <div className="flex items-center justify-between">
-        <span className="border-border bg-accent-subtle text-accent-text flex size-8 items-center justify-center rounded-lg border">
-          <Icon size={15} />
-        </span>
-        <ArrowRight
-          size={14}
-          className="text-faint transition-transform duration-150 group-hover:translate-x-0.5"
-        />
-      </div>
-      <div>
-        <p className="text-text text-sm font-semibold">{title}</p>
-        <p className="text-muted mt-1 text-xs leading-relaxed">{description}</p>
-      </div>
-    </Link>
   );
 }
