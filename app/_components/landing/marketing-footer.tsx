@@ -28,7 +28,7 @@ export function MarketingFooter(): React.JSX.Element {
       <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8">
         <div className="flex flex-col gap-10 sm:flex-row sm:justify-between">
           <div className="max-w-xs">
-            <Logo href="/tour" />
+            <Logo href="/" />
             <p className="text-muted mt-3 text-sm leading-relaxed">
               Pruebas end-to-end generadas por IA y ejecutadas en un navegador
               real.

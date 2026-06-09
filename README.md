@@ -7,13 +7,17 @@
 [![Gemini](https://img.shields.io/badge/Gemini-2.5%20Flash-4285F4?logo=google&logoColor=white)](https://ai.google.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-**FlowCheck** convierte una descripción en lenguaje natural en una prueba
-end-to-end ejecutada en un navegador real. Pegás una URL, describís un flujo
-("entrá con `admin@demo.com / 1234`, andá a _Mis pedidos_ y verificá que
-aparezcan 3 items"), y el sistema:
+**FlowCheck** genera una prueba end-to-end y la ejecuta en un navegador real.
+Eliges el tipo de flujo (login, registro, búsqueda, navegación o formulario),
+pegas la URL y rellenas los datos de ese flujo (por ejemplo usuario y contraseña
+para un login, o el término para una búsqueda); opcionalmente agregas una
+instrucción libre como contexto para la IA. Con eso, el sistema:
 
-1. Llama a Gemini para traducir el prompt a un plan de testing estructurado.
-2. Ejecuta cada paso en Chromium headless con Playwright.
+1. Llama a Gemini para traducir el flujo a un plan de testing estructurado.
+2. Ejecuta cada paso en Chromium headless con Playwright, con detección
+   adaptativa por tipo de flujo: en vez de confiar en los selectores literales
+   de la IA, resuelve los campos de forma tolerante a idioma/maquetado y
+   verifica el resultado por comportamiento.
 3. Captura un screenshot por paso y lo sube a Supabase Storage.
 4. Stream-ea el progreso en vivo al dashboard vía Supabase Realtime.
 
@@ -21,11 +25,6 @@ Equivalente real: [Testim.io](https://testim.io), [Mabl](https://mabl.com),
 [Reflect.run](https://reflect.run) — pero construido desde cero como
 proyecto de portafolio.
 
-> **🔗 Demo en vivo:** <!-- TODO: pegar URL pública de Vercel, p. ej. https://flowcheck.vercel.app -->
->
-> **🎬 Demo:** _añadir GIF en `assets/demo.gif` cuando se grabe._
-
----
 
 ## Stack
 
@@ -181,11 +180,3 @@ WORKER_SECRET`. Sin el secreto, responde `401`.
 - **Worker** → Render (free tier) vía `render.yaml`, con `GEMINI_API_KEY`,
   `SUPABASE_SERVICE_ROLE_KEY` y `WORKER_SECRET`.
 - Verificar `GET {WORKER_URL}/health` y un run end-to-end tras desplegar.
-
----
-
-## Roadmap
-
-Las fases 1–5 (base del proyecto, integración con Gemini, motor Playwright,
-worker HTTP asíncrono y reporte en tiempo real) están implementadas. La fase 6
-es el despliegue a producción que documenta este README.

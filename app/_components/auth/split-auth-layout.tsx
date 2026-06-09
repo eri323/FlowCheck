@@ -45,7 +45,7 @@ export function SplitAuthLayout({
         />
 
         <div className="relative">
-          <Logo href="/tour" />
+          <Logo href="/" />
         </div>
 
         <div className="relative max-w-md">
@@ -74,7 +74,7 @@ export function SplitAuthLayout({
 
         <div className="relative">
           <Link
-            href="/tour"
+            href="/"
             className="text-muted hover:text-text group inline-flex items-center gap-1.5 text-sm transition-colors"
           >
             Ver presentación completa
@@ -91,7 +91,7 @@ export function SplitAuthLayout({
         <header className="flex items-center justify-between px-5 py-5 sm:px-8">
           {/* Logo compacto solo en móvil; en desktop el logo vive en el panel izquierdo */}
           <span className="lg:invisible">
-            <Logo href="/tour" />
+            <Logo href="/" />
           </span>
           <ThemeToggle />
         </header>
