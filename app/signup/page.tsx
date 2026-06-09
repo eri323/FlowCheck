@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { signupAction } from "./actions";
 import type { AuthFormState } from "@/lib/validation/auth";
-import { AuthLayout } from "@/app/_components/auth/auth-layout";
+import { SplitAuthLayout } from "@/app/_components/auth/split-auth-layout";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ export default function SignupPage(): React.JSX.Element {
   );
 
   return (
-    <AuthLayout
+    <SplitAuthLayout
       footer={
         <>
           ¿Ya tienes cuenta?{" "}
@@ -85,6 +85,6 @@ export default function SignupPage(): React.JSX.Element {
           </Button>
         </form>
       </div>
-    </AuthLayout>
+    </SplitAuthLayout>
   );
 }

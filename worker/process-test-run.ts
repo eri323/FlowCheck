@@ -137,17 +137,6 @@ function buildGeneratorInput(testRun: TestRunRow): GenerateTestPlanInput {
         testType: "formulario",
         testData: { fields: String(data.fields ?? "") },
       };
-    case "ecommerce":
-      return {
-        ...base,
-        testType: "ecommerce",
-        testData: {
-          email: String(data.email ?? ""),
-          card: String(data.card ?? ""),
-          expiry: String(data.expiry ?? ""),
-          cvc: String(data.cvc ?? ""),
-        },
-      };
   }
 }
 
@@ -240,15 +229,6 @@ export async function processTestRun(
                 confirmPassword: String(
                   testRun.test_data.confirmPassword ?? "",
                 ),
-              }
-            : undefined,
-        ecommerceData:
-          testRun.test_type === "ecommerce"
-            ? {
-                email: String(testRun.test_data.email ?? ""),
-                card: String(testRun.test_data.card ?? ""),
-                expiry: String(testRun.test_data.expiry ?? ""),
-                cvc: String(testRun.test_data.cvc ?? ""),
               }
             : undefined,
       }),

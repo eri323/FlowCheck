@@ -181,14 +181,6 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
                   ))}
                 </div>
               </div>
-              <div className="border-border bg-surface mt-4 rounded-lg border border-dashed px-5 py-6 text-center opacity-70">
-                <p className="text-muted text-sm font-medium">
-                  Próximas tareas
-                </p>
-                <p className="text-faint mt-1 text-xs">
-                  La cola de ejecuciones programadas estará disponible pronto.
-                </p>
-              </div>
             </section>
           </div>
 

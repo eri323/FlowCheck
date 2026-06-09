@@ -151,8 +151,8 @@ de verificación** donde los `expect_*` consecutivos se marcan automáticamente
 como `passed` (porque el redirect ya validó el login). Los pasos resueltos
 por la heurística aparecen con prefijo `[adaptive]` en la columna `selector`.
 
-La misma estrategia adaptativa cubre los seis `test_type` soportados
-(`login`, `busqueda`, `registro`, `navegacion`, `formulario`, `ecommerce`):
+La misma estrategia adaptativa cubre los cinco `test_type` soportados
+(`login`, `busqueda`, `registro`, `navegacion`, `formulario`):
 detectores puros testeables + verificación por comportamiento del resultado.
 
 ---

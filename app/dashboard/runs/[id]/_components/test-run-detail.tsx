@@ -279,7 +279,6 @@ export function TestRunDetail({
     { id: "pasos", label: "Pasos" },
     { id: "logs", label: "Logs", count: run.logs.length },
     { id: "screenshots", label: "Screenshots", count: allShots.length },
-    { id: "network", label: "Network" },
   ];
 
   return (
@@ -459,15 +458,6 @@ export function TestRunDetail({
             )
           ) : null}
 
-          {tab === "network" ? (
-            <Card>
-              <EmptyState
-                icon={Sparkles}
-                title="Network — próximamente"
-                description="La captura de peticiones de red estará disponible en una próxima versión."
-              />
-            </Card>
-          ) : null}
         </>
       ) : null}
 

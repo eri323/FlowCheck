@@ -1,7 +1,6 @@
 import { Reveal } from "@/components/ui/reveal";
 import { Callout } from "@/components/ui/callout";
 import {
-  Bolt,
   Cursor,
   Pencil,
   Search,
@@ -37,11 +36,6 @@ const TYPES: { name: string; icon: IconComponent; body: string }[] = [
     icon: Terminal,
     body: "Rellena un formulario campo por campo y confirma que el envío funciona.",
   },
-  {
-    name: "E-commerce",
-    icon: Bolt,
-    body: "Simula una compra completa con tarjeta de prueba, del carrito al pago.",
-  },
 ];
 
 export function TestTypes(): React.JSX.Element {
@@ -54,11 +48,16 @@ export function TestTypes(): React.JSX.Element {
         <Reveal>
           <div className="max-w-2xl">
             <h2 className="text-text text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">
-              Seis tipos de prueba, sin configuración
+              Cinco tipos de prueba, sin configuración
             </h2>
             <p className="text-muted mt-3 text-pretty">
               Cada tipo guía a la IA con la estructura correcta y mantiene los
               datos sensibles separados de tu instrucción libre.
+            </p>
+            <p className="text-faint mt-3 text-sm text-pretty">
+              Cada tipo se validó con un sitio de ejemplo; con otros sitios el
+              resultado puede variar — el foco es la integración de IA en flujos
+              reales.
             </p>
           </div>
         </Reveal>

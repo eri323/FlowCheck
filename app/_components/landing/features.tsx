@@ -18,7 +18,7 @@ const FEATURES: { icon: IconComponent; title: string; body: string }[] = [
   {
     icon: Sparkles,
     title: "Se adapta a tu aplicación",
-    body: "La detección de login entiende formularios en cualquier idioma y maquetado, así que un selector exótico no rompe la prueba.",
+    body: "La detección adaptativa cubre los cinco tipos de prueba —login, registro, búsqueda, navegación y formulario— entendiendo formularios en cualquier idioma y maquetado, así que un selector exótico no rompe la prueba.",
   },
 ];
 

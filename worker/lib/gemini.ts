@@ -114,10 +114,20 @@ function buildUserMessage(input: GenerateTestPlanInput): string {
       break;
     }
     case "navegacion": {
-      lines.push("- (sin datos estructurados; usar la instrucción libre)");
+      lines.push("- (sin datos estructurados; smoke test de navegación)");
       lines.push("");
       lines.push(
-        "Objetivo: inferir un flujo de navegación razonable a partir de la instrucción adicional. Si no hay instrucción, ejecuta un smoke test del home (carga y elementos principales visibles).",
+        "Objetivo: generar UN solo caso de smoke test de navegación, corto y determinístico, siguiendo EXACTAMENTE esta receta:",
+      );
+      lines.push("1. goto a la URL objetivo.");
+      lines.push(
+        "2. expect_visible del encabezado o navegación principal (header, nav o logo).",
+      );
+      lines.push(
+        "3. Elige 2 o 3 enlaces de navegación principales, visibles y plausibles (por ejemplo 'text=Productos', 'text=Contacto'); por cada uno: un click en el enlace y luego un expect_url o expect_visible que confirme que la página cargó.",
+      );
+      lines.push(
+        "Mantén el caso entre 4 y 8 pasos. No inventes formularios, logins ni búsquedas: solo navegación por enlaces. Si hay instrucción adicional, ajústala a este formato de smoke test sin salirte de él.",
       );
       break;
     }
@@ -131,18 +141,6 @@ function buildUserMessage(input: GenerateTestPlanInput): string {
       lines.push("");
       lines.push(
         "Objetivo: localizar cada campo por su nombre/label y completarlo con el valor indicado, luego enviar el formulario y verificar éxito.",
-      );
-      break;
-    }
-    case "ecommerce": {
-      const d = input.testData;
-      lines.push(`- email comprador: ${d.email}`);
-      lines.push(`- tarjeta: ${d.card}`);
-      lines.push(`- vencimiento: ${d.expiry}`);
-      lines.push(`- CVC: ${d.cvc}`);
-      lines.push("");
-      lines.push(
-        "Objetivo: agregar un producto al carrito, ir a checkout, completar los datos de pago con la tarjeta de prueba indicada y verificar la confirmación de compra.",
       );
       break;
     }
@@ -192,18 +190,76 @@ export type GenerateTestPlanInput =
       testData: { fields: string };
       targetUrl: string;
       extraInstruction?: string;
-    }
-  | {
-      testType: "ecommerce";
-      testData: { email: string; card: string; expiry: string; cvc: string };
-      targetUrl: string;
-      extraInstruction?: string;
     };
 
 export type SupportedTestType = TestType;
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 const MAX_OUTPUT_TOKENS = 16000;
+
+// Reintentos para errores transitorios de Gemini (alta demanda, 5xx, rate
+// limit, fallos de red). El 503 "high demand" es temporal por definición, así
+// que reintentamos automáticamente antes de fallar el run.
+const MAX_GEMINI_ATTEMPTS = 3;
+const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
+
+function getErrorStatus(error: unknown): number | undefined {
+  return typeof error === "object" && error !== null && "status" in error
+    ? (error as { status?: number }).status
+    : undefined;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Acota el "thinking" de gemini-2.5-flash. `navegacion` es la generación más
+// abierta (sin datos estructurados), la más pesada y la más propensa a que el
+// servidor la descarte con 503 bajo demanda. Con la receta concreta del prompt
+// ya no necesita razonamiento profundo, así que la acotamos fuerte (512 tokens)
+// para hacer el request liviano y determinístico. El resto conserva el modo
+// dinámico por defecto (-1 = automático).
+function thinkingBudgetFor(
+  testType: GenerateTestPlanInput["testType"],
+): number {
+  return testType === "navegacion" ? 512 : -1;
+}
+
+// Traduce un error de la llamada a Gemini en un TestPlanGenerationError con
+// mensaje accionable para el usuario. `status` undefined = fallo de red.
+function classifyGeminiError(
+  error: unknown,
+  status: number | undefined,
+): TestPlanGenerationError {
+  if (status === 429) {
+    return new TestPlanGenerationError(
+      "Se alcanzó el límite de la API de Gemini. Intenta de nuevo en un momento.",
+      error,
+    );
+  }
+  if (status === 503) {
+    return new TestPlanGenerationError(
+      "El servicio de IA (Gemini) está con mucha demanda en este momento. Es temporal: espera unos segundos y vuelve a lanzar el run.",
+      error,
+    );
+  }
+  if (status === 500 || status === 502 || status === 504) {
+    return new TestPlanGenerationError(
+      "El servicio de IA (Gemini) tuvo un problema temporal del servidor. Vuelve a intentar en un momento.",
+      error,
+    );
+  }
+  if (typeof status === "number") {
+    return new TestPlanGenerationError(
+      `El servicio de IA (Gemini) no está disponible ahora mismo (código ${status}). Intenta de nuevo más tarde.`,
+      error,
+    );
+  }
+  return new TestPlanGenerationError(
+    "No se pudo contactar el servicio de IA (Gemini). Revisa tu conexión e intenta de nuevo.",
+    error,
+  );
+}
 
 export async function generateTestPlan(
   input: GenerateTestPlanInput,
@@ -218,37 +274,44 @@ export async function generateTestPlan(
   const ai = new GoogleGenAI({ apiKey });
   const userMessage = buildUserMessage(input);
 
-  let response;
-  try {
-    response = await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: userMessage,
-      config: {
-        systemInstruction: SYSTEM_PROMPT,
-        responseMimeType: "application/json",
-        maxOutputTokens: MAX_OUTPUT_TOKENS,
-        temperature: 0.2,
-      },
-    });
-  } catch (error) {
-    const status =
-      typeof error === "object" && error !== null && "status" in error
-        ? (error as { status?: number }).status
-        : undefined;
-    if (status === 429) {
-      throw new TestPlanGenerationError(
-        "Se alcanzó el límite de la API de Gemini. Intenta de nuevo en un momento.",
-        error,
-      );
+  let response: Awaited<
+    ReturnType<typeof ai.models.generateContent>
+  > | null = null;
+  for (let attempt = 1; attempt <= MAX_GEMINI_ATTEMPTS; attempt++) {
+    try {
+      response = await ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: userMessage,
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          responseMimeType: "application/json",
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          temperature: 0.2,
+          thinkingConfig: { thinkingBudget: thinkingBudgetFor(input.testType) },
+        },
+      });
+      break;
+    } catch (error) {
+      const status = getErrorStatus(error);
+      const isRetryable =
+        status === undefined || RETRYABLE_STATUSES.has(status);
+      if (isRetryable && attempt < MAX_GEMINI_ATTEMPTS) {
+        // Backoff exponencial con jitter: 1s, 2s, 4s (cap 8s). El timeout de
+        // generación (90s en process-test-run) deja holgura de sobra.
+        const backoff = Math.min(8_000, 1_000 * 2 ** (attempt - 1));
+        const jitter = Math.floor(Math.random() * 250);
+        await sleep(backoff + jitter);
+        continue;
+      }
+      throw classifyGeminiError(error, status);
     }
-    if (typeof status === "number") {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new TestPlanGenerationError(
-        `Error de la API de Gemini (status ${status}): ${message}`,
-        error,
-      );
-    }
-    throw new TestPlanGenerationError("Falló la llamada a Gemini", error);
+  }
+
+  if (!response) {
+    // Inalcanzable: el loop siempre asigna response o lanza. Guard para TS.
+    throw new TestPlanGenerationError(
+      "No se pudo contactar el servicio de IA (Gemini). Revisa tu conexión e intenta de nuevo.",
+    );
   }
 
   const finishReason = response.candidates?.[0]?.finishReason;

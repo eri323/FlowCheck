@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/cn";
-import { TEST_TYPE_LABELS, type TestType } from "@/lib/validation/test-run";
+import { testTypeLabel } from "@/lib/validation/test-run";
 import { formatRelative, formatRunDuration } from "@/lib/format";
 import { RunStatusBadge } from "@/components/runs/run-status";
 import { ChevronRight } from "@/components/ui/icons";
@@ -12,7 +12,7 @@ export type TestRunRow = {
   target_url: string;
   prompt: string | null;
   status: string;
-  test_type: TestType;
+  test_type: string;
   created_at: string;
   started_at: string | null;
   finished_at: string | null;
@@ -23,7 +23,7 @@ export type RunListItem = {
   target_url: string;
   prompt: string | null;
   status: string;
-  test_type: TestType;
+  test_type: string;
   created_at: string;
   createdLabel: string;
   durationLabel: string | null;
@@ -78,7 +78,7 @@ export function RunRow({ run }: { run: RunListItem }): React.JSX.Element {
       </div>
       <div className="hidden sm:block">
         <span className="text-muted text-xs">
-          {TEST_TYPE_LABELS[run.test_type]}
+          {testTypeLabel(run.test_type)}
         </span>
       </div>
       <div className="flex min-w-0 items-center gap-2">

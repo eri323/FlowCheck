@@ -13,7 +13,6 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   AlertCircle,
-  Bolt,
   Cursor,
   Eye,
   Globe,
@@ -63,12 +62,6 @@ const TYPE_META: Record<
     steps: "N+1",
     duration: "20–45 s",
   },
-  ecommerce: {
-    icon: Bolt,
-    hint: "Simularemos una compra con tarjeta de prueba.",
-    steps: "8–12",
-    duration: "30–60 s",
-  },
 };
 
 type FieldErrors = Record<string, string[] | undefined>;
@@ -89,12 +82,6 @@ type RegistroState = {
 };
 type BusquedaState = { query: string; expectedResult: string };
 type FormularioState = { fields: string };
-type EcommerceState = {
-  email: string;
-  card: string;
-  expiry: string;
-  cvc: string;
-};
 
 export function NewTestRunForm(): React.JSX.Element {
   const router = useRouter();
@@ -119,12 +106,34 @@ export function NewTestRunForm(): React.JSX.Element {
     expectedResult: "",
   });
   const [formulario, setFormulario] = useState<FormularioState>({ fields: "" });
-  const [ecommerce, setEcommerce] = useState<EcommerceState>({
-    email: "",
-    card: "4242 4242 4242 4242",
-    expiry: "",
-    cvc: "",
-  });
+
+  function applyExample(): void {
+    setTargetUrl(EXAMPLES[testType].url);
+    switch (testType) {
+      case "login":
+        setLogin({ email: "standard_user", password: "secret_sauce" });
+        break;
+      case "registro":
+        setRegistro({
+          name: "Test User",
+          email: `test_${Date.now()}@example.com`,
+          password: "Password123",
+          confirmPassword: "Password123",
+        });
+        break;
+      case "busqueda":
+        setBusqueda({ query: "Boston", expectedResult: "" });
+        break;
+      case "navegacion":
+        break;
+      case "formulario":
+        setFormulario({
+          fields:
+            "Text input: Hola mundo\nTextarea: Mensaje de prueba\nPassword: secret123",
+        });
+        break;
+    }
+  }
 
   function buildPayload(): Record<string, unknown> {
     const base = {
@@ -151,8 +160,6 @@ export function NewTestRunForm(): React.JSX.Element {
         return { ...base, test_type: "navegacion", test_data: {} };
       case "formulario":
         return { ...base, test_type: "formulario", test_data: formulario };
-      case "ecommerce":
-        return { ...base, test_type: "ecommerce", test_data: ecommerce };
     }
   }
 
@@ -264,6 +271,35 @@ export function NewTestRunForm(): React.JSX.Element {
                   />
                 ))}
               </div>
+            </div>
+
+            <div className="border-border bg-surface-2 mt-4 flex flex-col gap-2 rounded-md border p-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted text-xs">
+                  Ejemplo recomendado:{" "}
+                  <span className="text-text font-mono">
+                    {EXAMPLES[testType].site}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={applyExample}
+                  className="border-border bg-surface text-text hover:border-border-strong inline-flex items-center rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors duration-150"
+                >
+                  Usar ejemplo
+                </button>
+              </div>
+              <p className="text-muted text-[0.6875rem]">
+                Rellena:{" "}
+                <span className="text-text">{EXAMPLES[testType].data}</span>
+              </p>
+              <p className="text-faint text-[0.6875rem] leading-relaxed">
+                Estos enlaces son los que usé para validar cada flujo. FlowCheck
+                es un proyecto de demostración con infraestructura gratuita; con
+                un sitio distinto el resultado puede variar. El objetivo es
+                mostrar la integración de IA en un flujo real, no cubrir todos
+                los sitios.
+              </p>
             </div>
           </Section>
 
@@ -429,64 +465,6 @@ export function NewTestRunForm(): React.JSX.Element {
               </Field>
             ) : null}
 
-            {testType === "ecommerce" ? (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <Field label="Email del comprador" htmlFor="ec-email">
-                  <Input
-                    id="ec-email"
-                    type="email"
-                    required
-                    value={ecommerce.email}
-                    onChange={(e) =>
-                      setEcommerce({ ...ecommerce, email: e.target.value })
-                    }
-                    placeholder="comprador@test.com"
-                  />
-                </Field>
-                <Field
-                  label="Tarjeta de prueba"
-                  htmlFor="ec-card"
-                  hint="Stripe test card. Nunca una tarjeta real."
-                >
-                  <Input
-                    id="ec-card"
-                    type="text"
-                    required
-                    value={ecommerce.card}
-                    onChange={(e) =>
-                      setEcommerce({ ...ecommerce, card: e.target.value })
-                    }
-                    className="font-mono"
-                  />
-                </Field>
-                <Field label="Vencimiento" htmlFor="ec-expiry">
-                  <Input
-                    id="ec-expiry"
-                    type="text"
-                    required
-                    value={ecommerce.expiry}
-                    onChange={(e) =>
-                      setEcommerce({ ...ecommerce, expiry: e.target.value })
-                    }
-                    placeholder="12/28"
-                  />
-                </Field>
-                <Field label="CVC" htmlFor="ec-cvc">
-                  <Input
-                    id="ec-cvc"
-                    type="text"
-                    required
-                    inputMode="numeric"
-                    value={ecommerce.cvc}
-                    onChange={(e) =>
-                      setEcommerce({ ...ecommerce, cvc: e.target.value })
-                    }
-                    placeholder="123"
-                  />
-                </Field>
-              </div>
-            ) : null}
-
             {testDataError ? (
               <p className="text-danger-text mt-3 text-xs">{testDataError}</p>
             ) : null}
@@ -543,15 +521,6 @@ export function NewTestRunForm(): React.JSX.Element {
                     <span className="border-accent-subtle bg-accent-subtle text-accent-text inline-flex items-center rounded-md border px-2.5 py-1.5 text-xs font-medium">
                       Chromium
                     </span>
-                    {["Firefox", "WebKit"].map((b) => (
-                      <span
-                        key={b}
-                        title="Próximamente"
-                        className="border-border bg-surface-2 text-faint inline-flex cursor-not-allowed items-center rounded-md border px-2.5 py-1.5 text-xs opacity-60"
-                      >
-                        {b}
-                      </span>
-                    ))}
                   </div>
                 </div>
 
@@ -684,26 +653,6 @@ export function NewTestRunForm(): React.JSX.Element {
             >
               {isPending ? "Creando" : "Generar y ejecutar"}
             </Button>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                aria-disabled="true"
-                tabIndex={-1}
-                title="Próximamente"
-                className="border-border bg-surface text-faint cursor-not-allowed rounded-md border px-2.5 py-1.5 text-[0.6875rem] opacity-60"
-              >
-                Guardar plantilla
-              </button>
-              <button
-                type="button"
-                aria-disabled="true"
-                tabIndex={-1}
-                title="Próximamente"
-                className="border-border bg-surface text-faint cursor-not-allowed rounded-md border px-2.5 py-1.5 text-[0.6875rem] opacity-60"
-              >
-                Programar
-              </button>
-            </div>
             <p className="text-faint pt-1 text-[0.6875rem] leading-relaxed">
               La IA generará el plan y el worker lo ejecutará en un navegador
               real. Verás el avance paso a paso en vivo.
@@ -719,8 +668,35 @@ const SECURE_TYPES = new Set<TestType>([
   "login",
   "registro",
   "formulario",
-  "ecommerce",
 ]);
+
+const EXAMPLES: Record<TestType, { url: string; site: string; data: string }> = {
+  login: {
+    url: "https://www.saucedemo.com/",
+    site: "saucedemo.com",
+    data: "usuario standard_user · clave secret_sauce",
+  },
+  registro: {
+    url: "https://practice.expandtesting.com/notes/app/register",
+    site: "practice.expandtesting.com",
+    data: "Test User · Password123 (email único en cada uso)",
+  },
+  busqueda: {
+    url: "https://www.scrapethissite.com/pages/forms/",
+    site: "scrapethissite.com",
+    data: 'busca "Boston"',
+  },
+  navegacion: {
+    url: "https://automationexercise.com/",
+    site: "automationexercise.com",
+    data: "smoke test del inicio (sin datos)",
+  },
+  formulario: {
+    url: "https://www.selenium.dev/selenium/web/web-form.html",
+    site: "selenium.dev",
+    data: "Text input, Textarea y Password de ejemplo",
+  },
+};
 
 const DYNAMIC_TITLE: Record<TestType, string> = {
   login: "Credenciales",
@@ -728,7 +704,6 @@ const DYNAMIC_TITLE: Record<TestType, string> = {
   busqueda: "Parámetros de búsqueda",
   navegacion: "Pasos de navegación",
   formulario: "Datos del formulario",
-  ecommerce: "Datos de compra",
 };
 
 const DYNAMIC_DESCRIPTION: Record<TestType, string> = {
@@ -737,7 +712,6 @@ const DYNAMIC_DESCRIPTION: Record<TestType, string> = {
   busqueda: "Lo que la IA escribirá en el buscador del sitio.",
   navegacion: "Este tipo no necesita campos adicionales.",
   formulario: "Cada par se rellenará en el campo correspondiente.",
-  ecommerce: "Datos de pago de prueba para simular la compra.",
 };
 
 const PROMPT_SUGGESTIONS = [

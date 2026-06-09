@@ -93,24 +93,6 @@ const formularioDataSchema = z.object({
 });
 export type FormularioData = z.infer<typeof formularioDataSchema>;
 
-const ecommerceDataSchema = z.object({
-  email: z.email("Email inválido").max(320),
-  card: z
-    .string()
-    .trim()
-    .min(12, "Tarjeta inválida")
-    .max(25, "Tarjeta inválida")
-    .regex(/^[0-9 ]+$/, "Solo dígitos y espacios"),
-  expiry: z
-    .string()
-    .trim()
-    .regex(/^(0[1-9]|1[0-2])\/\d{2}$/, "Formato MM/AA"),
-  cvc: z
-    .string()
-    .trim()
-    .regex(/^\d{3,4}$/, "CVC inválido"),
-});
-export type EcommerceData = z.infer<typeof ecommerceDataSchema>;
 
 const baseFields = {
   target_url: httpUrlSchema,
@@ -147,11 +129,6 @@ export const createTestRunSchema = z.discriminatedUnion("test_type", [
     test_data: formularioDataSchema,
     ...baseFields,
   }),
-  z.object({
-    test_type: z.literal("ecommerce"),
-    test_data: ecommerceDataSchema,
-    ...baseFields,
-  }),
 ]);
 
 export type CreateTestRunInput = z.infer<typeof createTestRunSchema>;
@@ -162,7 +139,6 @@ export const TEST_TYPES = [
   "busqueda",
   "navegacion",
   "formulario",
-  "ecommerce",
 ] as const;
 
 export type TestType = (typeof TEST_TYPES)[number];
@@ -173,5 +149,8 @@ export const TEST_TYPE_LABELS: Record<TestType, string> = {
   busqueda: "Búsqueda",
   navegacion: "Navegación",
   formulario: "Formulario",
-  ecommerce: "E-commerce",
 };
+
+export function testTypeLabel(type: string): string {
+  return TEST_TYPE_LABELS[type as TestType] ?? type;
+}

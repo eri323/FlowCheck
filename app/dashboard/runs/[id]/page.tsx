@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { TEST_TYPE_LABELS, type TestType } from "@/lib/validation/test-run";
+import { testTypeLabel } from "@/lib/validation/test-run";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { Card } from "@/components/ui/card";
@@ -17,7 +17,7 @@ type TestRunRow = {
   target_url: string;
   prompt: string | null;
   status: string;
-  test_type: TestType;
+  test_type: string;
   error_message: string | null;
   started_at: string | null;
   finished_at: string | null;
@@ -102,7 +102,7 @@ export default async function TestRunPage({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="accent">{TEST_TYPE_LABELS[testRun.test_type]}</Badge>
+              <Badge tone="accent">{testTypeLabel(testRun.test_type)}</Badge>
               <span className="text-faint font-mono text-xs">
                 {formatDateTime(testRun.created_at)}
               </span>
